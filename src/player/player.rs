@@ -10,6 +10,7 @@ use crate::library::Song;
 
 // TODO: MPRIS support for Gnome Shell media controls
 
+#[derive(Debug)]
 pub enum PlayerRequest {
     /// Play or pause depending on the current state
     PlayOrPause,

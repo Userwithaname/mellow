@@ -9,6 +9,7 @@ pub struct Song {
     pub info: Option<SongInfo>,
 }
 
+#[derive(Default)]
 pub struct SongInfo {
     pub title: String,
     pub album: String,

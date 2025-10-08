@@ -1,37 +1,31 @@
-use adw::Application;
-use gtk::prelude::*;
 use std::thread;
 
-const APP_ID: &str = "com.github.userwithaname.Mellow";
-
+use mellow::app;
 use mellow::library::{Library, Song};
 use mellow::player::Player;
 
-pub fn main() -> gtk::glib::ExitCode {
-    let app = Application::builder().application_id(APP_ID).build();
-
-    app.connect_activate(init);
-
-    app.run_with_args(&[] as &[&str; 0])
-}
-
-// NOTE: It might be a good idea to rewrite all of the UI
-// from scratch once done experimenting
-
-fn init(app: &Application) {
+fn main() {
     let (mut player, player_tx, ui_rx) = Player::init().expect("Failed to initialize player");
 
-    mellow::ui_gtk::build(app, &player_tx, ui_rx);
+    // IDEA: Define `SongInfo` and `gst::State` as `Arc<Mutex<_>>` and create
+    // a clone of each, then send one to Player and the other to the UI. This
+    // would allow easy communication with the UI. Might be worth it to learn
+    // Relm4 properly before attempting to come up with solutions, though.
 
     thread::Builder::new()
         .name("player".to_string())
-        .spawn(move || {
-            init_player_queue(&mut player);
-            player
-                .event_handler(player_tx)
-                .expect("Player thread crashed")
+        .spawn({
+            let player_tx = player_tx.clone();
+            move || {
+                init_player_queue(&mut player);
+                player
+                    .event_handler(player_tx)
+                    .expect("Player thread crashed")
+            }
         })
         .unwrap();
+
+    app::run((player_tx, ui_rx));
 }
 
 fn init_player_queue(player: &mut Player) {
