@@ -1,5 +1,5 @@
 use adw::{self, prelude::*};
-use gtk::{self, Align, Orientation, gdk::Paintable};
+use gtk::{self, Align, Orientation, gdk::Paintable, glib, pango::EllipsizeMode};
 use relm4::prelude::*;
 use std::sync::mpsc;
 
@@ -14,7 +14,9 @@ pub fn run(
         mpsc::Receiver<PlayerResponse>,
     ),
 ) {
-    RelmApp::new(APP_ID).run::<App>(args);
+    glib::set_application_name(APP_NAME);
+    glib::set_program_name(Some(APP_NAME));
+    RelmApp::new(APP_ID).with_args(vec![]).run::<App>(args);
 }
 
 struct App {
@@ -36,20 +38,21 @@ impl SimpleComponent for App {
     type Output = ();
 
     view! {
-        gtk::Window {
+        gtk::ApplicationWindow {
             set_title: Some(APP_NAME),
-            set_titlebar: Some(
-                &adw::HeaderBar::builder()
-                    .css_classes(["flat"])
-                    .show_title(false)
-                    .build()
-            ),
+            set_icon_name: Some(APP_ID),
+            set_default_size: (250, 430),
 
-            gtk::Box {
-                set_margin_top: 4,
+            #[wrap(Some)]
+            set_titlebar = &adw::HeaderBar {
+                set_css_classes: &["flat"],
+                set_show_title: false,
+            },
+
+            gtk::WindowHandle { gtk::Box {
+                set_margin_top: 0,
                 set_margin_bottom: 12,
-                set_margin_end: 26,
-                set_margin_start: 26,
+                set_margin_horizontal: 26,
                 set_hexpand: true,
                 set_vexpand: true,
                 set_valign: Align::Center,
@@ -57,28 +60,30 @@ impl SimpleComponent for App {
                 set_spacing: 6,
 
                 // TODO: Display the currently playing song album cover
-
                 gtk::Picture { // Album cover
                     set_paintable: Some(&Paintable::new_empty(1, 1)),
                     set_content_fit: gtk::ContentFit::Contain,
                     set_halign: Align::Center,
-                    set_height_request: 185,
-                    set_width_request: 185,
+                    set_size_request: (162, 162),
                     set_css_classes: &["card"],
                 },
 
+                // TODO: Marquee long titles
                 gtk::Label { // Song title
                     set_label: "Song Title",
                     set_css_classes: &["heading"],
+                    set_ellipsize: EllipsizeMode::End,
                     set_margin_top: 6,
                 },
                 gtk::Label { // Album title
                     set_label: "Album Title",
                     set_css_classes: &["caption-heading"],
+                    set_ellipsize: EllipsizeMode::End,
                 },
                 gtk::Label { // Artist name
                     set_label: "Artist Name",
                     set_css_classes: &["caption-heading"],
+                    set_ellipsize: EllipsizeMode::End,
                     set_margin_bottom: 6,
                 },
 
@@ -92,8 +97,7 @@ impl SimpleComponent for App {
                         set_orientation: Orientation::Horizontal,
                         set_halign: Align::Center,
                         set_hexpand: true,
-                        set_margin_start: 6,
-                        set_margin_end: 6,
+                        set_margin_horizontal: 6,
                         set_spacing: 12,
 
                         // TODO: Change icons based on state
@@ -125,23 +129,28 @@ impl SimpleComponent for App {
                         set_hexpand: true,
 
                         gtk::Label {
+                            // set_label: "0:00",
                             set_label: "-:--",
+                            set_css_classes: &["numeric"],
                             set_halign: Align::Start,
                         },
-                        gtk::Scale::with_range(Orientation::Horizontal, 0.0, 1.0, 0.01) {
+                        gtk::Scale {
+                            set_range: (0.0, 1.0),
+                            set_orientation: Orientation::Horizontal,
                             set_hexpand: true,
-                            set_margin_start: 6,
-                            set_margin_end: 6,
+                            set_margin_horizontal: 6,
 
                             // TODO: Support seeking
                         },
                         gtk::Label {
+                            // set_label: "1:23",
                             set_label: "-:--",
+                            set_css_classes: &["numeric"],
                             set_halign: Align::End,
                         }
                     }
                 }
-            }
+            }},
         }
     }
 
@@ -160,7 +169,7 @@ impl SimpleComponent for App {
         ComponentParts { model, widgets }
     }
 
-    fn update(&mut self, msg: Self::Input, sender: ComponentSender<Self>) {
-        self.player_tx.send(msg).unwrap();
+    fn update(&mut self, request: Self::Input, _sender: ComponentSender<Self>) {
+        self.player_tx.send(request).unwrap();
     }
 }
