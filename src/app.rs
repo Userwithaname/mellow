@@ -1,5 +1,5 @@
 use adw::{self, prelude::*};
-use gtk::{self, Align, Orientation, gdk::Paintable, glib, pango::EllipsizeMode};
+use gtk::{self, Align, Orientation, gdk::Paintable, gio, glib, pango::EllipsizeMode};
 use relm4::prelude::*;
 use std::sync::mpsc;
 
@@ -7,6 +7,7 @@ use crate::{PlayerRequest, PlayerResponse};
 
 pub const APP_NAME: &str = "Mellow";
 pub const APP_ID: &str = "com.github.userwithaname.Mellow";
+pub const APP_SC: &str = "/com/github/userwithaname/Mellow/";
 
 pub fn run(
     args: (
@@ -38,119 +39,166 @@ impl SimpleComponent for App {
     type Output = ();
 
     view! {
-        gtk::ApplicationWindow {
+        adw::ApplicationWindow {
             set_title: Some(APP_NAME),
             set_icon_name: Some(APP_ID),
-            set_default_size: (250, 430),
+            set_default_size: (240, 440),
+            set_size_request: (214, 395),
 
-            #[wrap(Some)]
-            set_titlebar = &adw::HeaderBar {
-                set_css_classes: &["flat"],
-                set_show_title: false,
-            },
+                #[wrap(Some)]
+                set_content = &adw::BottomSheet {
+                    set_show_drag_handle: true,
+                    set_vexpand: false,
 
-            gtk::WindowHandle { gtk::Box {
-                set_margin_top: 0,
-                set_margin_bottom: 12,
-                set_margin_horizontal: 26,
-                set_hexpand: true,
-                set_vexpand: true,
-                set_valign: Align::Center,
-                set_orientation: Orientation::Vertical,
-                set_spacing: 6,
-
-                // TODO: Display the currently playing song album cover
-                gtk::Picture { // Album cover
-                    set_paintable: Some(&Paintable::new_empty(1, 1)),
-                    set_content_fit: gtk::ContentFit::Contain,
-                    set_halign: Align::Center,
-                    set_size_request: (162, 162),
-                    set_css_classes: &["card"],
-                },
-
-                // TODO: Marquee long titles
-                gtk::Label { // Song title
-                    set_label: "Song Title",
-                    set_css_classes: &["heading"],
-                    set_ellipsize: EllipsizeMode::End,
-                    set_margin_top: 6,
-                },
-                gtk::Label { // Album title
-                    set_label: "Album Title",
-                    set_css_classes: &["caption-heading"],
-                    set_ellipsize: EllipsizeMode::End,
-                },
-                gtk::Label { // Artist name
-                    set_label: "Artist Name",
-                    set_css_classes: &["caption-heading"],
-                    set_ellipsize: EllipsizeMode::End,
-                    set_margin_bottom: 6,
-                },
-
-                // TODO: Overlay media controls & auto-hide
-                gtk::Box { // Media controls toolbar
-                    set_orientation: Orientation::Vertical,
-                    set_hexpand: true,
-                    set_css_classes: &["toolbar", "osd"],
-
-                    gtk::Box { // Main media buttons
-                        set_orientation: Orientation::Horizontal,
-                        set_halign: Align::Center,
-                        set_hexpand: true,
-                        set_margin_horizontal: 6,
-                        set_spacing: 12,
-
-                        // TODO: Change icons based on state
-
-                        gtk::Button { // Skip backward
-                            set_icon_name: "media-skip-backward-symbolic",
-                            set_css_classes: &["circular"],
-
-                            connect_clicked => PlayerRequest::SkipPrevious,
+                    #[wrap(Some)]
+                    set_content = &adw::ToolbarView {
+                        add_top_bar = &adw::HeaderBar {
+                            set_valign: Align::Start,
+                            set_css_classes: &["flat"],
+                            set_show_title: false,
                         },
-                        gtk::Button { // Pause/play
-                            set_icon_name: "media-playback-start-symbolic",
-                            set_css_classes: &["circular"],
 
-                            connect_clicked => PlayerRequest::PlayOrPause,
-                        },
-                        gtk::Button { // Skip forward
-                            set_icon_name: "media-skip-forward-symbolic",
-                            set_css_classes: &["circular"],
+                    #[wrap(Some)]
+                    set_content = &gtk::WindowHandle {
+                        gtk::Box {
+                            set_margin_top: 0,
+                            set_margin_bottom: 12,
+                            set_margin_horizontal: 26,
+                            set_hexpand: true,
+                            set_vexpand: true,
+                            set_valign: Align::Center,
+                            set_orientation: Orientation::Vertical,
+                            set_spacing: 6,
 
-                            connect_clicked => PlayerRequest::SkipNext,
-                            // connect_clicked: // TODO
+                            // TODO: Display the currently playing song album cover
+                            gtk::Picture { // Album cover
+                                set_paintable: Some(&Paintable::new_empty(1, 1)),
+                                set_content_fit: gtk::ContentFit::Contain,
+                                set_halign: Align::Center,
+                                set_size_request: (162, 162),
+                                set_css_classes: &["card"],
+                            },
+
+                            // TODO: Marquee long titles
+                            gtk::Label { // Song title
+                                set_label: "Song Title",
+                                set_css_classes: &["heading"],
+                                set_accessible_role: gtk::AccessibleRole::Marquee,
+                                // set_ellipsize: EllipsizeMode::End,
+                                set_margin_top: 6,
+                            },
+                            gtk::Label { // Album title
+                                set_label: "Album Title",
+                                set_css_classes: &["caption-heading"],
+                                set_accessible_role: gtk::AccessibleRole::Marquee,
+                                // set_ellipsize: EllipsizeMode::End,
+                            },
+                            gtk::Label { // Artist name
+                                set_label: "Artist Name",
+                                set_css_classes: &["caption-heading"],
+                                set_accessible_role: gtk::AccessibleRole::Marquee,
+                                // set_ellipsize: EllipsizeMode::End,
+                                set_margin_bottom: 6,
+                            },
+
+                            // TODO: Overlay media controls & auto-hide
+                            gtk::Box { // Media controls toolbar
+                                set_accessible_role: gtk::AccessibleRole::Toolbar,
+                                set_orientation: Orientation::Vertical,
+                                set_hexpand: true,
+                                set_css_classes: &["toolbar", "osd"],
+
+                                gtk::Box { // Main media buttons
+                                    set_orientation: Orientation::Horizontal,
+                                    set_halign: Align::Center,
+                                    set_hexpand: true,
+                                    set_margin_horizontal: 6,
+                                    set_spacing: 12,
+
+                                    // TODO: Change icons based on state
+
+                                    gtk::Button { // Skip backward
+                                        set_icon_name: "media-skip-backward-symbolic",
+                                        set_css_classes: &["circular"],
+
+                                        connect_clicked => PlayerRequest::SkipPrevious,
+                                    },
+                                    gtk::Button { // Pause/play
+                                        set_icon_name: "media-playback-start-symbolic",
+                                        set_css_classes: &["circular"],
+
+                                        connect_clicked => PlayerRequest::PlayOrPause,
+                                    },
+                                    gtk::Button { // Skip forward
+                                        set_icon_name: "media-skip-forward-symbolic",
+                                        set_css_classes: &["circular"],
+
+                                        connect_clicked => PlayerRequest::SkipNext,
+                                        // connect_clicked: // TODO
+                                    },
+                                },
+
+                                // TODO: Disable seek bar when no song is active
+                                // TODO: Update the seek bar and labels to show the correct time
+                                gtk::Box { // Seek controls
+                                    set_hexpand: true,
+
+                                    gtk::Label {
+                                        // set_label: "0:00",
+                                        set_label: "-:--",
+                                        set_css_classes: &["numeric"],
+                                        set_halign: Align::Start,
+                                    },
+                                    gtk::Scale {
+                                        set_range: (0.0, 1.0),
+                                        set_orientation: Orientation::Horizontal,
+                                        set_hexpand: true,
+                                        set_margin_horizontal: 6,
+
+                                        // TODO: Support seeking
+                                    },
+                                    gtk::Label {
+                                        // set_label: "1:23",
+                                        set_label: "-:--",
+                                        set_css_classes: &["numeric"],
+                                        set_halign: Align::End,
+                                    },
+                                },
+                            },
+                            gtk::Box {
+                                set_height_request: 15,
+                            }
                         },
                     },
+                },
 
-                    // TODO: Disable seek bar when no song is active
-                    // TODO: Update the seek bar and labels to show the correct time
-                    gtk::Box { // Seek controls
+                #[wrap(Some)]
+                set_bottom_bar = &gtk::Box {
+                    set_height_request: 30,
+                    gtk::Image {
+                        set_icon_name: Some("view-continuous-symbolic"),
+                        set_css_classes: &["dimmed"],
+                        set_halign: Align::Center,
                         set_hexpand: true,
+                    }
+                },
+                #[wrap(Some)]
+                set_sheet = &adw::ToolbarView {
+                    add_top_bar = &adw::HeaderBar::new(),
 
-                        gtk::Label {
-                            // set_label: "0:00",
-                            set_label: "-:--",
-                            set_css_classes: &["numeric"],
-                            set_halign: Align::Start,
-                        },
-                        gtk::Scale {
-                            set_range: (0.0, 1.0),
-                            set_orientation: Orientation::Horizontal,
-                            set_hexpand: true,
-                            set_margin_horizontal: 6,
-
-                            // TODO: Support seeking
-                        },
-                        gtk::Label {
-                            // set_label: "1:23",
-                            set_label: "-:--",
-                            set_css_classes: &["numeric"],
-                            set_halign: Align::End,
+                    // TODO: Music library UI
+                    #[wrap(Some)]
+                    set_content = &adw::ToolbarView {
+                        set_vexpand: true,
+                        #[wrap(Some)]
+                        set_content = &adw::StatusPage {
+                            gtk::Box {
+                                set_height_request: 9999,
+                            }
                         }
                     }
-                }
-            }},
+                },
+            },
         }
     }
 
