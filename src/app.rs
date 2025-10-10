@@ -45,18 +45,18 @@ impl SimpleComponent for App {
             set_default_size: (240, 440),
             set_size_request: (214, 395),
 
-                #[wrap(Some)]
-                set_content = &adw::BottomSheet {
-                    set_show_drag_handle: true,
-                    set_vexpand: false,
+            #[wrap(Some)]
+            set_content = &adw::BottomSheet {
+                set_show_drag_handle: true,
+                set_vexpand: false,
 
-                    #[wrap(Some)]
-                    set_content = &adw::ToolbarView {
-                        add_top_bar = &adw::HeaderBar {
-                            set_valign: Align::Start,
-                            set_css_classes: &["flat"],
-                            set_show_title: false,
-                        },
+                #[wrap(Some)]
+                set_content = &adw::ToolbarView {
+                    add_top_bar = &adw::HeaderBar {
+                        set_valign: Align::Start,
+                        set_css_classes: &["flat"],
+                        set_show_title: false,
+                    },
 
                     #[wrap(Some)]
                     set_content = &gtk::WindowHandle {
@@ -84,20 +84,20 @@ impl SimpleComponent for App {
                                 set_label: "Song Title",
                                 set_css_classes: &["heading"],
                                 set_accessible_role: gtk::AccessibleRole::Marquee,
-                                // set_ellipsize: EllipsizeMode::End,
+                                set_ellipsize: EllipsizeMode::End,
                                 set_margin_top: 6,
                             },
                             gtk::Label { // Album title
                                 set_label: "Album Title",
                                 set_css_classes: &["caption-heading"],
                                 set_accessible_role: gtk::AccessibleRole::Marquee,
-                                // set_ellipsize: EllipsizeMode::End,
+                                set_ellipsize: EllipsizeMode::End,
                             },
                             gtk::Label { // Artist name
                                 set_label: "Artist Name",
                                 set_css_classes: &["caption-heading"],
                                 set_accessible_role: gtk::AccessibleRole::Marquee,
-                                // set_ellipsize: EllipsizeMode::End,
+                                set_ellipsize: EllipsizeMode::End,
                                 set_margin_bottom: 6,
                             },
 
