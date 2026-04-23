@@ -22,9 +22,12 @@ Song queue:
   - TODO: Improvement: Scroll when reaching top/bottom edges
     - IDEA: Also pan if dragging onto the pan button, once panning is implemented
 - [-] Multi-selection mode
-  - [x] Item selection (checkbox in place of the cover image)
+  - IDEA: Shift+click to select everything between the last selected item and the clicked item
   - [x] Removing multiple items at once
   - [ ] Rating multiple items at once
+- [ ] Offset the visible items by pressing the buttons at the top and bottom of the queue
+  - [ ] Improvement: Holding the button should repeatedly increment the panning offset
+  - [ ] Improvement: Show a scroll-to-playing button whenever the playing item is out of view
 - [x] Display a landing page
 > The "Open from Disk" picker could be improved to accept directories as well
 - [x] Drag file/folder onto player to start a queue with them
@@ -151,3 +154,13 @@ Ideas for improvements:
     (the `shuffled_queue` file would also require a `queue` file next to it)
   - All files could use the same extension and infer their contents based on the filename
     (`songs.…`, `queue.…`, or `shuffled_queue.…`), but this could limit their usability
+
+People's requests:
+
+- Larger play button on the album page
+  - IDEA: Display a large play icon over the album artwork when hovering with the cursor
+    (for touch devices, it could be shown on tap and disappear after some time of inactivity)
+- Automatic files/folders organization using tags (should be disabled by default)
+- Fetching artworks from the internet
+- Integration with last.fm
+- Tag editing
