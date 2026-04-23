@@ -658,7 +658,7 @@ impl Player {
     fn shift(&mut self, from: usize, by: isize) {
         let to = from as isize + by;
         if self.queue.get_repeat() {
-            // Offsetting the length by -1 because moving item to
+            // Offsetting the length by -1 because moving items to
             // the first position or last is considered equivalent
             self.reorder(from, wrap_index(to, self.queue.len() - 1));
         } else {
