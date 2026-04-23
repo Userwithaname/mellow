@@ -5,6 +5,7 @@ use std::sync::{OnceLock, mpsc};
 
 use crate::excuses::{EXP_RX, INIT_ERR};
 use crate::ui::{UpdateUI, ui_tx};
+use crate::util::wrap_index;
 
 pub mod queue_item;
 pub mod song_queue;
@@ -655,24 +656,18 @@ impl Player {
     /// The function panics if the final index is out of bounds and
     /// repeat mode is disabled
     fn shift(&mut self, from: usize, by: isize) {
-        let mut to = from as isize + by;
-        let queue_len = self.queue.len() as isize;
-        if to < 0 {
-            assert!(
-                self.queue.get_repeat(),
-                "Shifting to indexes below 0 is only allowed in repeat mode"
-            );
-            to += queue_len - 1;
+        let to = from as isize + by;
+        if self.queue.get_repeat() {
+            // Offsetting the length by -1 because moving item to
+            // the first position or last is considered equivalent
+            self.reorder(from, wrap_index(to, self.queue.len() - 1));
         } else {
-            while to >= queue_len {
-                assert!(
-                    self.queue.get_repeat(),
-                    "Shifting to indexes above queue length is only allowed in repeat mode"
-                );
-                to -= queue_len - 1;
-            }
+            assert!(
+                (0..self.queue.len() as isize).contains(&to),
+                "Shifting to an out-of-bounds index ({to}) is only allowed in repeat mode"
+            );
+            self.reorder(from, to as usize);
         }
-        self.reorder(from, to as usize);
     }
 
     /// Inserts a `QueueItem` into the current queue at the specified `index`

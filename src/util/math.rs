@@ -33,3 +33,31 @@ pub fn approx_eq(left: f64, right: f64) -> bool {
     const TOLERANCE: f64 = 0.0005;
     (left - right).abs() < TOLERANCE
 }
+
+/// Takes an `index` and wraps it around the bounds of `len`
+///
+/// # Note
+/// The input `index` must be strictly between `-len` and `len * 2`,
+/// otherwise the resulting index will still be out of bounds
+///
+/// # Example
+/// ```rust
+/// use mellow::util::wrap_index;
+///
+/// let len = 15;
+/// assert_eq!(wrap_index(5, len), 5);
+/// assert_eq!(wrap_index(-1, len), 14);
+/// assert_eq!(wrap_index(15, len), 0);
+/// ```
+#[inline]
+#[must_use]
+pub const fn wrap_index(index: isize, len: usize) -> usize {
+    let len = len as isize;
+    (if index < 0 {
+        index + len
+    } else if index >= len {
+        index - len
+    } else {
+        index
+    }) as usize
+}
