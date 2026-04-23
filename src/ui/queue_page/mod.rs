@@ -1,5 +1,6 @@
 use adw::{prelude::*, subclass::prelude::*};
 use gtk::{gdk, glib};
+use std::cell::Ref;
 
 use crate::player::QueueItem;
 use crate::ui::QueueSubpage;
@@ -17,6 +18,16 @@ impl QueuePage {
     #[inline]
     pub fn init(&self, song_page: QueueSubpage) {
         let _ = self.imp().song_page.set(song_page);
+    }
+
+    #[inline]
+    #[must_use]
+    pub fn get_playing_index(&self) -> usize {
+        self.imp().playing_index.get()
+    }
+    #[inline]
+    pub fn set_playing_index(&self, index: usize) {
+        self.imp().playing_index.set(index)
     }
 
     #[inline]
@@ -46,9 +57,26 @@ impl QueuePage {
     }
 
     #[inline]
-    pub fn update_song_queue(&self, queue: &[QueueItem], index: usize) {
+    pub fn update_song_queue(&self, queue: Box<[QueueItem]>, index: usize) {
+        let queue_page = self.imp();
+        queue_page.replace_queue_items(queue);
+        queue_page.update_song_queue(&queue_page.song_queue.borrow(), index);
+    }
+    #[inline]
+    pub fn redraw_song_queue(&self) {
+        let queue_page = self.imp();
+        let (queue, index) = (
+            &queue_page.song_queue.borrow(),
+            queue_page.playing_index.get(),
+        );
         self.imp().update_song_queue(queue, index);
     }
+    #[inline]
+    #[must_use]
+    pub fn borrow_queue(&self) -> Ref<'_, Box<[QueueItem]>> {
+        self.imp().song_queue.borrow()
+    }
+
     #[inline]
     pub fn assign_artwork(&self, index: usize, artwork: Option<&gdk::Texture>) {
         self.imp().assign_artwork(index, artwork);

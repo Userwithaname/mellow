@@ -10,6 +10,7 @@ use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::queue_page::QueueScrollAction;
 use crate::ui::{ListRow, QueueItemObject, QueueSubpage};
 use crate::ui::{UpdateUI, fallback_song_image, ui_tx};
+use crate::util::wrap_index;
 
 const NUM_ITEMS_AHEAD: usize = 45;
 const NUM_ITEMS_BEHIND: usize = 45;
@@ -50,7 +51,8 @@ pub struct QueuePage {
     view_further_down: TemplateChild<gtk::Button>,
 
     queue_length: Cell<usize>,
-    playing_index: Cell<usize>,
+    pub song_queue: RefCell<Box<[QueueItem]>>,
+    pub playing_index: Cell<usize>,
     view_pan_offset: Cell<isize>,
     last_repeat_mode: Cell<bool>,
     queue_item_objects: Rc<RefCell<Vec<QueueItemObject>>>,
@@ -152,6 +154,11 @@ impl QueuePage {
             #[cfg(debug_assertions)]
             self.model_index_to_queue_discrepancy_check(model_index, index);
         }
+    }
+
+    #[inline]
+    pub fn replace_queue_items(&self, queue: Box<[QueueItem]>) {
+        self.song_queue.replace(queue);
     }
 
     pub fn update_song_queue(&self, queue: &[QueueItem], playing: usize) {

@@ -77,9 +77,6 @@ pub struct Window {
     progress_bar: TemplateChild<gtk::ProgressBar>,
     progress_bar_visible: Cell<bool>,
 
-    pub song_queue: RefCell<Box<[QueueItem]>>,
-    pub song_queue_index: Cell<usize>,
-
     pub songs: RefCell<Songs>,
     // pub albums: RefCell<Albums>,
     // pub artists: RefCell<Artists>,
@@ -119,7 +116,7 @@ impl Window {
 
                 UpdateUI::SetQueue(queue, index) => self.update_song_queue(Some(queue), index),
                 UpdateUI::SetQueueIndex(index) => self.update_song_queue(None, index),
-                UpdateUI::RedrawQueue => self.update_song_queue(None, self.song_queue_index.get()),
+                UpdateUI::RedrawQueue => self.queue_page.redraw_song_queue(),
                 UpdateUI::OpenQueueSubpage(index) => self.open_queue_subpage(index),
                 UpdateUI::CloseQueueSubpage => self.close_queue_subpage(),
                 UpdateUI::Shuffle(shuffle) => self.queue_page.update_shuffle(shuffle),
@@ -231,27 +228,23 @@ impl Window {
     }
 
     fn update_song_queue(&self, queue: Option<Box<[QueueItem]>>, index: usize) {
-        self.song_queue_index.set(index);
+        self.queue_page.set_playing_index(index);
         if let Some(queue) = queue {
             #[cfg(debug_assertions)]
             println!("update_song_queue(Some(…), {index}): {} items", queue.len());
 
-            self.queue_page.update_song_queue(&queue, index);
-            self.song_queue.replace(queue);
+            self.queue_page.update_song_queue(queue, index);
         } else {
             #[cfg(debug_assertions)]
             println!("update_song_queue(None, {index})");
 
-            // TODO: Create a new function for handling the `None` case, which doesn't
-            // recreate the entire model (so that selections can stay between redraws)
-            self.queue_page
-                .update_song_queue(&self.song_queue.borrow(), index);
+            self.queue_page.redraw_song_queue();
         }
     }
     fn open_queue_subpage(&self, index: usize) {
         self.playing.push_by_tag("info");
         self.queue_subpage_visible.set(true);
-        let queue = self.song_queue.borrow();
+        let queue = self.queue_page.borrow_queue();
         let stop_after = index + 1 < queue.len() && queue[index + 1].is_stopper();
         match &queue[index] {
             QueueItem::Song(song) => self.queue_subpage.show_song_info(index, Arc::clone(song)),
@@ -366,7 +359,7 @@ impl Window {
         );
     }
     fn queue_song_loaded(&self, index: usize, song: SharedSong) {
-        let song_queue = self.song_queue.borrow();
+        let song_queue = self.queue_page.borrow_queue();
         if index >= song_queue.len() {
             return;
         }
