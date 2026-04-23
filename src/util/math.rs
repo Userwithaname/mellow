@@ -12,8 +12,9 @@
 /// assert_eq!(lerp(5.0, 10.0, 2.0), 15.0);
 /// assert_eq!(lerp(5.0, 10.0, -1.0), 0.0);
 /// ```
+#[inline]
 #[must_use]
-pub fn lerp(left: f64, right: f64, mid: f64) -> f64 {
+pub const fn lerp(left: f64, right: f64, mid: f64) -> f64 {
     (right - left).mul_add(mid, left)
 }
 
@@ -29,7 +30,7 @@ pub fn lerp(left: f64, right: f64, mid: f64) -> f64 {
 /// ```
 #[inline]
 #[must_use]
-pub fn approx_eq(left: f64, right: f64) -> bool {
+pub const fn approx_eq(left: f64, right: f64) -> bool {
     const TOLERANCE: f64 = 0.0005;
     (left - right).abs() < TOLERANCE
 }
