@@ -149,6 +149,7 @@
                                 <property name="margin_end">12</property>
                                 <child>
                                   <object class="GtkButton" id="view_further_up">
+                                    <property name="tooltip_text" translatable="yes">View Further Up</property>
                                     <signal name="clicked" handler="handle_pan_up" swapped="true"/>
                                     <property name="visible">False</property>
                                     <property name="icon_name">go-up</property>
@@ -169,6 +170,7 @@
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="view_further_down">
+                                    <property name="tooltip_text" translatable="yes">View Further Down</property>
                                     <signal name="clicked" handler="handle_pan_down" swapped="true"/>
                                     <property name="visible">False</property>
                                     <property name="margin_top">6</property>
