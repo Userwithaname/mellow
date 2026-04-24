@@ -115,6 +115,10 @@
                     </child>
                     <child type="overlay">
                       <object class="GtkBox">
+                        <!-- FIX: Layout issues when built with Meson -->
+                        <property name="visible">False</property>
+                        <property name="vexpand">True</property>
+                        <property name="hexpand">True</property>
                         <property name="valign">End</property>
                         <property name="halign">End</property>
                         <child>
