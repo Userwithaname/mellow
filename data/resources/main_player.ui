@@ -1,18 +1,18 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <interface>
   <template class="MellowMainPlayer" parent="GtkBox">
-    <property name="vexpand">True</property>
-    <property name="hexpand">True</property>
+    <property name="vexpand">true</property>
+    <property name="hexpand">true</property>
     <property name="valign">center</property>
     <property name="orientation">vertical</property>
 
     Album artwork
     <child>
       <object class="GtkPicture" id="album_cover">
-        <property name="content_fit">contain</property>
+        <property name="content-fit">contain</property>
         <property name="halign">center</property>
-        <property name="width_request">0</property>
-        <property name="height_request">0</property>
+        <property name="width-request">0</property>
+        <property name="height-request">0</property>
         <style>
           <class name="card"/>
         </style>
@@ -26,7 +26,7 @@
         <property name="orientation">vertical</property>
         <child>
           <object class="GtkLabel" id="song_title">
-            <property name="margin_top">6</property>
+            <property name="margin-top">6</property>
             <property name="ellipsize">end</property>
             <style>
               <class name="heading"/>
@@ -57,8 +57,8 @@
     <child type="overlay">
       <object class="GtkBox" id="media_controls">
         <property name="orientation">vertical</property>
-        <property name="hexpand">True</property>
-        <property name="sensitive">False</property>
+        <property name="hexpand">true</property>
+        <property name="sensitive">false</property>
         <style>
           <class name="toolbar"/>
           <class name="osd"/>
@@ -67,7 +67,7 @@
           <object class="GtkBox">
             <property name="orientation">horizontal</property>
             <property name="halign">center</property>
-            <property name="hexpand">True</property>
+            <property name="hexpand">true</property>
             <property name="spacing">12</property>
             <property name="margin_start">6</property>
             <property name="margin_end">6</property>
@@ -76,7 +76,7 @@
             <child>
               <object class="GtkButton" id="prev_button">
                 <signal name="clicked" handler="handle_skip_prev" swapped="true"/>
-                <property name="icon_name">media-skip-backward-symbolic</property>
+                <property name="icon-name">media-skip-backward-symbolic</property>
                 <style>
                   <class name="circular"/>
                 </style>
@@ -93,7 +93,7 @@
             <child>
               <object class="GtkButton" id="next_button">
                 <signal name="clicked" handler="handle_skip_next" swapped="true"/>
-                <property name="icon_name">media-skip-forward-symbolic</property>
+                <property name="icon-name">media-skip-forward-symbolic</property>
                 <style>
                   <class name="circular"/>
                 </style>
@@ -105,9 +105,9 @@
         Seek bar
         <child>
           <object class="GtkBox">
-            <property name="hexpand">True</property>
-            <property name="margin_start">6</property>
-            <property name="margin_end">6</property>
+            <property name="hexpand">true</property>
+            <property name="margin-start">6</property>
+            <property name="margin-end">6</property>
             <child>
               <object class="GtkLabel" id="current_time">
                 <property name="label">-:--</property>
@@ -120,9 +120,9 @@
             <child>
               <object class="GtkScale" id="seek_bar">
                 <signal name="change_value" handler="handle_seek" swapped="true"/>
-                <property name="hexpand">True</property>
-                <property name="margin_start">6</property>
-                <property name="margin_end">6</property>
+                <property name="hexpand">true</property>
+                <property name="margin-start">6</property>
+                <property name="margin-end">6</property>
                 <property name="adjustment">
                   <object class="GtkAdjustment">
                     <property name="lower">0</property>

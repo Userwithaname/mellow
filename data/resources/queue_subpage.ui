@@ -5,7 +5,7 @@
       <object class="AdwToolbarView">
         <child type="top">
           <object class="AdwHeaderBar">
-            <property name="show_title">False</property>
+            <property name="show-title">false</property>
           </object>
         </child>
         <property name="content">
@@ -17,7 +17,7 @@
                 <child>
                   <object class="GtkBox">
                     <property name="orientation">vertical</property>
-                    <property name="margin_top">8</property>
+                    <property name="margin-top">8</property>
                     <property name="spacing">6</property>
                     <property name="halign">center</property>
                     <child>
@@ -66,10 +66,10 @@
                   <object class="AdwActionRow" id="play_now_button">
                     <signal name="activated" handler="handle_play_now" swapped="true"/>
                     <property name="title" translatable="yes">Play Now</property>
-                    <property name="activatable">True</property>
+                    <property name="activatable">true</property>
                     <child type="prefix">
                       <object class="GtkImage">
-                        <property name="icon_name">media-playback-start-symbolic</property>
+                        <property name="icon-name">media-playback-start-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -78,10 +78,10 @@
                   <object class="AdwActionRow" id="stop_after_button">
                     <signal name="activated" handler="handle_stop_after" swapped="true"/>
                     <property name="title" translatable="yes">Pause After</property>
-                    <property name="activatable">True</property>
+                    <property name="activatable">true</property>
                     <child type="prefix">
                       <object class="GtkImage">
-                        <property name="icon_name">alarm-symbolic</property>
+                        <property name="icon-name">alarm-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -91,10 +91,10 @@
                   <object class="AdwSwitchRow" id="stopper_closes_player">
                     <signal name="notify::active" handler="handle_stopper_closes_player" swapped="true"/>
                     <property name="title" translatable="yes">Close Player</property>
-                    <property name="activatable">True</property>
+                    <property name="activatable">true</property>
                     <child type="prefix">
                       <object class="GtkImage">
-                        <property name="icon_name">application-exit-rtl-symbolic</property>
+                        <property name="icon-name">application-exit-rtl-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -103,10 +103,10 @@
                   <object class="AdwActionRow" id="remove_stopper_button">
                     <signal name="activated" handler="handle_remove_item" swapped="true"/>
                     <property name="title" translatable="yes">Do Not Pause</property>
-                    <property name="activatable">True</property>
+                    <property name="activatable">true</property>
                     <child type="prefix">
                       <object class="GtkImage">
-                        <property name="icon_name">alarm-symbolic</property>
+                        <property name="icon-name">alarm-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -120,10 +120,10 @@
                   <object class="AdwActionRow">
                     <signal name="activated" handler="handle_move_up" swapped="true"/>
                     <property name="title" translatable="yes">Move Up</property>
-                    <property name="activatable">True</property>
+                    <property name="activatable">true</property>
                     <child type="prefix">
                       <object class="GtkImage">
-                        <property name="icon_name">go-up-symbolic</property>
+                        <property name="icon-name">go-up-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -132,10 +132,10 @@
                   <object class="AdwActionRow">
                     <signal name="activated" handler="handle_move_down" swapped="true"/>
                     <property name="title" translatable="yes">Move Down</property>
-                    <property name="activatable">True</property>
+                    <property name="activatable">true</property>
                     <child type="prefix">
                       <object class="GtkImage">
-                        <property name="icon_name">go-down-symbolic</property>
+                        <property name="icon-name">go-down-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -149,10 +149,10 @@
                   <object class="AdwActionRow" id="remove_song_button">
                     <signal name="activated" handler="handle_remove_item" swapped="true"/>
                     <property name="title" translatable="yes">Remove From Queue</property>
-                    <property name="activatable">True</property>
+                    <property name="activatable">true</property>
                     <child type="prefix">
                       <object class="GtkImage">
-                        <property name="icon_name">list-remove-symbolic</property>
+                        <property name="icon-name">list-remove-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -167,15 +167,15 @@
                   <object class="AdwActionRow" id="go_to_album_button">
                     <signal name="activated" handler="handle_go_to_album" swapped="true"/>
                     <property name="title" translatable="yes">Go To Album</property>
-                    <property name="activatable">True</property>
+                    <property name="activatable">true</property>
                     <child type="prefix">
                       <object class="GtkImage">
-                        <property name="icon_name">media-optical-cd-audio-symbolic</property>
+                        <property name="icon-name">media-optical-cd-audio-symbolic</property>
                       </object>
                     </child>
                     <child type="suffix">
                       <object class="GtkImage">
-                        <property name="icon_name">go-next-symbolic</property>
+                        <property name="icon-name">go-next-symbolic</property>
                       </object>
                     </child>
                   </object>
@@ -185,15 +185,15 @@
                   <object class="AdwActionRow" id="go_to_artist_button">
                     <signal name="activated" handler="handle_go_to_artist" swapped="true"/>
                     <property name="title" translatable="yes">Go To Artist</property>
-                    <property name="activatable">True</property>
+                    <property name="activatable">true</property>
                     <child type="prefix">
                       <object class="GtkImage">
-                        <property name="icon_name">avatar-default-symbolic</property>
+                        <property name="icon-name">avatar-default-symbolic</property>
                       </object>
                     </child>
                     <child type="suffix">
                       <object class="GtkImage">
-                        <property name="icon_name">go-next-symbolic</property>
+                        <property name="icon-name">go-next-symbolic</property>
                       </object>
                     </child>
                   </object>

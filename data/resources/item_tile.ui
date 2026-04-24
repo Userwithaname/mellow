@@ -3,18 +3,18 @@
   <template class="MellowItemTile" parent="GtkBox">
     <property name="valign">center</property>
     <property name="spacing">6</property>
-    <property name="margin_top">6</property>
-    <property name="margin_bottom">6</property>
-    <property name="height_request">170</property>
+    <property name="margin-top">6</property>
+    <property name="margin-bottom">6</property>
+    <property name="height-request">170</property>
     <property name="orientation">vertical</property>
 
     <child>
       <object class="GtkPicture" id="image">
-        <property name="content_fit">contain</property>
-        <property name="can_shrink">true</property>
+        <property name="content-fit">contain</property>
+        <property name="can-shrink">true</property>
         <property name="halign">center</property>
-        <property name="width_request">128</property>
-        <property name="height_request">128</property>
+        <property name="width-request">128</property>
+        <property name="height-request">128</property>
         <style>
           <class name="card"/>
         </style>

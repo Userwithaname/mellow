@@ -6,7 +6,7 @@
     Playback settings
     <child>
       <object class="AdwPreferencesGroup">
-        <property name="hexpand">True</property>
+        <property name="hexpand">true</property>
         <property name="title" translatable="yes">Playback</property>
 
         <child>
@@ -16,10 +16,10 @@
                 <style>
                   <class name="horizontal"/>
                 </style>
-                <property name="margin_top">12</property>
-                <property name="margin_bottom">12</property>
-                <property name="margin_start">12</property>
-                <property name="margin_end">12</property>
+                <property name="margin-top">12</property>
+                <property name="margin-bottom">12</property>
+                <property name="margin-start">12</property>
+                <property name="margin-end">12</property>
                 <child>
                   <object class="GtkLabel">
                     <property name="label" translatable="yes">Volume</property>
@@ -27,8 +27,8 @@
                 </child>
                 <child>
                   <object class="GtkScale" id="volume">
-                    <signal name="change_value" handler="handle_set_volume" swapped="true"/>
-                    <property name="hexpand">True</property>
+                    <signal name="change-value" handler="handle_set_volume" swapped="true"/>
+                    <property name="hexpand">true</property>
                     <property name="adjustment">
                       <object class="GtkAdjustment">
                         <property name="lower">0</property>
@@ -48,7 +48,7 @@
             <signal name="notify::active" handler="handle_gapless_switch" swapped="true"/>
             <property name="title" translatable="yes">Gapless Mode</property>
             <property name="tooltip-text" translatable="yes">When enabled, the next track is loaded early to ensure a continuous playback stream with no audible gaps between tracks</property>
-            <property name="active">True</property>
+            <property name="active">true</property>
           </object>
         </child>
 
@@ -56,7 +56,7 @@
           <object class="AdwSwitchRow" id="play_in_background">
             <property name="title" translatable="yes">Background Playback</property>
             <property name="tooltip-text" translatable="yes">When enabled, music will continue to play after the window is closed</property>
-            <property name="active">False</property>
+            <property name="active">false</property>
           </object>
         </child>
 
@@ -66,7 +66,7 @@
     Library settings
     <child>
       <object class="AdwPreferencesGroup">
-        <property name="hexpand">True</property>
+        <property name="hexpand">true</property>
         <property name="title" translatable="yes">Directories</property>
         <child type="header-suffix">
           <object class="GtkBox">
@@ -106,7 +106,7 @@
     Appearance settings
     <child>
       <object class="AdwPreferencesGroup">
-        <property name="hexpand">True</property>
+        <property name="hexpand">true</property>
         <property name="title" translatable="yes">Appearance</property>
 
         <child>
@@ -114,7 +114,7 @@
             <signal name="notify::active" handler="handle_adaptive_colors_switch" swapped="true"/>
             <property name="title" translatable="yes">Adaptive Colors</property>
             <property name="tooltip-text" translatable="yes">When enabled, the interface colors adapt to the song artwork</property>
-            <property name="active">True</property>
+            <property name="active">true</property>
           </object>
         </child>
 
@@ -141,7 +141,7 @@
     Startup settings
     <child>
       <object class="AdwPreferencesGroup">
-        <property name="hexpand">True</property>
+        <property name="hexpand">true</property>
         <property name="title" translatable="yes">Startup</property>
 
         <child>
@@ -154,11 +154,11 @@
                 <signal name="notify::active" handler="handle_collapse_queue_rows" swapped="true"/>
                 <property name="height-request">8</property>
                 <property name="width-request">8</property>
-                <property name="vexpand">False</property>
-                <property name="hexpand">False</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
                 <property name="valign">center</property>
                 <property name="halign">center</property>
-                <property name="active">True</property>
+                <property name="active">true</property>
                 <style>
                   <class name="selection-mode"/>
                 </style>
@@ -168,7 +168,7 @@
               <object class="AdwSwitchRow" id="remember_time">
                 <property name="title" translatable="yes">Restore Playback Time</property>
                 <property name="tooltip-text" translatable="yes">When enabled, the song will continue where it left off</property>
-                <property name="active">True</property>
+                <property name="active">true</property>
                 <property name="sensitive" bind-source="remember_queue" bind-property="active" bind-flags="bidirectional|sync-create"/>
               </object>
             </child>
@@ -185,11 +185,11 @@
                 <signal name="notify::active" handler="handle_update_new_queue_choice" swapped="true"/>
                 <!-- <property name="height-request">8</property> -->
                 <!-- <property name="width-request">8</property> -->
-                <property name="vexpand">False</property>
-                <property name="hexpand">False</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
                 <property name="valign">center</property>
                 <property name="halign">center</property>
-                <property name="active">False</property>
+                <property name="active">false</property>
                 <property name="group">remember_queue</property>
                 <style>
                   <class name="selection-mode"/>
@@ -218,7 +218,7 @@
                 <signal name="notify::active" handler="handle_update_new_queue_choice" swapped="true"/>
                 <property name="title" translatable="yes">Shuffle</property>
                 <property name="tooltip-text" translatable="yes">When enabled, the queue will be ordered randomly</property>
-                <property name="active">False</property>
+                <property name="active">false</property>
                 <property name="sensitive" bind-source="new_queue" bind-property="active" bind-flags="sync-create"/>
               </object>
             </child>
@@ -229,14 +229,14 @@
             <signal name="activated" handler="handle_select_empty_queue" swapped="true"/>
             <property name="title" translatable="yes">Do Not Start A Queue</property>
             <property name="tooltip-text" translatable="yes">When selected, the player will not load any queue on startup</property>
-            <property name="activatable">True</property>
+            <property name="activatable">true</property>
             <child type="prefix">
               <object class="GtkCheckButton" id="empty_queue">
                 <signal name="notify::active" handler="handle_collapse_queue_rows" swapped="true"/>
                 <!-- <property name="height-request">8</property> -->
                 <!-- <property name="width-request">8</property> -->
-                <property name="vexpand">False</property>
-                <property name="hexpand">False</property>
+                <property name="vexpand">false</property>
+                <property name="hexpand">false</property>
                 <property name="valign">center</property>
                 <property name="halign">center</property>
                 <property name="group">remember_queue</property>
@@ -254,29 +254,29 @@
     About
     <child>
       <object class="AdwPreferencesGroup">
-        <property name="hexpand">True</property>
+        <property name="hexpand">true</property>
         <property name="title" translatable="yes">Info</property>
 
         <child>
           <object class="AdwActionRow">
-            <property name="activatable">True</property>
+            <property name="activatable">true</property>
             <property name="action-name">win.show_shortcuts_dialog</property>
             <property name="title">Shortcuts</property>
             <child type="prefix">
               <object class="GtkImage">
-                <property name="icon_name">preferences-desktop-keyboard-shortcuts-symbolic</property>
+                <property name="icon-name">preferences-desktop-keyboard-shortcuts-symbolic</property>
               </object>
             </child>
           </object>
         </child>
         <child>
           <object class="AdwActionRow">
-            <property name="activatable">True</property>
+            <property name="activatable">true</property>
             <property name="action-name">win.show_about_dialog</property>
             <property name="title">About</property>
             <child type="prefix">
               <object class="GtkImage">
-                <property name="icon_name">help-about-symbolic</property>
+                <property name="icon-name">help-about-symbolic</property>
               </object>
             </child>
           </object>

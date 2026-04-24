@@ -72,10 +72,6 @@
 
         <property name="content">
 
-          <!-- TODO: Create a widget to display each artist -->
-          <!-- TODO: Display the list of artists -->
-          <!-- TODO: Create a subpage for the artist -->
-
           <object class="AdwViewStack" id="view_stack">
 
             <child>
@@ -98,7 +94,7 @@
                   <object class="GtkScrolledWindow">
                     <child>
                       <object class="GtkGridView" id="artists_grid">
-                        <property name="single-click-activate">True</property>
+                        <property name="single-click-activate">true</property>
                         <style>
                           <class name="card"/>
                         </style>

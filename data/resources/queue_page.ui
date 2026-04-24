@@ -5,17 +5,17 @@
       <object class="AdwToolbarView">
         <child type="top">
           <object class="AdwHeaderBar" id="header_normal">
-            <property name="show_title">False</property>
+            <property name="show-title">false</property>
             <child type="start">
               <object class="GtkToggleButton">
-                <property name="icon_name">document-open-symbolic</property>
+                <property name="icon-name">document-open-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Open from Disk</property>
                 <property name="action-name">win.queue_from_disk</property>
               </object>
             </child>
             <child type="start">
               <object class="GtkToggleButton">
-                <property name="icon_name">accessories-dictionary-symbolic</property>
+                <property name="icon-name">accessories-dictionary-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Show Lyrics</property>
                 <property name="action-name">navigation.push</property>
                 <property name="action-target">'lyrics'</property>
@@ -30,7 +30,7 @@
             <child type="end">
               <object class="GtkToggleButton" id="repeat_toggle">
                 <signal name="toggled" handler="handle_set_repeat" swapped="true"/>
-                <property name="icon_name">media-playlist-repeat-symbolic</property>
+                <property name="icon-name">media-playlist-repeat-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Repeat</property>
               </object>
             </child>
@@ -39,19 +39,19 @@
 
         <child type="top">
           <object class="AdwHeaderBar" id="header_selection">
-            <property name="visible">False</property>
-            <property name="show_title">False</property>
+            <property name="visible">false</property>
+            <property name="show-title">false</property>
             <child type="start">
               <object class="GtkToggleButton" id="selection_toggle">
                 <signal name="toggled" handler="handle_exit_selection" swapped="true"/>
-                <property name="icon_name">selection-mode-symbolic</property>
+                <property name="icon-name">selection-mode-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Selection Mode</property>
               </object>
             </child>
             <child type="end">
               <object class="GtkButton" id="remove_selection">
                 <signal name="clicked" handler="handle_remove_selected" swapped="true"/>
-                <property name="icon_name">list-remove-all-symbolic</property>
+                <property name="icon-name">list-remove-all-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Remove Selected</property>
               </object>
             </child>
@@ -107,7 +107,7 @@
                   <object class="GtkOverlay">
                     <child type="overlay">
                       <object class="GtkBox">
-                        <property name="visible">False</property>
+                        <property name="visible">false</property>
                         <child>
                           <object class="GtkFixed" id="drag_widget"/>
                         </child>
@@ -122,8 +122,8 @@
                         <property name="height-request">48</property>
                         <property name="margin-end">16</property>
                         <property name="margin-bottom">16</property>
-                        <property name="vexpand">False</property>
-                        <property name="hexpand">False</property>
+                        <property name="vexpand">false</property>
+                        <property name="hexpand">false</property>
                         <property name="valign">end</property>
                         <property name="halign">end</property>
                         <style>
@@ -141,16 +141,16 @@
                             <child>
                               <object class="GtkBox">
                                 <property name="orientation">vertical</property>
-                                <property name="margin_top">12</property>
-                                <property name="margin_bottom">18</property>
-                                <property name="margin_start">12</property>
-                                <property name="margin_end">12</property>
+                                <property name="margin-top">12</property>
+                                <property name="margin-bottom">18</property>
+                                <property name="margin-start">12</property>
+                                <property name="margin-end">12</property>
                                 <child>
                                   <object class="GtkButton" id="view_further_up">
-                                    <property name="tooltip_text" translatable="yes">View Further Up</property>
+                                    <property name="tooltip-text" translatable="yes">View Further Up</property>
                                     <signal name="clicked" handler="handle_pan_up" swapped="true"/>
-                                    <property name="visible">False</property>
-                                    <property name="icon_name">go-up</property>
+                                    <property name="visible">false</property>
+                                    <property name="icon-name">go-up</property>
                                     <style>
                                       <class name="flat"/>
                                       <class name="pill"/>
@@ -159,8 +159,8 @@
                                 </child>
                                 <child>
                                   <object class="GtkListBox" id="list_box">
-                                    <property name="margin_top">6</property>
-                                    <property name="selection_mode">none</property>
+                                    <property name="margin-top">6</property>
+                                    <property name="selection-mode">none</property>
                                     <style>
                                       <class name="boxed-list"/>
                                     </style>
@@ -168,11 +168,11 @@
                                 </child>
                                 <child>
                                   <object class="GtkButton" id="view_further_down">
-                                    <property name="tooltip_text" translatable="yes">View Further Down</property>
+                                    <property name="tooltip-text" translatable="yes">View Further Down</property>
                                     <signal name="clicked" handler="handle_pan_down" swapped="true"/>
-                                    <property name="visible">False</property>
-                                    <property name="margin_top">6</property>
-                                    <property name="icon_name">go-down</property>
+                                    <property name="visible">false</property>
+                                    <property name="margin-top">6</property>
+                                    <property name="icon-name">go-down</property>
                                     <style>
                                       <class name="flat"/>
                                       <class name="pill"/>

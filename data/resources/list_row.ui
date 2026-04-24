@@ -4,17 +4,18 @@
 
     <!-- FIX: List row should have a fixed height -->
 
-    <property name="title_lines">1</property>
-    <property name="subtitle_lines">1</property>
-    <property name="use_markup">False</property>
-    <property name="activatable">True</property>
+    <property name="title-lines">1</property>
+    <property name="subtitle-lines">1</property>
+    <property name="use-markup">false</property>
+    <property name="activatable">true</property>
+    <property name="height-request">55</property>
 
     <child type="prefix">
       <object class="GtkPicture" id="prefix_image">
         <property name="valign">center</property>
-        <property name="content_fit">contain</property>
-        <property name="margin_top">7</property>
-        <property name="margin_bottom">7</property>
+        <property name="content-fit">contain</property>
+        <property name="margin-top">7</property>
+        <property name="margin-bottom">7</property>
         <style>
           <class name="card"/>
         </style>
@@ -32,15 +33,15 @@
 
     <child type="suffix">
       <object class="GtkImage" id="open_subpage_icon">
-        <property name="margin_start">9</property>
-        <property name="margin_end">1</property>
-        <property name="icon_name">go-next-symbolic</property>
+        <property name="margin-start">9</property>
+        <property name="margin-end">1</property>
+        <property name="icon-name">go-next-symbolic</property>
       </object>
     </child>
     <child type="suffix">
       <object class="GtkCheckButton" id="selection_toggle">
-        <property name="width_request">8</property>
-        <property name="visible">False</property>
+        <property name="width-request">8</property>
+        <property name="visible">false</property>
       </object>
     </child>
 

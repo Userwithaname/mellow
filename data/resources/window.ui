@@ -3,8 +3,8 @@
   <requires lib="libadwaita" version="1.8"/>
   <template class="MellowWindow" parent="AdwApplicationWindow">
     <property name="title">Mellow</property>
-    <property name="width_request">360</property>
-    <property name="height_request">-1</property>
+    <property name="width-request">360</property>
+    <property name="height-request">-1</property>
 
     <child>
       <object class="AdwToastOverlay" id="toast_overlay">
@@ -18,10 +18,7 @@
 
                 <child type="top">
                   <object class="AdwHeaderBar">
-                    <property name="show-title">False</property>
-                    <!-- TODO: Add a menu button to the opposite side of the close button -->
-                    <!-- The menu should contain: volume slider, song rating widget -->
-                    <!-- NOTE: Could also include 'About' and 'Preferences' -->
+                    <property name="show-title">false</property>
                   </object>
                 </child>
 
@@ -30,10 +27,10 @@
                   <object class="GtkWindowHandle">
                     <child>
                       <object class="MellowMainPlayer" id="main_player">
-                        <property name="margin_top">0</property>
-                        <property name="margin_bottom">46</property>
-                        <property name="margin_start">26</property>
-                        <property name="margin_end">26</property>
+                        <property name="margin-top">0</property>
+                        <property name="margin-bottom">46</property>
+                        <property name="margin-start">26</property>
+                        <property name="margin-end">26</property>
                       </object>
                     </child>
                   </object>
@@ -50,12 +47,12 @@
                   <class name="flat"/>
                 </style>
                 <property name="height-request">32</property>
-                <property name="hexpand">True</property>
+                <property name="hexpand">true</property>
                 <property name="valign">center</property>
                 <property name="orientation">vertical</property>
                 <child>
                   <object class="GtkImage">
-                    <property name="icon_name">view-more-horizontal-symbolic</property>
+                    <property name="icon-name">view-more-horizontal-symbolic</property>
                     <property name="margin_top">7</property>
                     <property name="valign">center</property>
                     <style>
@@ -65,8 +62,8 @@
                 </child>
                 <child>
                   <object class="GtkProgressBar" id="progress_bar">
-                    <property name="visible">False</property>
-                    <property name="margin_top">6</property>
+                    <property name="visible">false</property>
+                    <property name="margin-top">6</property>
                     <style>
                       <class name="osd"/>
                     </style>
@@ -75,10 +72,8 @@
               </object>
             </property>
 
-            <!-- TODO: Organize views into separate files/widgets -->
-
             Bottom sheet overlay
-            <property name="show-drag-handle">False</property>
+            <property name="show-drag-handle">false</property>
             <property name="sheet">
               <object class="AdwToolbarView" id="sheet_content">
                 <style>
@@ -97,7 +92,7 @@
                             <property name="name">library</property>
                             <property name="title" translatable="yes">Library</property>
                             <property name="icon-name">applications-multimedia-symbolic</property>
-                            <property name="use-underline">True</property>
+                            <property name="use-underline">true</property>
 
                             <property name="child">
                               <object class="AdwNavigationView" id="library">
@@ -145,7 +140,7 @@
                             <property name="name">playing</property>
                             <property name="title" translatable="yes">Playing</property>
                             <property name="icon-name">media-playback-start-symbolic</property>
-                            <property name="use-underline">True</property>
+                            <property name="use-underline">true</property>
                             <property name="child">
                               <object class="AdwNavigationView" id="playing">
 
@@ -184,12 +179,12 @@
                             <property name="name">settings</property>
                             <property name="title" translatable="yes">Settings</property>
                             <property name="icon-name">preferences-system-symbolic</property>
-                            <property name="use-underline">True</property>
+                            <property name="use-underline">true</property>
                             <property name="child">
                               <object class="AdwToolbarView">
                                 <child type="top">
                                   <object class="AdwHeaderBar">
-                                    <property name="show_title">False</property>
+                                    <property name="show-title">false</property>
                                   </object>
                                 </child>
                                 <property name="content">
@@ -200,13 +195,13 @@
                           </object>
                         </child>
 
-                        <property name="visible_child_name">playing</property>
+                        <property name="visible-child-name">playing</property>
                       </object>
                     </child>
                     <child>
                       <object class="GtkProgressBar">
-                        <property name="visible">False</property>
-                        <property name="margin_top">6</property>
+                        <property name="visible">false</property>
+                        <property name="margin-top">6</property>
                         <property name="fraction" bind-source="progress_bar" bind-property="fraction" bind-flags="sync-create"/>
                         <property name="visible" bind-source="progress_bar" bind-property="visible" bind-flags="sync-create"/>
                         <style>
@@ -217,21 +212,11 @@
                   </object>
                 </property>
 
-                <!-- IDEA: Show a banner with song info, close bottom sheet on click -->
-                <!-- <child type="bottom"> -->
-                  <!-- <object class="GtkBox"> -->
-                    <!-- <property name="height_request">46</property> -->
-                    <!-- <style> -->
-                      <!-- <class name="osd"/> -->
-                    <!-- </style> -->
-                  <!-- </object> -->
-                <!-- </child> -->
-
                 Tab icons
                 <child type="bottom">
                   <object class="AdwViewSwitcherBar">
                     <property name="stack">view_stack</property>
-                    <property name="reveal">True</property>
+                    <property name="reveal">true</property>
                   </object>
                 </child>
               </object>
