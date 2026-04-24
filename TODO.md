@@ -25,7 +25,7 @@ Song queue:
   - IDEA: Shift+click to select everything between the last selected item and the clicked item
   - [x] Removing multiple items at once
   - [ ] Rating multiple items at once
-- [ ] Offset the visible items by pressing the buttons at the top and bottom of the queue
+- [x] Offset the visible items by pressing the buttons at the top and bottom of the queue
   - [ ] Improvement: Holding the button should repeatedly increment the panning offset
   - [ ] Improvement: Show a scroll-to-playing button whenever the playing item is out of view
 - [x] Display a landing page

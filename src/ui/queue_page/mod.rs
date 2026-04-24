@@ -29,7 +29,7 @@ impl QueuePage {
     }
     /// Sets the current playing item index to `index`
     ///
-    /// Note: `redraw_song_queue` must be called manually
+    /// Note: `redraw_queue` must be called manually
     #[inline]
     pub fn set_playing_index(&self, index: usize) {
         self.imp().playing_index.set(index);
