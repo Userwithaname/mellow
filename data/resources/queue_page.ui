@@ -129,8 +129,6 @@
                                 <child>
                                   <object class="GtkButton" id="view_further_up">
                                     <signal name="clicked" handler="handle_pan_up" swapped="true"/>
-                                    <!-- TODO: Pan the queue list up using this button -->
-                                    <property name="sensitive">False</property>
                                     <property name="visible">False</property>
                                     <property name="icon_name">go-up</property>
                                     <style>
@@ -151,8 +149,6 @@
                                 <child>
                                   <object class="GtkButton" id="view_further_down">
                                     <signal name="clicked" handler="handle_pan_down" swapped="true"/>
-                                    <!-- TODO: Pan the queue list down using this button -->
-                                    <property name="sensitive">False</property>
                                     <property name="visible">False</property>
                                     <property name="margin_top">6</property>
                                     <property name="icon_name">go-down</property>

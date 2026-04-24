@@ -121,13 +121,17 @@ impl QueuePage {
     }
     #[template_callback]
     pub fn handle_pan_up(&self) {
-        // TODO: Handle infinite panning in repeat mode
-        self.view_pan_offset.set(self.view_pan_offset.get() - 1);
+        self.next_scroll_pos.set(QueueScrollAction::Retain);
+        self.view_pan_offset
+            .set((self.view_pan_offset.get() - 1) % self.queue_length.get() as isize);
+        self.draw_queue(&self.song_queue.borrow(), self.playing_index.get());
     }
     #[template_callback]
     pub fn handle_pan_down(&self) {
-        // TODO: Handle infinite panning in repeat mode
-        self.view_pan_offset.set(self.view_pan_offset.get() + 1);
+        self.next_scroll_pos.set(QueueScrollAction::Offset(1));
+        self.view_pan_offset
+            .set((self.view_pan_offset.get() + 1) % self.queue_length.get() as isize);
+        self.draw_queue(&self.song_queue.borrow(), self.playing_index.get());
     }
 
     #[inline]
@@ -174,12 +178,15 @@ impl QueuePage {
         // Exit selection mode before resetting the model
         self.set_selection_mode(false);
 
-        // TODO: Use `self.view_pan_offset` to offset the visible item range
         // TODO: Add a button to jump back to the playing item
-        // TODO: Decide when/whether to reset the pan offset
 
-        let start = playing.saturating_sub(NUM_ITEMS_BEHIND);
-        let end = (playing + NUM_ITEMS_AHEAD).min(queue.len());
+        if let QueueScrollAction::ToPlaying = self.next_scroll_pos.get() {
+            self.view_pan_offset.set(0);
+        }
+
+        let center = wrap_index(playing as isize + self.view_pan_offset.get(), queue_length);
+        let start = center.saturating_sub(NUM_ITEMS_BEHIND);
+        let end = (center + NUM_ITEMS_AHEAD).min(queue.len());
 
         let mut items = Self::items_to_objects(
             queue.iter().take(end).skip(start).enumerate(),
@@ -191,14 +198,14 @@ impl QueuePage {
 
         let last_repeat_mode = self.last_repeat_mode.replace(repeat_mode);
         if repeat_mode && queue_length != 0 {
-            let n_items_before = (NUM_ITEMS_BEHIND - (playing - start)).min(queue_length - 1);
+            let n_items_before = (NUM_ITEMS_BEHIND - (center - start)).min(queue_length - 1);
             if n_items_before > 0 {
                 if repeat_mode != last_repeat_mode {
                     self.next_scroll_pos.set(QueueScrollAction::Offset(
                         n_items_before as i32, //
                     ));
                 }
-                let start = (queue.len() - n_items_before).max(playing + 1);
+                let start = (queue.len() - n_items_before).max(center + 1);
                 let items_before = Self::items_to_objects(
                     queue.iter().skip(start).enumerate(),
                     playing, //
@@ -206,18 +213,19 @@ impl QueuePage {
                 );
                 items = [items_before, items].concat();
             }
-            let n_items_after = NUM_ITEMS_AHEAD - (end - playing);
+            let n_items_after = NUM_ITEMS_AHEAD - (end - center);
             if n_items_after > 0 {
                 let items_after = Self::items_to_objects(
-                    queue.iter().take(n_items_after.min(playing)).enumerate(),
+                    queue.iter().take(n_items_after.min(center)).enumerate(),
                     playing,
                     0,
                 );
                 items.extend(items_after);
             }
         } else if repeat_mode != last_repeat_mode {
+            // FIX: Erratic scroll offset when changing repeat mode due to centering logic
             self.next_scroll_pos.set(QueueScrollAction::Offset(
-                -(NUM_ITEMS_BEHIND.saturating_sub(playing) as i32),
+                -(NUM_ITEMS_BEHIND.saturating_sub(center) as i32),
             ));
         }
 
@@ -227,10 +235,10 @@ impl QueuePage {
         self.playing_index.set(playing);
 
         let last_up_button_visible = self.view_further_up.is_visible();
-        let up_button_visible = repeat_mode || playing > NUM_ITEMS_BEHIND;
+        let up_button_visible = repeat_mode || center > NUM_ITEMS_BEHIND;
         self.view_further_up.set_visible(up_button_visible);
         self.view_further_down.set_visible(
-            repeat_mode || queue_length - playing > NUM_ITEMS_AHEAD, //
+            repeat_mode || queue_length - center > NUM_ITEMS_AHEAD, //
         );
 
         match self.next_scroll_pos.take() {
@@ -323,16 +331,19 @@ impl QueuePage {
     /// Panics if `self.queue_item_objects` `RefCell` is mutably borrowed
     #[inline]
     fn queue_index_to_model(&self, queue_index: usize) -> Result<usize, ItemNotFoundError> {
-        let queue_items_len = self.queue_item_objects.borrow().len();
-        let playing_index = self.playing_index.get();
+        let queue_objects_length = self.queue_item_objects.borrow().len();
+        let center = wrap_index(
+            self.playing_index.get() as isize + self.view_pan_offset.get(),
+            self.queue_length.get(),
+        );
         match self.repeat_toggle.is_active() {
             false => {
-                let start = playing_index.saturating_sub(NUM_ITEMS_BEHIND);
+                let start = center.saturating_sub(NUM_ITEMS_BEHIND);
                 if queue_index < start {
                     return Err(ItemNotFoundError);
                 }
-                match queue_index + NUM_ITEMS_BEHIND.min(playing_index) - playing_index {
-                    value if value >= queue_items_len => Err(ItemNotFoundError),
+                match queue_index + NUM_ITEMS_BEHIND.min(center) - center {
+                    value if value >= queue_objects_length => Err(ItemNotFoundError),
                     value => Ok(value),
                 }
             }
@@ -342,34 +353,34 @@ impl QueuePage {
                     return Err(ItemNotFoundError);
                 }
 
-                let start = playing_index.saturating_sub(NUM_ITEMS_BEHIND);
+                let start = center.saturating_sub(NUM_ITEMS_BEHIND);
                 let n_items_before = NUM_ITEMS_BEHIND
                     .min(queue_length - 1 - start)
-                    .saturating_sub(playing_index - start);
+                    .saturating_sub(center - start);
 
                 // Wrapping over the start of the queue
-                if n_items_before > 0 && queue_index > playing_index + NUM_ITEMS_AHEAD {
+                if n_items_before > 0 && queue_index > center + NUM_ITEMS_AHEAD {
                     let from = queue_length - n_items_before;
                     match queue_index - from {
-                        value if value >= queue_items_len => return Err(ItemNotFoundError),
+                        value if value >= queue_length => return Err(ItemNotFoundError),
                         value => return Ok(value),
                     };
                 }
 
                 // Non-wrapped items
-                if let Some(value) = (queue_index + NUM_ITEMS_BEHIND.min(playing_index))
-                    .checked_sub(playing_index)
+                if let Some(value) = (queue_index + NUM_ITEMS_BEHIND.min(center))
+                    .checked_sub(center)
                     .map(|i| i + n_items_before)
-                    && value < queue_items_len
+                    && value < queue_length
                 {
                     return Ok(value);
                 }
 
                 // Wrapping over the end of the queue
-                let n_items_after = queue_length - playing_index.saturating_sub(NUM_ITEMS_AHEAD);
+                let n_items_after = queue_length - center.saturating_sub(NUM_ITEMS_AHEAD);
                 if queue_index <= n_items_after {
                     match queue_index + n_items_after {
-                        value if value >= queue_items_len => return Err(ItemNotFoundError),
+                        value if value >= queue_length => return Err(ItemNotFoundError),
                         value => return Ok(value),
                     }
                 }
@@ -382,9 +393,12 @@ impl QueuePage {
     #[inline]
     #[must_use]
     fn model_index_to_queue(&self, model_index: usize) -> usize {
-        let playing_index = self.playing_index.get();
+        let center_index = wrap_index(
+            self.playing_index.get() as isize + self.view_pan_offset.get(),
+            self.queue_length.get(),
+        );
         match self.repeat_toggle.is_active() {
-            false => model_index + playing_index - NUM_ITEMS_BEHIND.min(playing_index),
+            false => model_index + center_index - NUM_ITEMS_BEHIND.min(center_index),
             true => {
                 let queue_length = self.queue_length.get();
                 debug_assert!(
@@ -395,7 +409,7 @@ impl QueuePage {
                 // Wrapping over the start of the queue
                 let n_items_behind = NUM_ITEMS_BEHIND
                     .min(queue_length - 1)
-                    .saturating_sub(playing_index);
+                    .saturating_sub(center_index);
                 if n_items_behind > 0 {
                     // println!("Wrapping over the start of the queue");
                     if model_index < n_items_behind {
@@ -407,8 +421,8 @@ impl QueuePage {
                 }
 
                 // Non-wrapped items
-                let offset_index = model_index + playing_index
-                    - NUM_ITEMS_BEHIND.min(playing_index)
+                let offset_index = model_index + center_index
+                    - NUM_ITEMS_BEHIND.min(center_index)
                     - n_items_behind;
                 if offset_index < queue_length {
                     // println!("Non-wrapped item");
@@ -713,8 +727,7 @@ impl QueuePage {
             #[strong]
             drag_offset_y,
             move |gesture_drag, _| if dragging.get() {
-                // TODO: Cancel drag when pressing escape or right mouse button
-                // (using `dragging.set_drag_state(false)`)
+                // TODO: Stop dragging when escape is pressed (`dragging.set_drag_state(false)`)
 
                 let (Some((start_x, start_y)), Some((_, offset_y))) =
                     (gesture_drag.start_point(), gesture_drag.offset())
@@ -817,6 +830,7 @@ impl QueuePage {
 
                 let playing = (queue_page.queue_index_to_model(playing_index)).unwrap() as i32;
                 (queue_page.next_scroll_pos).set(QueueScrollAction::Offset(
+                    // TODO: Handle the case when the playing item is not drawn due to panning (0)
                     match playing_index > NUM_ITEMS_BEHIND || queue_page.repeat_toggle.is_active() {
                         false if from < playing && to > playing => 1,
                         true if from > playing && to <= playing => -1,
