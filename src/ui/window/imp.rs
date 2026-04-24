@@ -114,9 +114,9 @@ impl Window {
                     self.main_player.set_state(playing, interactive);
                 }
 
-                UpdateUI::SetQueue(queue, index) => self.update_song_queue(Some(queue), index),
-                UpdateUI::SetQueueIndex(index) => self.update_song_queue(None, index),
-                UpdateUI::RedrawQueue => self.queue_page.redraw_song_queue(),
+                UpdateUI::SetQueue(queue, index) => self.set_song_queue(queue, index),
+                UpdateUI::SetQueueIndex(index) => self.set_queue_index(index),
+                UpdateUI::RedrawQueue => self.queue_page.redraw_queue(),
                 UpdateUI::OpenQueueSubpage(index) => self.open_queue_subpage(index),
                 UpdateUI::CloseQueueSubpage => self.close_queue_subpage(),
                 UpdateUI::Shuffle(shuffle) => self.queue_page.update_shuffle(shuffle),
@@ -227,19 +227,19 @@ impl Window {
         }
     }
 
-    fn update_song_queue(&self, queue: Option<Box<[QueueItem]>>, index: usize) {
+    fn set_song_queue(&self, queue: Box<[QueueItem]>, index: usize) {
+        #[cfg(debug_assertions)]
+        println!("set_song_queue(…, {index}): {} items", queue.len());
+
         self.queue_page.set_playing_index(index);
-        if let Some(queue) = queue {
-            #[cfg(debug_assertions)]
-            println!("update_song_queue(Some(…), {index}): {} items", queue.len());
+        self.queue_page.update_queue(queue, index);
+    }
+    fn set_queue_index(&self, index: usize) {
+        #[cfg(debug_assertions)]
+        println!("set_queue_index({index})");
 
-            self.queue_page.update_song_queue(queue, index);
-        } else {
-            #[cfg(debug_assertions)]
-            println!("update_song_queue(None, {index})");
-
-            self.queue_page.redraw_song_queue();
-        }
+        self.queue_page.set_playing_index(index);
+        self.queue_page.redraw_queue();
     }
     fn open_queue_subpage(&self, index: usize) {
         self.playing.push_by_tag("info");

@@ -50,17 +50,18 @@ pub struct QueuePage {
     #[template_child]
     view_further_down: TemplateChild<gtk::Button>,
 
-    queue_length: Cell<usize>,
-    pub song_queue: RefCell<Box<[QueueItem]>>,
-    pub playing_index: Cell<usize>,
+    pub subpage: OnceCell<QueueSubpage>,
+
     view_pan_offset: Cell<isize>,
-    last_repeat_mode: Cell<bool>,
     queue_item_objects: Rc<RefCell<Vec<QueueItemObject>>>,
-    pub song_page: OnceCell<QueueSubpage>,
     list_model: OnceCell<gio::ListStore>,
+    pub drag_row: OnceCell<ListRow>,
     pub next_scroll_pos: Cell<QueueScrollAction>,
 
-    pub drag_row: OnceCell<ListRow>,
+    pub song_queue: RefCell<Box<[QueueItem]>>,
+    pub playing_index: Cell<usize>,
+    queue_length: Cell<usize>,
+    last_repeat_mode: Cell<bool>,
 }
 
 #[derive(Debug)]
@@ -157,11 +158,11 @@ impl QueuePage {
     }
 
     #[inline]
-    pub fn replace_queue_items(&self, queue: Box<[QueueItem]>) {
+    pub fn set_queue_items(&self, queue: Box<[QueueItem]>) {
         self.song_queue.replace(queue);
     }
 
-    pub fn update_song_queue(&self, queue: &[QueueItem], playing: usize) {
+    pub fn draw_queue(&self, queue: &[QueueItem], playing: usize) {
         let queue_length = queue.len();
         let old_queue_length = self.queue_length.replace(queue_length);
         self.view_stack

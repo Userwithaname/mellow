@@ -15,26 +15,34 @@ glib::wrapper! {
 }
 
 impl QueuePage {
+    /// Initializes the `subpage`
     #[inline]
-    pub fn init(&self, song_page: QueueSubpage) {
-        let _ = self.imp().song_page.set(song_page);
+    pub fn init(&self, subpage: QueueSubpage) {
+        let _ = self.imp().subpage.set(subpage);
     }
 
+    /// Returns the current playing item index
     #[inline]
     #[must_use]
     pub fn get_playing_index(&self) -> usize {
         self.imp().playing_index.get()
     }
+    /// Sets the current playing item index to `index`
+    ///
+    /// Note: `redraw_song_queue` must be called manually
     #[inline]
     pub fn set_playing_index(&self, index: usize) {
-        self.imp().playing_index.set(index)
+        self.imp().playing_index.set(index);
     }
 
+    /// Returns the current shuffle mode setting (`true`/`false`)
     #[inline]
     #[must_use]
     pub fn get_shuffle(&self) -> bool {
         self.imp().shuffle_toggle.is_active()
     }
+    /// Sets the shuffle button state to the value of `shuffle`,
+    /// and forwards the shuffle mode to the player when handled
     pub fn update_shuffle(&self, shuffle: bool) {
         let ui = self.imp();
         ui.shuffle_toggle.set_icon_name(match shuffle {
@@ -45,38 +53,49 @@ impl QueuePage {
         ui.next_scroll_pos.set(QueueScrollAction::ToPlaying);
     }
 
+    /// Returns the current repeat mode setting (`true`/`false`)
     #[inline]
     #[must_use]
     pub fn get_repeat(&self) -> bool {
         self.imp().repeat_toggle.is_active()
     }
+    /// Sets the repeat button state to the value of `repeat`,
+    /// and forwards the repeat mode to the player when handled
     #[inline]
     pub fn update_repeat(&self, repeat: bool) {
         let ui = self.imp();
         ui.repeat_toggle.set_active(repeat);
     }
 
+    /// Replaces the `queue` and `playing` index, then redraws the UI
     #[inline]
-    pub fn update_song_queue(&self, queue: Box<[QueueItem]>, index: usize) {
+    pub fn update_queue(&self, queue: Box<[QueueItem]>, playing: usize) {
         let queue_page = self.imp();
-        queue_page.replace_queue_items(queue);
-        queue_page.update_song_queue(&queue_page.song_queue.borrow(), index);
+        queue_page.set_queue_items(queue);
+        queue_page.draw_queue(&queue_page.song_queue.borrow(), playing);
     }
+    /// Redraws the song queue without changing it
     #[inline]
-    pub fn redraw_song_queue(&self) {
+    pub fn redraw_queue(&self) {
         let queue_page = self.imp();
-        let (queue, index) = (
+        let (queue, playing) = (
             &queue_page.song_queue.borrow(),
             queue_page.playing_index.get(),
         );
-        self.imp().update_song_queue(queue, index);
+        queue_page.draw_queue(queue, playing);
     }
+    /// Returns a borrowed reference to the currently assigned song queue
     #[inline]
     #[must_use]
     pub fn borrow_queue(&self) -> Ref<'_, Box<[QueueItem]>> {
         self.imp().song_queue.borrow()
     }
 
+    /// Assigns the `artwork` for the queue item at `index`
+    ///
+    /// The `index` is relative to the entire queue, rather than the displayed
+    /// items. If the item at `index` is currently out of view, assigning the
+    /// artwork is ignored.
     #[inline]
     pub fn assign_artwork(&self, index: usize, artwork: Option<&gdk::Texture>) {
         self.imp().assign_artwork(index, artwork);
@@ -91,8 +110,11 @@ impl QueuePage {
 
 #[derive(Default, Debug, Clone, Copy)]
 pub enum QueueScrollAction {
+    /// The scroll position should remain the same after redraw
     #[default]
     Retain,
+    /// The scroll position should be offset by N items
     Offset(i32),
+    /// The scroll position should change to show the currently playing item
     ToPlaying,
 }
