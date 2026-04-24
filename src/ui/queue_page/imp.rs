@@ -133,6 +133,13 @@ impl QueuePage {
             .set((self.view_pan_offset.get() + 1) % self.queue_length.get() as isize);
         self.draw_queue(&self.song_queue.borrow(), self.playing_index.get());
     }
+    #[template_callback]
+    pub fn handle_show_playing(&self) {
+        // TODO: Only show the button when the playing item is out of view
+        // (either due to scrolling or panning)
+        self.next_scroll_pos.set(QueueScrollAction::ToPlaying);
+        self.draw_queue(&self.song_queue.borrow(), self.playing_index.get());
+    }
 
     #[inline]
     pub fn scroll_to_pos(&self, scroll_target: f64) {

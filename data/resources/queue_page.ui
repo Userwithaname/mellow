@@ -113,6 +113,27 @@
                         </child>
                       </object>
                     </child>
+                    <child type="overlay">
+                      <object class="GtkBox">
+                        <property name="valign">End</property>
+                        <property name="halign">End</property>
+                        <child>
+                          <object class="GtkButton">
+                            <property name="icon_name">edit-undo-symbolic</property>
+                            <property name="tooltip_text" translatable="yes">Show Playing Item</property>
+                            <signal name="clicked" handler="handle_show_playing" swapped="true"/>
+                            <property name="width_request">48</property>
+                            <property name="height_request">48</property>
+                            <property name="margin_end">16</property>
+                            <property name="margin_bottom">16</property>
+                            <style>
+                              <class name="circular"/>
+                              <!-- <class name="osd"/> -->
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </child>
 
                     <child>
                       <!-- TODO: Button to scroll back to the playing song -->
