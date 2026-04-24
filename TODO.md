@@ -26,7 +26,7 @@ Song queue:
   - [x] Removing multiple items at once
   - [ ] Rating multiple items at once
 - [x] Offset the visible items by pressing the buttons at the top and bottom of the queue
-  - [ ] Holding the button should repeatedly increment the panning offset
+  - [x] Holding the button should repeatedly increment the panning offset
   - [-] Show a scroll-to-playing button whenever the playing item is out of view
 - [x] Display a landing page
 > The "Open from Disk" picker could be improved to accept directories as well

@@ -1,5 +1,6 @@
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, OnceCell, RefCell};
+use core::time::Duration;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib, graphene};
 use std::rc::Rc;
@@ -16,6 +17,7 @@ const NUM_ITEMS_AHEAD: usize = 45;
 const NUM_ITEMS_BEHIND: usize = 45;
 const ROW_HEIGHT: usize = 55;
 const PAN_UP_BUTTON_HEIGHT: i32 = 44;
+const PAN_REPEAT_INTERVAL: Duration = Duration::from_millis(150);
 
 #[derive(Default, CompositeTemplate)]
 #[template(resource = "/io/github/userwithaname/Mellow/queue_page.ui")]
@@ -57,11 +59,20 @@ pub struct QueuePage {
     list_model: OnceCell<gio::ListStore>,
     pub drag_row: OnceCell<ListRow>,
     pub next_scroll_pos: Cell<QueueScrollAction>,
+    pan_loop_direction: Rc<Cell<PanLoopDirection>>,
 
     pub song_queue: RefCell<Box<[QueueItem]>>,
     pub playing_index: Cell<usize>,
     queue_length: Cell<usize>,
     last_repeat_mode: Cell<bool>,
+}
+
+#[derive(Default, Copy, Clone)]
+enum PanLoopDirection {
+    Up,
+    #[default]
+    None,
+    Down,
 }
 
 #[derive(Debug)]
@@ -139,6 +150,29 @@ impl QueuePage {
         // (either due to scrolling or panning)
         self.next_scroll_pos.set(QueueScrollAction::ToPlaying);
         self.draw_queue(&self.song_queue.borrow(), self.playing_index.get());
+    }
+
+    #[inline]
+    fn start_pan_loop(&self, direction: PanLoopDirection) {
+        self.pan_loop_direction.set(direction);
+        glib::spawn_future_local(glib::clone!(
+            #[weak(rename_to=queue_page)]
+            self,
+            async move {
+                loop {
+                    match queue_page.pan_loop_direction.get() {
+                        PanLoopDirection::Down => queue_page.handle_pan_down(),
+                        PanLoopDirection::None => return,
+                        PanLoopDirection::Up => queue_page.handle_pan_up(),
+                    };
+                    glib::timeout_future(PAN_REPEAT_INTERVAL).await;
+                }
+            }
+        ));
+    }
+    #[inline]
+    fn stop_pan_loop(&self) {
+        self.pan_loop_direction.set(PanLoopDirection::None);
     }
 
     #[inline]
@@ -870,6 +904,34 @@ impl QueuePage {
         ));
         self.list_box.add_controller(hold);
     }
+    #[inline]
+    fn setup_pan_repeat_on_hold(&self) {
+        let hold_to_pan_up = gtk::GestureLongPress::new();
+        hold_to_pan_up.connect_pressed(glib::clone!(
+            #[weak(rename_to = queue_page)]
+            self,
+            move |_, _, _| queue_page.start_pan_loop(PanLoopDirection::Up)
+        ));
+        hold_to_pan_up.connect_end(glib::clone!(
+            #[weak(rename_to = queue_page)]
+            self,
+            move |_, _| queue_page.stop_pan_loop()
+        ));
+        self.view_further_up.add_controller(hold_to_pan_up);
+
+        let hold_to_pan_down = gtk::GestureLongPress::new();
+        hold_to_pan_down.connect_pressed(glib::clone!(
+            #[weak(rename_to = queue_page)]
+            self,
+            move |_, _, _| queue_page.start_pan_loop(PanLoopDirection::Down)
+        ));
+        hold_to_pan_down.connect_end(glib::clone!(
+            #[weak(rename_to = queue_page)]
+            self,
+            move |_, _| queue_page.stop_pan_loop()
+        ));
+        self.view_further_down.add_controller(hold_to_pan_down);
+    }
 
     /// Empties the list model, cancelling any pending background tasks during drop
     #[inline]
@@ -936,6 +998,7 @@ impl ObjectImpl for QueuePage {
         self.setup_model();
         self.setup_drag_and_drop();
         self.setup_selection_mode();
+        self.setup_pan_repeat_on_hold();
     }
 }
 
