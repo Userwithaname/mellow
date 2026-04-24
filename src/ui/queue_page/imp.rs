@@ -185,8 +185,6 @@ impl QueuePage {
         // Exit selection mode before resetting the model
         self.set_selection_mode(false);
 
-        // TODO: Add a button to jump back to the playing item
-
         if let QueueScrollAction::ToPlaying = self.next_scroll_pos.get() {
             self.view_pan_offset.set(0);
         }
