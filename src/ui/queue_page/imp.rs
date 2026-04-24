@@ -262,7 +262,6 @@ impl QueuePage {
                 items.extend(items_after);
             }
         } else if repeat_mode != last_repeat_mode {
-            // FIX: Erratic scroll offset when changing repeat mode due to centering logic
             self.next_scroll_pos.set(QueueScrollAction::Offset(
                 -(NUM_ITEMS_BEHIND.saturating_sub(center) as i32),
             ));
