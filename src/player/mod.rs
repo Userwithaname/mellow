@@ -313,7 +313,7 @@ impl Player {
                     self.queue.ui_update_queue();
                     continue;
                 }
-                PlayerRequest::Undo => self.queue.pefrofm_undo() != (),
+                PlayerRequest::Undo => self.queue.pefrofm_undo() == (),
 
                 PlayerRequest::Update => true,
 
