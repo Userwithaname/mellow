@@ -306,7 +306,6 @@ impl SongQueue {
     }
 
     /// Appends multiple items to the end of the current queue
-    /// UI queue must be manually updated
     pub fn append(&mut self, items: &[QueueItem]) {
         self.songs.extend_from_slice(items);
         let len = self.songs.len();
