@@ -1,0 +1,59 @@
+name: Flatpak
+permissions:
+  contents: read
+
+on:
+  workflow_dispatch:
+  pull_request:
+  push:
+    tags:
+      - '**'
+
+jobs:
+  build-flatpak:
+    runs-on: ${{ matrix.os }}
+    permissions:
+      contents: write
+    container:
+      image: ghcr.io/flathub-infra/flatpak-github-actions:gnome-50
+      options: --privileged
+    strategy:
+      matrix:
+        include:
+          - arch: x86_64
+            name: amd64
+            os: ubuntu-24.04
+
+          - arch: aarch64
+            name: aarch64
+            os: ubuntu-24.04-arm
+
+      # Don't fail the whole workflow if one architecture fails
+      fail-fast: false
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          persist-credentials: false
+
+      - uses: flatpak/flatpak-github-actions/flatpak-builder@v6
+        with:
+          bundle: io.github.userwithaname.Mellow.${{ matrix.arch }}.flatpak
+          manifest-path: io.github.userwithaname.Mellow.yaml
+          arch: ${{ matrix.arch }}
+          upload-artifact: false
+
+      - name: Upload flatpak to action
+        uses: actions/upload-artifact@v7
+        with:
+          name: io.github.userwithaname.Mellow.${{ matrix.arch }}.flatpak
+          path: io.github.userwithaname.Mellow.${{ matrix.arch }}.flatpak
+
+      - name: Upload flatpak to GitHub Release
+        if: startsWith(github.ref, 'refs/tags/')
+        uses: svenstaro/upload-release-action@v2
+        with:
+          repo_token: ${{ secrets.GITHUB_TOKEN }}
+          file: io.github.userwithaname.Mellow.${{ matrix.arch }}.flatpak
+          tag: ${{ github.ref }}
+          file_glob: true
+          overwrite: true
