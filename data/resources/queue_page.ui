@@ -114,9 +114,9 @@
                       </object>
                     </child>
                     <child type="overlay">
-                      <object class="GtkButton">
+                      <object class="GtkButton" id="to_playing">
                         <property name="icon-name">edit-undo-symbolic</property>
-                        <property name="tooltip-text" translatable="yes">Show Playing Item</property>
+                        <property name="tooltip-text" translatable="yes">Scroll To Playing</property>
                         <signal name="clicked" handler="handle_show_playing" swapped="true"/>
                         <property name="width-request">48</property>
                         <property name="height-request">48</property>
@@ -134,7 +134,6 @@
                     </child>
 
                     <child>
-                      <!-- TODO: Button to scroll back to the playing song -->
                       <object class="GtkScrolledWindow" id="scrolled_window">
                         <child>
                           <object class="AdwClamp">

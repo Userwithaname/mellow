@@ -51,6 +51,8 @@ pub struct QueuePage {
     view_further_up: TemplateChild<gtk::Button>,
     #[template_child]
     view_further_down: TemplateChild<gtk::Button>,
+    #[template_child]
+    to_playing: TemplateChild<gtk::Button>,
 
     pub subpage: OnceCell<QueueSubpage>,
 
@@ -498,7 +500,14 @@ impl QueuePage {
         self.selection_toggle.set_active(selection_mode);
         self.header_selection.set_visible(selection_mode);
         self.header_normal.set_visible(!selection_mode);
+
         self.selection_mode.set(selection_mode);
+
+        // Disabling these buttons because selection mode resets when queue is redrawn
+        self.to_playing.set_visible(!selection_mode);
+        self.view_further_up.set_sensitive(!selection_mode);
+        self.view_further_down.set_sensitive(!selection_mode);
+
         let model = self.list_model.get().expect(EXP_INIT);
         self.for_each_row(|list_row, index| {
             let list_row = list_row.downcast_ref::<ListRow>().unwrap().imp();
