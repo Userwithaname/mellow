@@ -72,8 +72,7 @@ impl SongQueue {
     #[inline]
     #[must_use]
     pub fn current(&self) -> &QueueItem {
-        let index = self.current_index();
-        &self.songs[index]
+        &self.songs[self.current_index()]
     }
 
     /// Returns a reference to the next item in the queue
@@ -359,9 +358,6 @@ impl SongQueue {
 
     /// Removes the current song from the queue
     pub fn remove_current(&mut self) -> QueueItem {
-        if self.is_last() {
-            self.index = 0;
-        }
         self.pending_track = true;
         self.remove(self.index)
     }
