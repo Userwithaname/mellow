@@ -425,11 +425,13 @@ impl Library {
                 // If files were modified, queue another rebuild so the new info gets loaded
                 if needs_rebuild && !cancel.swap(true, atomic::Ordering::Relaxed) {
                     let _ = library_tx.send(LibraryRequest::CancelRebuild);
-                    let _ = library_tx.send(LibraryRequest::OnBuildStopped(Box::new(|library| {
+                    let _ = library_tx.send(LibraryRequest::OnBuildStopped(Box::new(|_| {
                         ui_tx.send(UpdateUI::Progress(Some(0.0))).expect(EXP_RX);
                         println!("Rebuilding because files were modified");
-                        // FIX: Progress bar stays empty for a bit during the rebuild
-                        library.discover_files();
+
+                        // Sending rebuild request through the channel instead of running directly,
+                        // so it waits for any cancellations to complete in full before rebuilding
+                        library_tx.send(LibraryRequest::Rebuild).expect(EXP_RX);
                     })));
                     drop(file_times_guard);
                     println!("Modifications detected, library will rebuild shortly");
