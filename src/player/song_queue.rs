@@ -309,6 +309,8 @@ impl SongQueue {
     /// UI queue must be manually updated
     pub fn append(&mut self, items: &[QueueItem]) {
         self.songs.extend_from_slice(items);
+        let len = self.songs.len();
+        self.shuffled.extend(len - items.len()..len);
         self.ui_update_queue();
     }
 
