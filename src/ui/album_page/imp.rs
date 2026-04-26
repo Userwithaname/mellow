@@ -7,7 +7,7 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use crate::excuses::EXP_RX;
 use crate::library::{SharedAlbum, ToQueue};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
-use crate::ui::Rating;
+use crate::ui::{Rating, show_queue};
 use crate::ui::{UpdateUI, ui_tx};
 
 #[derive(Default, CompositeTemplate)]
@@ -85,16 +85,7 @@ impl AlbumPage {
                 "Disc {disc_number} \"{}\" has been added to queue",
                 self.album_title.label()
             ),
-            Some(Box::new((
-                "View",
-                Box::new(move || {
-                    let ui_tx = ui_tx();
-                    ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
-                    // NOTE: This will not close the lyrics page, if open
-                    let _ = ui_tx.send(UpdateUI::CloseQueueSubpage);
-                    // IDEA: Also scroll to the first added song
-                }),
-            ))),
+            Some(Box::new(("View", Box::new(show_queue)))),
         ));
     }
     #[inline]

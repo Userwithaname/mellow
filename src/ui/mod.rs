@@ -50,6 +50,7 @@ pub use song_page::SongPage;
 pub use songs_page::SongsPage;
 pub use window::Window;
 
+use crate::excuses::EXP_RX;
 use crate::library::{Albums, Artists, Songs, ToQueue};
 use crate::library::{SharedAlbum, SharedArtist, SharedSong};
 use crate::player::QueueItem;
@@ -153,6 +154,20 @@ pub enum UpdateUI {
 
     /// Causes the channel to ignore any further requests (but does not close it)
     Shutdown,
+}
+
+// Shows the 'Playing' tab in the UI
+pub fn show_queue() {
+    let ui_tx = ui_tx();
+    ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
+
+    // NOTE: This will not close the lyrics page, if open
+    let _ = ui_tx.send(UpdateUI::CloseQueueSubpage);
+
+    // IDEA: Also scroll to a specified item in the queue
+
+    // Re-open the overlay in case it was closed
+    let _ = ui_tx.send(UpdateUI::OpenSheet(true));
 }
 
 // IDEA: The fallback images could be cached somehow

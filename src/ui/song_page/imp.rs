@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::excuses::{ACTION_ERR, EXP_INIT, EXP_RX};
 use crate::library::{SharedSong, SharedSongExt, ToQueue};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
-use crate::ui::Rating;
+use crate::ui::{Rating, show_queue};
 use crate::ui::{UpdateUI, ui_tx};
 
 #[derive(Default, CompositeTemplate)]
@@ -60,16 +60,7 @@ impl SongPage {
                 "Song \"{}\" will play next in the queue",
                 song.info().inspect_basic().as_ref().unwrap().title
             ),
-            Some(Box::new((
-                "View",
-                Box::new(move || {
-                    let ui_tx = ui_tx();
-                    ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
-                    // NOTE: This will not close the lyrics page, if open
-                    let _ = ui_tx.send(UpdateUI::CloseQueueSubpage);
-                    // IDEA: Also scroll to the added song
-                }),
-            ))),
+            Some(Box::new(("View", Box::new(show_queue)))),
         ));
     }
     #[template_callback]
@@ -86,16 +77,7 @@ impl SongPage {
                 "Song \"{}\" has been added to queue",
                 song.info().inspect_basic().as_ref().unwrap().title
             ),
-            Some(Box::new((
-                "View",
-                Box::new(move || {
-                    let ui_tx = ui_tx();
-                    ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
-                    // NOTE: This will not close the lyrics page, if open
-                    let _ = ui_tx.send(UpdateUI::CloseQueueSubpage);
-                    // IDEA: Also scroll to the added song
-                }),
-            ))),
+            Some(Box::new(("View", Box::new(show_queue)))),
         ));
     }
     #[template_callback]
