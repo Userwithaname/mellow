@@ -142,13 +142,8 @@ impl LibraryConfig {
             let Some(Some(adj)) = chars.next() else {
                 break 'counter;
             };
-            for cur in chars {
-                let Some(cur) = cur else {
-                    break 'counter;
-                };
-                if cur != adj {
-                    break 'counter;
-                }
+            if chars.any(|cur| cur.is_none_or(|cur| cur != adj)) {
+                break 'counter;
             }
             self.uri_opt += 1;
         }

@@ -122,9 +122,7 @@ impl QueuePage {
             format!("Removed {} items from the queue", selected_items.len()),
             Some(Box::new((
                 "Undo",
-                Box::new(move || {
-                    let _ = player_tx().send(PlayerRequest::Undo);
-                }),
+                Box::new(|| player_tx().send(PlayerRequest::Undo).expect(EXP_RX)),
             ))),
         )))
         .expect(EXP_RX);

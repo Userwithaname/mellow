@@ -83,9 +83,7 @@ impl QueueSubpage {
             format!("Removed from the queue: \"{}\"", self.song_title.label()),
             Some(Box::new((
                 "Undo",
-                Box::new(move || {
-                    (player_tx().send(PlayerRequest::Undo)).expect(EXP_RX);
-                }),
+                Box::new(|| player_tx().send(PlayerRequest::Undo).expect(EXP_RX)),
             ))),
         )))
         .expect(EXP_RX);
