@@ -156,7 +156,10 @@ pub enum UpdateUI {
     Shutdown,
 }
 
-// Shows the 'Playing' tab in the UI
+/// Shows the 'Playing' tab in the UI
+///
+/// # Panics
+/// The function panics if the UI channel is closed
 pub fn show_queue() {
     let ui_tx = ui_tx();
     ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
