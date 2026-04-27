@@ -424,8 +424,12 @@ impl SongInfoLoader<'_> {
     pub fn try_inspect_basic(&self) -> Result<RwLockReadGuard<'_, Option<SongInfo>>, TryLockError> {
         self.info.try_read().map_err(|_| TryLockError)
     }
-    /// Loads basic song info and returns its `MutexGuard`.
-    /// The returned inner `Option` is always safe to unwrap.
+    /// Loads basic song info and returns its `RwLockRadGuard`
+    ///
+    /// The returned inner `Option` is expected to be `Some`, but
+    /// may be `None` if concurrently unloaded between when the info
+    /// was assigned and when the read guard was returned, if the info
+    /// was not loaded prior to calling this function
     ///
     /// # Panics
     /// The function panics if the basic info `RwLock` is poisoned
@@ -447,11 +451,15 @@ impl SongInfoLoader<'_> {
         self.info.read().unwrap()
     }
     /// Returns the basic song info if it is currently accessible without
-    /// blocking the thread.
-    /// The returned inner `Option` of the `Ok` variant is always safe to unwrap.
+    /// blocking the thread
+    ///
+    /// The returned inner `Option` of the `Ok` variant is expected to
+    /// be `Some`, but may be `None` if concurrently unloaded between
+    /// when the info was assigned and when the read guard was returned,
+    /// if the info was not loaded prior to calling this function
     ///
     /// # Errors
-    /// - If the info is loaded, but cannot be read without blocking
+    /// Returns an error if the info cannot be accessed without blocking
     ///
     /// # Panics
     /// The function panics if the basic info `RwLock` is poisoned
@@ -581,8 +589,12 @@ impl SongInfoLoader<'_> {
     ) -> Result<RwLockReadGuard<'_, Option<DetailedSongInfo>>, TryLockError> {
         self.detailed_info.try_read().map_err(|_| TryLockError)
     }
-    /// Loads detailed song info and returns its `MutexGuard`.
-    /// The returned inner `Option` is always safe to unwrap.
+    /// Loads detailed song info and returns its `RwLokReadGuard`
+    ///
+    /// The returned inner `Option` is expected to be `Some`, but
+    /// may be `None` if concurrently unloaded between when the info
+    /// was assigned and when the read guard was returned, if the info
+    /// was not loaded prior to calling this function
     ///
     /// # Panics
     /// The function panics if the detailed info `RwLock` is poisoned
@@ -598,11 +610,15 @@ impl SongInfoLoader<'_> {
         self.detailed_info.read().unwrap()
     }
     /// Returns the detailed song info if it is currently accessible without
-    /// blocking the thread.
-    /// The returned inner `Option` of the `Ok` variant is always safe to unwrap.
+    /// blocking the thread
+    ///
+    /// The returned inner `Option` of the `Ok` variant is expected to
+    /// be `Some`, but may be `None` if concurrently unloaded between
+    /// when the info was assigned and when the read guard was returned,
+    /// if the info was not loaded prior to calling this function
     ///
     /// # Errors
-    /// - If the info is loaded, but cannot be read without blocking
+    /// Returns an error if the info cannot be accessed without blocking
     ///
     /// # Panics
     /// The function panics if the detailed info `RwLock` is poisoned
