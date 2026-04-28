@@ -142,12 +142,20 @@ impl SongQueue {
         }
     }
 
-    /// Returns references to all songs in the queue,
-    /// ordered with respect to shuffle setting
+    /// Returns all items in the queue, ordered with respect to `self.shuffle`
     #[inline]
     #[must_use]
     pub fn ordered_queue(&self) -> Box<[QueueItem]> {
-        (0..self.len()).map(|i| self.nth(i).clone()).collect()
+        match self.shuffle {
+            false => (0..self.songs.len())
+                // SAFETY: The range is within bounds of `self.songs.len()`
+                .map(|i| unsafe { self.songs.get_unchecked(i) }.clone())
+                .collect(),
+            true => (0..self.shuffled.len())
+                // SAFETY: The range is within bounds of `self.shuffled.len()`
+                .map(|i| self.songs[*unsafe { self.shuffled.get_unchecked(i) }].clone())
+                .collect(),
+        }
     }
 
     /// Replaces the current queue with the provided one
