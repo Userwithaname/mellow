@@ -147,14 +147,8 @@ impl SongQueue {
     #[must_use]
     pub fn ordered_queue(&self) -> Box<[QueueItem]> {
         match self.shuffle {
-            false => (0..self.songs.len())
-                // SAFETY: The range is within bounds of `self.songs.len()`
-                .map(|i| unsafe { self.songs.get_unchecked(i) }.clone())
-                .collect(),
-            true => (0..self.shuffled.len())
-                // SAFETY: The range is within bounds of `self.shuffled.len()`
-                .map(|i| self.songs[*unsafe { self.shuffled.get_unchecked(i) }].clone())
-                .collect(),
+            false => self.songs.iter().map(QueueItem::clone).collect(),
+            true => (self.shuffled.iter().map(|i| self.songs[*i].clone())).collect(),
         }
     }
 
