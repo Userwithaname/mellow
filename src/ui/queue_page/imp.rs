@@ -503,6 +503,8 @@ impl QueuePage {
     #[inline]
     fn set_selection_mode(&self, selection_mode: Option<usize>) {
         self.selection_mode.set(selection_mode);
+        self.remove_selection
+            .set_sensitive(selection_mode.is_some_and(|count| count > 0));
         let selection_mode = selection_mode.is_some();
 
         self.header_selection.set_visible(selection_mode);
