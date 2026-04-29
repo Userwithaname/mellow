@@ -32,11 +32,9 @@ pub struct QueuePage {
     #[template_child]
     header_selection: TemplateChild<adw::HeaderBar>,
     #[template_child]
-    pub selection_toggle: TemplateChild<gtk::ToggleButton>,
-    #[template_child]
     pub remove_selection: TemplateChild<gtk::Button>,
 
-    pub selection_mode: Rc<Cell<bool>>,
+    pub selection_mode: Rc<Cell<Option<usize>>>,
 
     #[template_child]
     list_box: TemplateChild<gtk::ListBox>,
@@ -96,7 +94,7 @@ impl QueuePage {
     }
     #[template_callback]
     pub fn handle_exit_selection(&self) {
-        self.set_selection_mode(false);
+        self.set_selection_mode(None);
     }
     #[template_callback]
     pub fn handle_remove_selected(&self) {
@@ -128,7 +126,7 @@ impl QueuePage {
         .expect(EXP_RX);
 
         let _ = player_tx().send(PlayerRequest::RemoveItems(selected_items));
-        self.set_selection_mode(false);
+        self.set_selection_mode(None);
     }
     #[template_callback]
     pub fn handle_pan_up(&self) {
@@ -217,8 +215,9 @@ impl QueuePage {
             });
 
         // Exit selection mode before resetting the model
-        self.set_selection_mode(false);
+        self.set_selection_mode(None);
 
+        // Panning offset has to be updated first to avoid having to draw twice
         if let QueueScrollAction::ToPlaying = self.next_scroll_pos.get() {
             self.view_pan_offset.set(0);
         }
@@ -494,12 +493,20 @@ impl QueuePage {
     // }
 
     #[inline]
-    fn set_selection_mode(&self, selection_mode: bool) {
-        self.selection_toggle.set_active(selection_mode);
+    fn update_selection_count(&self, selections: usize) {
+        if self.selection_mode.get().is_some() {
+            self.selection_mode.set(Some(selections));
+            self.remove_selection.set_sensitive(selections != 0);
+        }
+    }
+
+    #[inline]
+    fn set_selection_mode(&self, selection_mode: Option<usize>) {
+        self.selection_mode.set(selection_mode);
+        let selection_mode = selection_mode.is_some();
+
         self.header_selection.set_visible(selection_mode);
         self.header_normal.set_visible(!selection_mode);
-
-        self.selection_mode.set(selection_mode);
 
         // Disabling these buttons because selection mode resets when queue is redrawn
         self.to_playing.set_visible(!selection_mode);
@@ -536,6 +543,7 @@ impl QueuePage {
         let model = gio::ListStore::new::<QueueItemObject>();
         let selection_mode = Rc::clone(&self.selection_mode);
         let fallback_image = fallback_song_image();
+        let queue_page = self.obj().clone();
         self.list_box.bind_model(Some(&model), move |object| {
             // FIX: Optimize: The UI momentarily hangs whenever the queue is updated
             //
@@ -602,11 +610,21 @@ impl QueuePage {
             let index = queue_item_object.index() as usize;
             let selection_mode = Rc::clone(&selection_mode);
             queue_row.connect_activated(glib::clone!(
+                #[weak(rename_to=queue_page)]
+                queue_page.imp(),
                 #[weak]
                 queue_item_object,
                 move |_| match selection_mode.get() {
-                    false => (ui_tx().send(UpdateUI::OpenQueueSubpage(index))).expect(EXP_RX),
-                    true => queue_item_object.set_selected(!queue_item_object.selected()),
+                    None => (ui_tx().send(UpdateUI::OpenQueueSubpage(index))).expect(EXP_RX),
+                    Some(mut selections) => {
+                        let selected = !queue_item_object.selected();
+                        queue_item_object.set_selected(selected);
+                        match selected {
+                            true => selections += 1,
+                            false => selections -= 1,
+                        }
+                        queue_page.update_selection_count(selections);
+                    }
                 }
             ));
 
@@ -673,7 +691,7 @@ impl QueuePage {
             dragged_item_index,
             #[weak]
             dragging,
-            move |_, start_x, start_y| if !selection_mode.get() {
+            move |_, start_x, start_y| if selection_mode.get().is_none() {
                 if !Self::should_drag(start_x) {
                     return;
                 }
@@ -902,8 +920,8 @@ impl QueuePage {
         hold.connect_pressed(glib::clone!(
             #[weak(rename_to=queue_page)]
             self,
-            move |_, x, y| if !selection_mode.get() && !Self::should_drag(x) {
-                queue_page.set_selection_mode(true);
+            move |_, x, y| if selection_mode.get().is_none() && !Self::should_drag(x) {
+                queue_page.set_selection_mode(Some(1));
                 let object_index = queue_page.list_box.row_at_y(y as i32).unwrap().index();
                 queue_page.queue_item_objects.borrow()[object_index as usize].set_selected(true);
             }

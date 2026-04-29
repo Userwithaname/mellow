@@ -42,10 +42,10 @@
             <property name="visible">false</property>
             <property name="show-title">false</property>
             <child type="start">
-              <object class="GtkToggleButton" id="selection_toggle">
-                <signal name="toggled" handler="handle_exit_selection" swapped="true"/>
+              <object class="GtkButton">
+                <signal name="clicked" handler="handle_exit_selection" swapped="true"/>
                 <property name="icon-name">selection-mode-symbolic</property>
-                <property name="tooltip-text" translatable="yes">Selection Mode</property>
+                <property name="tooltip-text" translatable="yes">Exit Selection Mode</property>
               </object>
             </child>
             <child type="end">
