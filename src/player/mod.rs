@@ -1,8 +1,9 @@
-use core::{error::Error, time::Duration};
+use core::error::Error;
 use gst::prelude::*;
 use gst::{ClockTime, SeekFlags, State};
 use std::sync::{OnceLock, mpsc};
 
+use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_RX, INIT_ERR};
 use crate::ui::{UpdateUI, ui_tx};
 use crate::util::wrap_index;
@@ -217,13 +218,8 @@ impl Player {
         });
 
         loop {
-            const UPDATE_RATE: f64 = 60.2; // IDEA: Could be calculated using widget width and track length
-            #[allow(clippy::cast_sign_loss)]
-            #[allow(clippy::cast_possible_truncation)]
-            const UPDATE_INTERVAL: Duration = Duration::from_millis((1000.0 / UPDATE_RATE) as u64);
-
             self.handle_gst_events();
-            let Ok(player_request) = self.rx.recv_timeout(UPDATE_INTERVAL) else {
+            let Ok(player_request) = self.rx.recv_timeout(UI_TIMEOUT) else {
                 self.ui_set_time();
                 continue;
             };

@@ -78,9 +78,9 @@ pub fn init_globals() {
 }
 
 type ChannelReceivers = (
-    tokio_mpsc::UnboundedReceiver<UpdateUI>,
     mpsc::Receiver<PlayerRequest>,
     mpsc::Receiver<LibraryRequest>,
+    tokio_mpsc::UnboundedReceiver<UpdateUI>,
     tokio_mpsc::UnboundedReceiver<UpdateMPRIS>,
 );
 #[derive(Debug)]
@@ -107,7 +107,7 @@ pub fn init_channels() -> Result<ChannelReceivers, AlreadyInitializedError> {
     let _ = init_library_tx(library_tx);
     let _ = init_mpris_tx(mpris_tx);
 
-    Ok((ui_rx, player_rx, library_rx, mpris_rx))
+    Ok((player_rx, library_rx, ui_rx, mpris_rx))
 }
 
 /// Returns the music directory path

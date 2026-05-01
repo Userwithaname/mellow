@@ -30,16 +30,18 @@ impl Application {
             .property("flags", gio::ApplicationFlags::HANDLES_OPEN)
             .build();
 
-        if let Ok((ui_rx, player_rx, library_rx, mpris_rx)) = init_channels() {
-            // Starting the components in parallel with GTK initialization
-            // results in faster launch times. Because `connect_startup` expects
-            // a reusable `Fn` closure, `settings` and `ui_rx` are moved using
-            // `RefCell<Option>` instead.
+        // Only runs once, because `init_channels` returns an error if already initialized
+        if let Ok((player_rx, library_rx, ui_rx, mpris_rx)) = init_channels() {
+            // Starting the components in parallel with GTK (inside `init_componets`)
+            // results in faster launch times, but this requires moving them into
+            // `connect_startup` which takes a reusable `Fn` closure. One way of
+            // doing so is using a `RefCell<Option>` and `Option::take`.
             let settings = app.init_components(player_rx, library_rx);
             let args = RefCell::new(Some((settings, ui_rx, mpris_rx)));
             app.connect_startup(move |app| {
-                let (settings, ui_rx, mpris_rx) =
-                    args.take().unwrap( /* closure should only run once */ );
+                let Some((settings, ui_rx, mpris_rx)) = args.take() else {
+                    return; // This closure should not be run multiple times
+                };
                 Self::init_window(app, settings, ui_rx);
                 glib::spawn_future_local(mpris::controller(mpris_rx));
             });
