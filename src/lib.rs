@@ -43,12 +43,14 @@ use std::time::Duration;
 use tokio::sync::mpsc as tokio_mpsc;
 
 use crate::library::{LibraryRequest, init_library_tx};
+use crate::mpris::{UpdateMPRIS, init_mpris_tx};
 use crate::player::{PlayerRequest, init_player_tx};
 use crate::ui::{UpdateUI, init_ui_tx};
 
 pub mod about;
 pub mod excuses;
 pub mod library;
+pub mod mpris;
 pub mod player;
 pub mod shortcuts;
 pub mod ui;
@@ -79,6 +81,7 @@ type ChannelReceivers = (
     tokio_mpsc::UnboundedReceiver<UpdateUI>,
     mpsc::Receiver<PlayerRequest>,
     mpsc::Receiver<LibraryRequest>,
+    tokio_mpsc::UnboundedReceiver<UpdateMPRIS>,
 );
 #[derive(Debug)]
 pub struct AlreadyInitializedError;
@@ -95,14 +98,16 @@ pub fn init_channels() -> Result<ChannelReceivers, AlreadyInitializedError> {
     let (ui_tx, ui_rx) = tokio_mpsc::unbounded_channel::<UpdateUI>();
     let (player_tx, player_rx) = mpsc::channel::<PlayerRequest>();
     let (library_tx, library_rx) = mpsc::channel::<LibraryRequest>();
+    let (mpris_tx, mpris_rx) = tokio_mpsc::unbounded_channel::<UpdateMPRIS>();
 
     if init_ui_tx(ui_tx).is_err() {
         return Err(AlreadyInitializedError);
     }
     let _ = init_player_tx(player_tx);
     let _ = init_library_tx(library_tx);
+    let _ = init_mpris_tx(mpris_tx);
 
-    Ok((ui_rx, player_rx, library_rx))
+    Ok((ui_rx, player_rx, library_rx, mpris_rx))
 }
 
 /// Returns the music directory path

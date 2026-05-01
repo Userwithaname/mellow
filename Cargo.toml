@@ -19,6 +19,7 @@ adw   = { version = "0.9.0",  package = "libadwaita",   features = ["v1_8"]     
 gst   = { version = "0.25.0", package = "gstreamer"                               }
 gtk   = { version = "0.11.0", package = "gtk4",         features = ["v4_20"]      }
 lofty = { version = "0.24.0", default-features = false                            }
+mpris-server = { version = "0.10.0", default-features = false                     }
 rand  = { version = "0.10.0", default-features = false, features = ["thread_rng"] }
 tokio = { version = "1.47.1", features = ["rt-multi-thread", "sync"]              }
 

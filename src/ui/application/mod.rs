@@ -8,12 +8,12 @@ use tokio::sync::mpsc as tokio_mpsc;
 mod imp;
 
 use crate::excuses::{EXP_INIT, EXP_RX};
-use crate::init_channels;
 use crate::library::{Library, LibraryConfig, LibraryRequest, library_tx};
 use crate::player::{Player, PlayerRequest, SongQueue};
 use crate::shortcuts::Shortcuts;
 use crate::ui::{UpdateUI, Window, actions};
 use crate::{about, music_dir, util::unescaped_split};
+use crate::{init_channels, mpris};
 
 glib::wrapper! {
     pub struct Application(ObjectSubclass<imp::Application>)
@@ -30,17 +30,18 @@ impl Application {
             .property("flags", gio::ApplicationFlags::HANDLES_OPEN)
             .build();
 
-        if let Ok((ui_rx, player_rx, library_rx)) = init_channels() {
+        if let Ok((ui_rx, player_rx, library_rx, mpris_rx)) = init_channels() {
             // Starting the components in parallel with GTK initialization
             // results in faster launch times. Because `connect_startup` expects
             // a reusable `Fn` closure, `settings` and `ui_rx` are moved using
             // `RefCell<Option>` instead.
             let settings = app.init_components(player_rx, library_rx);
-            let args = RefCell::new(Some((settings, ui_rx)));
+            let args = RefCell::new(Some((settings, ui_rx, mpris_rx)));
             app.connect_startup(move |app| {
-                #[allow(clippy::missing_panics_doc)]
-                let (settings, ui_rx) = args.take().unwrap( /* closure should only run once */ );
+                let (settings, ui_rx, mpris_rx) =
+                    args.take().unwrap( /* closure should only run once */ );
                 Self::init_window(app, settings, ui_rx);
+                glib::spawn_future_local(mpris::controller(mpris_rx));
             });
         }
 
@@ -170,14 +171,18 @@ impl Application {
 
     /// Shows the window if it is hidden
     #[inline]
-    fn show_window(&self) {
-        self.window().set_visible(true);
+    pub fn show_window(&self) {
+        // FIX: Window does not get raised if already shown
+        self.window().present();
     }
 
     /// Registers the application actions
     #[inline]
     fn setup_actions(&self) {
-        self.add_action_entries([actions::app::quit(self, self.window())]);
+        self.add_action_entries([
+            actions::app::show_window(self),
+            actions::app::quit(self, self.window()),
+        ]);
     }
 
     /// Cleanly shuts down the application by saving the settings and state,

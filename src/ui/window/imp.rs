@@ -12,6 +12,7 @@ use tokio::sync::mpsc as tokio_mpsc;
 use crate::excuses::{ACTION_ERR, EXP_RX};
 use crate::library::{Albums, Artists, SharedAlbum, SharedArtist, SharedSong, Songs, ToQueue};
 use crate::library::{Library, LibraryRequest, library_tx};
+use crate::mpris::{UpdateMPRIS, mpris_tx};
 use crate::music_dir;
 use crate::player::QueueItem;
 use crate::ui::{
@@ -106,12 +107,14 @@ impl Window {
             match ui_rx.recv().await.unwrap() {
                 UpdateUI::SongInfo(queue_item, pause_after) => {
                     self.update_song_info(&queue_item, pause_after, &mut song_duration_ms);
+                    (mpris_tx().send(UpdateMPRIS::SongInfo(queue_item))).expect(EXP_RX);
                 }
                 UpdateUI::PlayerTime(time_ms) => {
                     self.main_player.set_time(time_ms, song_duration_ms as f64);
                 }
                 UpdateUI::PlayerState(playing, interactive) => {
                     self.main_player.set_state(playing, interactive);
+                    (mpris_tx().send(UpdateMPRIS::PlayState(playing))).expect(EXP_RX);
                 }
 
                 UpdateUI::SetQueue(queue, index) => self.set_song_queue(queue, index),
@@ -121,8 +124,8 @@ impl Window {
                 UpdateUI::CloseQueueSubpage => self.close_queue_subpage(),
                 UpdateUI::Shuffle(shuffle) => self.queue_page.update_shuffle(shuffle),
                 UpdateUI::Repeat(repeat) => self.queue_page.update_repeat(repeat),
-                UpdateUI::Progress(progress) => self.update_progress(progress),
 
+                UpdateUI::Progress(progress) => self.update_progress(progress),
                 UpdateUI::SetLibraryDirs(dirs) => self.set_library_dirs(&dirs),
                 UpdateUI::SetLibrarySongs(songs) => self.load_library_songs(songs),
                 UpdateUI::SetLibraryAlbums(albums) => self.load_library_albums(albums),

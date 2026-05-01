@@ -66,7 +66,7 @@ When the overlay is closed, it is time to enjoy the music.
 | 5.4 | Search/filter/sort                        | ⚠️ No conditional filtering yet |
 | 5.5 | Play counts and ratings                   | ⚠️ Play counts are not shown anywhere yet |
 | 5.6 | User-assigned tags                        | ❌ TODO |
-|  6  | D-Bus media integration (MPRIS)           | ❌ TODO |
+|  6  | D-Bus media integration (MPRIS)           | ⚠️ Clicking the notification does not focus the player window if it is already open |
 |  7  | Adaptive background/colors                | ✅ Done |
 
 # Installing Mellow
