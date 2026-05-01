@@ -226,11 +226,12 @@ impl QueuePage {
         let start = center.saturating_sub(NUM_ITEMS_BEHIND);
         let end = (center + NUM_ITEMS_AHEAD).min(queue.len());
 
-        let mut items = Self::items_to_objects(
+        let mut items: Vec<QueueItemObject> = Self::items_to_objects(
             queue.iter().take(end).skip(start).enumerate(),
             playing,
             start,
-        );
+        )
+        .collect();
 
         let repeat_mode = self.repeat_toggle.is_active();
 
@@ -244,21 +245,19 @@ impl QueuePage {
                     ));
                 }
                 let start = (queue.len() - n_items_before).max(center + 1);
-                let items_before = Self::items_to_objects(
-                    queue.iter().skip(start).enumerate(),
-                    playing, //
-                    start,
+                items.splice(
+                    0..0,
+                    Self::items_to_objects(queue.iter().skip(start).enumerate(), playing, start),
                 );
-                items = [items_before, items].concat();
             }
             let n_items_after = NUM_ITEMS_AHEAD - (end - center);
             if n_items_after > 0 {
-                let items_after = Self::items_to_objects(
-                    queue.iter().take(n_items_after.min(center)).enumerate(),
+                let end = n_items_after.min(center);
+                items.extend(Self::items_to_objects(
+                    queue.iter().take(end).enumerate(),
                     playing,
                     0,
-                );
-                items.extend(items_after);
+                ));
             }
         } else if repeat_mode != last_repeat_mode {
             self.next_scroll_pos.set(QueueScrollAction::Offset(
@@ -346,20 +345,18 @@ impl QueuePage {
         items_iter: I,
         playing_index: usize,
         start_index: usize,
-    ) -> Vec<QueueItemObject>
+    ) -> impl Iterator<Item = QueueItemObject>
     where
         I: Iterator<Item = (usize, &'i QueueItem)>,
     {
-        items_iter
-            .map(|index_item| {
-                let q_index = index_item.0 + start_index;
-                QueueItemObject::new(
-                    q_index as u32,
-                    q_index == playing_index,
-                    index_item.1.clone(),
-                )
-            })
-            .collect()
+        items_iter.map(move |index_item| {
+            let q_index = index_item.0 + start_index;
+            QueueItemObject::new(
+                q_index as u32,
+                q_index == playing_index,
+                index_item.1.clone(),
+            )
+        })
     }
 
     /// Takes a queue item index and returns the index to access its object
