@@ -858,8 +858,8 @@ impl QueuePage {
 
                 let playing_index = queue_page.playing_index.get();
                 let mut index_updated = false;
-                let expected_item =
-                    dragged_item.take().unwrap( /* `dragged_item` was set in `drag.connect_begin` */ );
+                // `dragged_item` was set in `drag.connect_begin`
+                let expected_item = dragged_item.take().unwrap();
 
                 // If the queue item changed while dragging (such as when encountering a stopper),
                 // find it by looping backwards. (There is currently no way to add items while
