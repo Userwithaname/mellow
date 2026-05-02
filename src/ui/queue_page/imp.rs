@@ -880,10 +880,12 @@ impl QueuePage {
                     return;
                 };
 
-                let playing = (queue_page.queue_index_to_model(playing_index)).unwrap() as i32;
+                // If the item could not be found in the model, the value is -1
+                // (`!0` (bitwise inversion of 0) becomes -1 when cast to i32)
+                let playing = (queue_page.queue_index_to_model(playing_index)).unwrap_or(!0) as i32;
                 (queue_page.next_scroll_pos).set(QueueScrollAction::Offset(
-                    // TODO: Handle the case when the playing item is not drawn due to panning (0)
                     match playing_index > NUM_ITEMS_BEHIND || queue_page.repeat_toggle.is_active() {
+                        _ if playing == -1 => 0, // -1 means `playing` is out of view
                         false if from < playing && to > playing => 1,
                         true if from > playing && to <= playing => -1,
                         true if from < playing && to >= playing => 1,
