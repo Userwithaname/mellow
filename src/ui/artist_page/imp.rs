@@ -4,7 +4,7 @@ use gtk::{CompositeTemplate, glib};
 
 use crate::library::{SharedArtist, ToQueue, ToShuffledQueue};
 use crate::player::{PlayerRequest, player_tx};
-use crate::ui::{UpdateUI, ui_tx};
+use crate::ui::{UpdateUI, show_queue, ui_tx};
 
 #[derive(Default, CompositeTemplate)]
 #[template(resource = "/io/github/userwithaname/Mellow/artist_page.ui")]
@@ -68,9 +68,17 @@ impl ArtistPage {
     }
     #[inline]
     pub fn add_to_queue(&self) {
-        let _ = ui_tx().send(UpdateUI::RunAction("ui.library_nav_pop"));
+        let ui_tx = ui_tx();
+        let _ = ui_tx.send(UpdateUI::RunAction("ui.library_nav_pop"));
         let _ = player_tx().send(PlayerRequest::AppendQueue(
             self.artist.borrow().as_ref().unwrap().to_queue(),
+        ));
+        let _ = ui_tx.send(UpdateUI::Notification(
+            format!(
+                "Artist \"{}\" has been added to queue",
+                self.artist_name.label()
+            ),
+            Some(Box::new(("View", Box::new(show_queue)))),
         ));
     }
 }

@@ -5,7 +5,7 @@ use std::sync::{Arc, atomic::Ordering};
 
 use crate::excuses::EXP_RX;
 use crate::library::{Library, SharedAlbum, library_tx};
-use crate::ui::{ListRow, UpdateUI, fallback_album_image, ui_tx};
+use crate::ui::{ListRow, UpdateUI, fallback_album_image, show_queue, ui_tx};
 use crate::util::{format_duration_minutes, format_duration_ms};
 
 mod imp;
@@ -197,7 +197,16 @@ impl AlbumPage {
     /// Adds all songs from the currently shown album to the player queue
     #[inline]
     pub fn add_to_queue(&self) {
-        let _ = ui_tx().send(UpdateUI::RunAction("ui.library_nav_pop"));
-        imp::AlbumPage::add_to_queue(self.imp().all_songs());
+        let ui_tx = ui_tx();
+        let _ = ui_tx.send(UpdateUI::RunAction("ui.library_nav_pop"));
+        let imp = self.imp();
+        imp::AlbumPage::add_to_queue(imp.all_songs());
+        let _ = ui_tx.send(UpdateUI::Notification(
+            format!(
+                "Album \"{}\" has been added to queue",
+                imp.album_title.label()
+            ),
+            Some(Box::new(("View", Box::new(show_queue)))),
+        ));
     }
 }
