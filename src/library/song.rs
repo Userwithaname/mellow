@@ -424,7 +424,7 @@ impl SongInfoLoader<'_> {
     pub fn try_inspect_basic(&self) -> Result<RwLockReadGuard<'_, Option<SongInfo>>, TryLockError> {
         self.info.try_read().map_err(|_| TryLockError)
     }
-    /// Loads basic song info and returns its `RwLockRadGuard`
+    /// Loads basic song info and returns its `RwLockReadGuard`
     ///
     /// The returned inner `Option` is expected to be `Some`, but
     /// may be `None` if concurrently unloaded between when the info
@@ -589,7 +589,7 @@ impl SongInfoLoader<'_> {
     ) -> Result<RwLockReadGuard<'_, Option<DetailedSongInfo>>, TryLockError> {
         self.detailed_info.try_read().map_err(|_| TryLockError)
     }
-    /// Loads detailed song info and returns its `RwLokReadGuard`
+    /// Loads detailed song info and returns its `RwLockReadGuard`
     ///
     /// The returned inner `Option` is expected to be `Some`, but
     /// may be `None` if concurrently unloaded between when the info
