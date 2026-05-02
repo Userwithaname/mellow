@@ -162,7 +162,7 @@ impl QueuePage {
                         PanLoopDirection::Down => queue_page.handle_pan_down(),
                         PanLoopDirection::None => return,
                         PanLoopDirection::Up => queue_page.handle_pan_up(),
-                    };
+                    }
                     glib::timeout_future(PAN_REPEAT_INTERVAL).await;
                 }
             }
@@ -340,7 +340,6 @@ impl QueuePage {
     }
 
     #[inline]
-    #[must_use]
     fn items_to_objects<I, 'i>(
         items_iter: I,
         playing_index: usize,
@@ -635,7 +634,7 @@ impl QueuePage {
     /// Returns `true` if interaction at a given `start_pos_x`
     /// should drag the queue row, or `false` if not
     #[inline]
-    fn should_drag(start_pos_x: f64) -> bool {
+    const fn should_drag(start_pos_x: f64) -> bool {
         start_pos_x < 65.0
     }
     #[inline]
@@ -648,8 +647,7 @@ impl QueuePage {
         let dragged_item_index = Rc::new(Cell::new(0));
         self.drag_widget.set_cursor_from_name(Some("grabbing"));
         self.drag_widget.put(&drag_row, 0.0, 0.0);
-        let drag_offset_x = Rc::new(Cell::new(0.0));
-        let drag_offset_y = Rc::new(Cell::new(0.0));
+        let drag_offset = Rc::new(Cell::new((0.0, 0.0)));
 
         type DragState = Rc<Cell<bool>>;
         trait SetDragState {
@@ -679,9 +677,7 @@ impl QueuePage {
             #[weak]
             drag_row,
             #[weak]
-            drag_offset_x,
-            #[weak]
-            drag_offset_y,
+            drag_offset,
             #[weak]
             drag_container,
             #[weak]
@@ -690,27 +686,24 @@ impl QueuePage {
             dragged_item_index,
             #[weak]
             dragging,
-            move |_, start_x, start_y| if selection_mode.get().is_none() {
-                if !Self::should_drag(start_x) {
-                    return;
-                }
-
+            move |_, start_x, start_y| if selection_mode.get().is_none()
+                && Self::should_drag(start_x)
+            {
                 dragging.set_drag_state(true);
 
                 // FIX: The cursor does not update until the mouse button is released
-                list_box.set_cursor_from_name(Some("grabbing"));
+                // list_box.set_cursor_from_name(Some("grabbing"));
 
                 fn set_fallback_offsets(
                     drag_row: &ListRow,
-                    drag_offset_x: &Rc<Cell<f64>>,
-                    drag_offset_y: &Rc<Cell<f64>>,
+                    drag_offset: &Rc<Cell<(f64, f64)>>,
                     pan_up_button_visible: bool,
                     list_box: &gtk::ListBox,
                     start_y: f64,
                 ) {
                     drag_row.to_default();
-                    drag_offset_x.set(0.0);
-                    drag_offset_y.set(
+                    drag_offset.set((
+                        0.0,
                         (pan_up_button_visible as i32 * PAN_UP_BUTTON_HEIGHT
                             + list_box.parent().unwrap().margin_top()
                             + list_box.margin_top()) as f64
@@ -721,7 +714,7 @@ impl QueuePage {
                             // worth the effort
                             - start_y % ROW_HEIGHT as f64
                             - 4.0,
-                    );
+                    ));
                 }
 
                 if let Some(row) = list_box.row_at_y(start_y as i32) {
@@ -745,13 +738,11 @@ impl QueuePage {
                             (start_y - scrolled_window.vadjustment().value()) as f32,
                         ),
                     ) {
-                        drag_offset_x.set(-point.x() as f64 - 1.0);
-                        drag_offset_y.set(-point.y() as f64 - 1.0);
+                        drag_offset.set((-point.x() as f64 - 1.0, -point.y() as f64 - 1.0));
                     } else {
                         set_fallback_offsets(
                             &drag_row,
-                            &drag_offset_x,
-                            &drag_offset_y,
+                            &drag_offset,
                             queue_page.view_further_up.is_visible(),
                             &list_box,
                             start_y,
@@ -760,18 +751,18 @@ impl QueuePage {
                 } else {
                     set_fallback_offsets(
                         &drag_row,
-                        &drag_offset_x,
-                        &drag_offset_y,
+                        &drag_offset,
                         queue_page.view_further_up.is_visible(),
                         &list_box,
                         start_y,
                     );
                 }
 
+                let (drag_offset_x, drag_offset_y) = drag_offset.get();
                 drag_widget.move_(
                     &drag_row,
-                    start_x + drag_offset_x.get(),
-                    start_y + drag_offset_y.get() - scrolled_window.vadjustment().value(),
+                    start_x + drag_offset_x,
+                    start_y + drag_offset_y - scrolled_window.vadjustment().value(),
                 );
 
                 drag_container.set_visible(true);
@@ -785,9 +776,7 @@ impl QueuePage {
             #[strong]
             dragging,
             #[strong]
-            drag_offset_x,
-            #[strong]
-            drag_offset_y,
+            drag_offset,
             move |gesture_drag, _| if dragging.get() {
                 // TODO: Stop dragging when escape is pressed (`dragging.set_drag_state(false)`)
 
@@ -820,10 +809,11 @@ impl QueuePage {
                     queue_page.for_each_row(|row, _| row.remove_css_class("highlight-top"));
                 }
 
+                let (drag_offset_x, drag_offset_y) = drag_offset.get();
                 queue_page.drag_widget.move_(
                     &drag_row,
-                    start_x + drag_offset_x.get(),
-                    start_y + drag_offset_y.get() + offset_y
+                    start_x + drag_offset_x,
+                    start_y + drag_offset_y + offset_y
                         - queue_page.scrolled_window.vadjustment().value(),
                 );
             }
