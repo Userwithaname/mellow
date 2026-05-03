@@ -88,15 +88,21 @@ impl Window {
     pub fn init_settings_page(&self, style_manager: adw::StyleManager) {
         self.settings_page.init(
             style_manager,
+            // Responsive background style widgets
             vec![
                 self.sheet.get().upcast::<gtk::Widget>(),
                 self.bottom_bar.get().upcast::<gtk::Widget>(),
             ],
+            // Responsive menu style widgets
             vec![
                 self.sheet_content.get().upcast::<gtk::Widget>(),
                 (self.main_player.imp().media_controls.get()).upcast::<gtk::Widget>(),
             ],
-            vec![(self.queue_page.imp().drag_row.get().unwrap().clone()).upcast::<gtk::Widget>()],
+            // Responsive OSD style widgets
+            vec![
+                (self.queue_page.imp().to_playing.get()).upcast::<gtk::Widget>(),
+                (self.queue_page.imp().drag_row.get().unwrap().clone()).upcast::<gtk::Widget>(),
+            ],
         );
     }
 

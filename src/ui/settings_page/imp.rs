@@ -190,7 +190,7 @@ impl SettingsPage {
             widget.add_css_class("color-menu");
         }
         for widget in self.style_soft.borrow().iter() {
-            widget.add_css_class("soft-menu");
+            widget.add_css_class("color-osd");
         }
 
         self.has_style.set(true);
@@ -207,7 +207,7 @@ impl SettingsPage {
             widget.remove_css_class("color-menu");
         }
         for widget in self.style_soft.borrow().iter() {
-            widget.remove_css_class("soft-menu");
+            widget.remove_css_class("color-osd");
         }
 
         self.has_style.set(false);
@@ -388,7 +388,7 @@ impl SettingsPage {
         let g_soft = g_dark.saturating_sub(4);
         let b_soft = b_dark.saturating_sub(4);
 
-        // NOTE: The `soft-menu` style could be used for player controls if transparency
+        // NOTE: The `color-osd` style could be used for player controls if transparency
         // amount would change with the luminance value, but it currently has contrast
         // issues when using a light theme
 
@@ -403,7 +403,7 @@ impl SettingsPage {
              .color-menu {{
                  background-color: rgba({r_dark}, {g_dark}, {b_dark}, 1);
              }}
-             .soft-menu {{
+             .color-osd {{
                  background-color: rgba({r_soft}, {g_soft}, {b_soft}, 0.75);
              }}
              .highlight-top {{

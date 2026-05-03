@@ -50,7 +50,7 @@ pub struct QueuePage {
     #[template_child]
     view_further_down: TemplateChild<gtk::Button>,
     #[template_child]
-    to_playing: TemplateChild<gtk::Button>,
+    pub to_playing: TemplateChild<gtk::Button>,
 
     pub subpage: OnceCell<QueueSubpage>,
 

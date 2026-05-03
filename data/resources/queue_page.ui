@@ -128,7 +128,7 @@
                         <property name="halign">end</property>
                         <style>
                           <class name="circular"/>
-                          <!-- <class name="osd"/> -->
+                          <class name="osd"/>
                         </style>
                       </object>
                     </child>
