@@ -566,7 +566,6 @@ impl QueuePage {
                     if queue_item_object.playing() {
                         queue_row.add_css_class("heading");
                         queue_row.add_css_class("card");
-                        queue_row.set_image_margins(5);
                     }
 
                     queue_row.add_bindings(&[
@@ -731,6 +730,12 @@ impl QueuePage {
                     drag_row.copy_from(row);
                     drag_row.set_width_request(row.width() + 2);
                     drag_row.set_height_request(row.height() + 2);
+                    if row.has_css_class("heading") {
+                        drag_row.add_css_class("heading");
+                    } else {
+                        drag_row.remove_css_class("heading");
+                    }
+
                     if let Some(point) = drag_container.compute_point(
                         row,
                         &graphene::Point::new(
