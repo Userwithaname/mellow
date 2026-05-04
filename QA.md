@@ -65,8 +65,8 @@ User Experience:
     toggling the shuffle mode on the queue page, memory usage increases each time, but
     never exceeds the size of the thumbnails folder (sometimes decreases as well)
 - [ ] No other issues found while testing
-  - FIX: Starting a queue without the necessary codecs installed results in a flood of error
-    notifications as it attempts to play each song but fails (possibly in a loop)
+  - FIX: Repeated error notifications can be annoying to dismiss (for example, when skipping
+    multiple songs without the necessary codecs installed)
 
 Design Consistency:
 

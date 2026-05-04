@@ -254,6 +254,7 @@ impl Player {
                 PlayerRequest::SkipNext => self.skip_next()? == (),
                 PlayerRequest::SkipTo(index) => self.skip_to(index) == (),
                 PlayerRequest::LoadNext if self.seeking => continue,
+                PlayerRequest::SongEnd if let State::Null = self.current_state => continue,
                 PlayerRequest::SongEnd if !self.can_use_gapless() => match self.seeking {
                     true => println!("Ignoring SongEnd while seeking") != (),
                     false => self.request_state(self.current_state) == (),
@@ -352,17 +353,20 @@ impl Player {
             println!("\n{file_uri}");
             self.backend.set_property("uri", file_uri);
             self.queue.pending_track = false;
-            self.next_song_loaded = true;
 
             if self.current_state == State::Null {
+                self.ui_update_song_info();
                 self.request_state(State::Paused);
+                self.next_song_loaded = false;
+            } else {
+                self.next_song_loaded = true;
             }
         }
 
         if let Some(state) = self.pending_state.take() {
             match self.backend.set_state(state) {
                 Ok(_) => self.current_state = state,
-                Err(_) => self.force_skip_track(state),
+                Err(_) => self.force_stop_playback(),
             }
         }
 
@@ -465,7 +469,10 @@ impl Player {
             return self.repeat_song();
         }
         self.backend.set_property("instant-uri", true);
-        if !self.queue.get_repeat() && self.queue.is_last() {
+        if !self.queue.get_repeat()
+            && self.queue.is_last()
+            && !matches!(self.current_state, State::Null)
+        {
             self.request_state(State::Ready);
             return Ok(());
         }
@@ -746,6 +753,9 @@ impl Player {
                     println!("EOS ignored while seeking");
                 }
                 gst::MessageType::Eos => {
+                    if matches!(self.current_state, State::Null) {
+                        return;
+                    }
                     if self.queue.has_next() {
                         println!("Moving to next track due to end of stream");
                         self.request_state(State::Playing);
@@ -767,13 +777,9 @@ impl Player {
                     let QueueItem::Song(song) = self.queue.current() else {
                         return;
                     };
-                    if error.contains(&song.uri) {
-                        if self.seeking {
-                            let _ = self.backend.set_state(State::Null);
-                            return;
-                        }
 
-                        self.force_skip_track(self.current_state);
+                    if error.contains(&song.uri) {
+                        self.force_stop_playback();
                     }
                 }
                 _ => (),
@@ -781,22 +787,20 @@ impl Player {
         }
     }
 
-    /// Skips the current track and resets player state
-    /// Should only be used for error handling
-    fn force_skip_track(&mut self, new_state: State) {
-        ui_tx()
-            .send(UpdateUI::Notification(
-                "Skipping song because a playback issue was encountered".to_owned(),
-                None,
-            ))
-            .expect(EXP_RX);
+    /// Sets the player to `Null` state and shows an error in the UI
+    #[cold]
+    fn force_stop_playback(&mut self) {
+        let _ = self.backend.set_state(State::Null);
+        self.current_state = State::Null;
+        self.pending_state = None;
+
+        let ui_tx = ui_tx();
+        let _ = ui_tx.send(UpdateUI::PlayerState(false, true));
         // TODO: Group repeated playback error notifications
-        eprintln!("Skipping song because a playback issue was encountered");
-        self.backend.set_state(State::Null).unwrap();
-        // self.queue.remove_current();
-        self.move_next(false);
-        self.request_state(new_state);
-        player_tx().send(PlayerRequest::Update).expect(EXP_RX);
+        let _ = ui_tx.send(UpdateUI::Notification(
+            "A playback error has occurred".to_owned(),
+            None, // IDEA: "Details" button to show the full error message in a pop-up window
+        ));
     }
 
     /// Uninitializes the player and writes the queue to disk
