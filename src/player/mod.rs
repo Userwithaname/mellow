@@ -148,7 +148,8 @@ impl core::fmt::Debug for PlayerRequest {
 
 pub struct Player {
     pub queue: SongQueue,
-
+    pub error_count: u8,
+    
     gapless: bool,
 
     current_state: State,
@@ -183,6 +184,7 @@ impl Player {
 
         Player {
             queue: SongQueue::init(),
+            error_count: 0,
 
             gapless: true,
 
@@ -784,16 +786,31 @@ impl Player {
     /// Skips the current track and resets player state
     /// Should only be used for error handling
     fn force_skip_track(&mut self, new_state: State) {
+        self.error_count += 1;
+
+        if self.error_count > 2 {
+            ui_tx()
+                .send(UpdateUI::Notification(
+                    "Skipping song because a playback issue was encountered.".to_owned(),
+                    None,
+                ))
+                .expect(EXP_RX);
+
+            self.backend.set_state(State::Null).unwrap();
+            self.request_state(State::Null);
+            self.error_count = 0;
+            return;
+        }
+
         ui_tx()
             .send(UpdateUI::Notification(
                 "Skipping song because a playback issue was encountered".to_owned(),
                 None,
             ))
             .expect(EXP_RX);
-        // TODO: Group repeated playback error notifications
         eprintln!("Skipping song because a playback issue was encountered");
+
         self.backend.set_state(State::Null).unwrap();
-        // self.queue.remove_current();
         self.move_next(false);
         self.request_state(new_state);
         player_tx().send(PlayerRequest::Update).expect(EXP_RX);
