@@ -356,6 +356,7 @@ impl Player {
 
             if self.current_state == State::Null {
                 self.ui_update_song_info();
+                self.queue.ui_update_queue_index();
                 self.request_state(State::Paused);
                 self.next_song_loaded = false;
             } else {

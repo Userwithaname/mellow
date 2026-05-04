@@ -274,7 +274,7 @@ impl QueuePage {
         let up_button_visible = repeat_mode || center > NUM_ITEMS_BEHIND;
         self.view_further_up.set_visible(up_button_visible);
         self.view_further_down.set_visible(
-            repeat_mode || queue_length - center > NUM_ITEMS_AHEAD, //
+            repeat_mode || queue_length.saturating_sub(center) > NUM_ITEMS_AHEAD, //
         );
 
         match self.next_scroll_pos.take() {
