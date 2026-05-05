@@ -151,6 +151,8 @@ pub enum UpdateUI {
     Progress(Option<f64>),
     /// Displays the notification message (optionally takes a button name and action closure)
     Notification(String, Option<ToastButtonAction>),
+    /// Dismisses all visible toast notifications
+    DismissNotifications,
 
     /// Causes the channel to ignore any further requests (but does not close it)
     Shutdown,

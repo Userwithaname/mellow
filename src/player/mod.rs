@@ -797,7 +797,7 @@ impl Player {
 
         let ui_tx = ui_tx();
         let _ = ui_tx.send(UpdateUI::PlayerState(false, true));
-        // TODO: Group repeated playback error notifications
+        let _ = ui_tx.send(UpdateUI::DismissNotifications);
         let _ = ui_tx.send(UpdateUI::Notification(
             "A playback error has occurred".to_owned(),
             None, // IDEA: "Details" button to show the full error message in a pop-up window

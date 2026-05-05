@@ -162,6 +162,7 @@ impl Window {
                 UpdateUI::Notification(message, action) => {
                     self.show_toast_notification(&message, action);
                 }
+                UpdateUI::DismissNotifications => self.toast_overlay.dismiss_all(),
 
                 UpdateUI::Shutdown => loop {
                     // Ignore any further requests without closing the channel
