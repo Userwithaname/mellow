@@ -740,13 +740,16 @@ impl QueueSnapshot {
                     // off and on again
                     return;
                 }
+                // Must be ordered from lowest to highest (opposite of `PlayerRequest::RemoveItems`)
+                items.reverse();
                 for item in items {
-                    if item < target.index {
+                    if item <= target.index {
                         target.index += 1;
                     }
                 }
             }
             UndoAction::Inserted(mut items) => {
+                // NOTE: Insertion undo is untested (not currently used anywhere)
                 if self.shuffle && !target.shuffle {
                     items = items.iter().map(|item| self.shuffled[*item]).collect();
                 } else if !self.shuffle && target.shuffle {
@@ -755,6 +758,8 @@ impl QueueSnapshot {
                     // off and on again
                     return;
                 }
+                // Must be ordered from highest to lowest (opposite of `PlayerRequest::InsertItems`)
+                items.reverse();
                 for item in items {
                     if item < target.index {
                         target.index -= 1;
