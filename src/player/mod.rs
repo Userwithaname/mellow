@@ -76,14 +76,14 @@ pub enum PlayerRequest {
     /// Inserts an item into the queue
     InsertAt(Box<(usize, QueueItem)>),
     /// Inserts multiple items into the queue at once
-    /// For proper behavior, items must be inserted from first to last
+    /// For proper behavior, indexes must be ordered from lowest to highest
     InsertItems(Vec<(usize, QueueItem)>),
     /// Inserts an item into the queue relative to the currently playing index
     InsertRelative(Box<(isize, QueueItem)>),
     /// Remove item at the specified index from the queue
     RemoveItem(usize),
     /// Remove multiple items at the same time using the list of indices
-    /// For proper behavior, indexes must be ordered from last to first
+    /// For proper behavior, indexes must be ordered from highest to lowest
     RemoveItems(Vec<usize>),
     /// Restores the queue to the previous snapshot
     Undo,
