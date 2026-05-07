@@ -110,7 +110,7 @@ impl core::fmt::Debug for PlayerRequest {
             "{}",
             match self {
                 Self::Update => "Update".to_owned(),
-                Self::TogglePlay(play) => format!("TogglePlay({play:?})",),
+                Self::TogglePlay(play) => format!("TogglePlay({play:?})"),
                 Self::SkipPrevious => "SkipPrevious".to_owned(),
                 Self::SkipNext => "SkipNext".to_owned(),
                 Self::SkipTo(index) => format!("SkipTo({index})"),
@@ -147,19 +147,19 @@ impl core::fmt::Debug for PlayerRequest {
 }
 
 pub struct Player {
-    pub queue: SongQueue,
-
-    gapless: bool,
-
     current_state: State,
     pending_state: Option<State>,
     /// Note: `self.queue.index()` returns the next track index instead of current when `true`
     next_song_loaded: bool,
     seeking: bool,
 
+    gapless: bool,
+
     backend: gst::Element,
     bus: gst::Bus,
     rx: mpsc::Receiver<PlayerRequest>,
+
+    pub queue: SongQueue,
 }
 
 // NOTE: Set `GST_DEBUG=3` to debug GStreamer
@@ -385,13 +385,13 @@ impl Player {
     /// except when the `queue` is empty
     #[inline]
     fn load_queue(&mut self, queue: Vec<QueueItem>, shuffled: Option<Vec<usize>>, index: usize) {
-        // Check if the queue is empty and hint a bounds check to the compiler
+        // Funky way of checking if the queue is empty to also hint a bounds check to the compiler
         if index >= queue.len() {
             let _ = self.backend.set_state(State::Null);
             self.queue.load_new(queue, shuffled);
             self.queue.ui_update_queue();
             self.ui_update_song_info();
-            self.ui_open_playing();
+            Self::ui_open_playing();
             return;
         }
 
@@ -413,9 +413,7 @@ impl Player {
         self.update();
 
         // Ensure the current thumbnail is loaded before updating the UI queue
-        if let QueueItem::Song(song) = queue_item {
-            drop(song.info().load_thumbnail());
-        }
+        queue_item.map_song(|song| drop(song.info().load_thumbnail()));
         self.queue.ui_update_queue();
     }
 
@@ -509,8 +507,8 @@ impl Player {
     /// Skips to previous track or restarts the current one if above the time threshold
     fn skip_prev_or_repeat(&mut self) -> Result<(), Box<dyn Error>> {
         const REPEAT_THRESHOLD: ClockTime = ClockTime::from_seconds(8);
-        if let Some(time) = self.current_time()
-            && !self.next_song_loaded
+        if !self.next_song_loaded
+            && let Some(time) = self.current_time()
             && (time > REPEAT_THRESHOLD || (self.queue.is_first() && !self.queue.get_repeat()))
         {
             self.repeat_song()?;
@@ -627,7 +625,7 @@ impl Player {
 
         // Seek to the same time the player was at before, or skip the song
         if self.seek_to_time(pos).is_err() {
-            self.queue.current().map(|song| song.info().played());
+            self.queue.current().map_song(|song| song.info().played());
             let _ = player_tx().send(PlayerRequest::SkipNext);
         }
     }
@@ -734,7 +732,7 @@ impl Player {
     }
 
     /// Requests the UI to open the music library
-    fn ui_open_playing(&self) {
+    fn ui_open_playing() {
         let ui_tx = ui_tx();
         ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
         ui_tx.send(UpdateUI::OpenSheet(true)).expect(EXP_RX);
@@ -775,11 +773,7 @@ impl Player {
                     let error = format!("{message:?}");
                     eprintln!("gstreamer error: {error}\n");
 
-                    let QueueItem::Song(song) = self.queue.current() else {
-                        return;
-                    };
-
-                    if error.contains(&song.uri) {
+                    if (self.queue.current()).is_song_and(|song| error.contains(&song.uri)) {
                         self.force_stop_playback();
                     }
                 }

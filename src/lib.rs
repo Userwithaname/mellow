@@ -33,6 +33,7 @@
     // clippy::std_instead_of_core,
     clippy::str_to_string,
     clippy::unnecessary_semicolon,
+    clippy::unnecessary_trailing_comma,
 )]
 #![allow(clippy::match_bool)]
 

@@ -80,7 +80,7 @@ pub async fn controller(mut rx: tokio_mpsc::UnboundedReceiver<UpdateMPRIS>) -> z
             UpdateMPRIS::SongInfo(QueueItem::Song(song)) => {
                 let mut info = song.info();
                 let mut metadata = {
-                    // The scope ensures the `MutexGuard` is dropped before `await`
+                    // The scope ensures that the read lock guard is dropped before `await`
                     // (explicit `drop` still triggers the `clippy::await_holding_lock` warning)
                     let basic_info = info.load_basic();
                     let basic_info = basic_info.as_ref().unwrap();

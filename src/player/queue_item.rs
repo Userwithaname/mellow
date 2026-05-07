@@ -77,11 +77,22 @@ impl QueueItem {
             Self::Stopper(_) => unsafe { unreachable_unchecked() },
         }
     }
-    /// Returns `true` if the `QueueItem` is a `Song`
+    /// Returns `true` if the `QueueItem` is a `Song`, or `false` if it is not
     #[inline]
     #[must_use]
     pub const fn is_song(&self) -> bool {
         matches!(self, Self::Song(_))
+    }
+    /// Returns the value from the `predicate` if `QueueItem` is a `Song`, or `false` if it is not
+    #[inline]
+    pub fn is_song_and<P>(&self, predicate: P) -> bool
+    where
+        P: FnOnce(&Song) -> bool,
+    {
+        match self {
+            Self::Song(song) => predicate(&song),
+            Self::Stopper(_) => false,
+        }
     }
     /// Assumes the `QueueItem` is a `Stopper`, and returns a
     /// reference to its inner `SharedStopper` value
@@ -107,7 +118,7 @@ impl QueueItem {
     /// and returns the output of the closure inside an `Option`.
     /// If the `QueueItem` is not a `Song`, `None` is returned.
     #[inline]
-    pub fn map<F, T>(&self, f: F) -> Option<T>
+    pub fn map_song<F, T>(&self, f: F) -> Option<T>
     where
         F: FnOnce(&Song) -> T,
     {

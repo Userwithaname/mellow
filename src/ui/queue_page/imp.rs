@@ -693,6 +693,7 @@ impl QueuePage {
                 // FIX: The cursor does not update until the mouse button is released
                 // list_box.set_cursor_from_name(Some("grabbing"));
 
+                #[cold]
                 fn set_fallback_offsets(
                     drag_row: &ListRow,
                     drag_offset: &Rc<Cell<(f64, f64)>>,
@@ -886,7 +887,7 @@ impl QueuePage {
                 };
 
                 // If the item could not be found in the model, the value is -1
-                // (`!0` (bitwise inversion of 0) becomes -1 when cast to i32)
+                // (`!0` (bitwise inverted 0) becomes -1 when cast to `i32`)
                 let playing = (queue_page.queue_index_to_model(playing_index)).unwrap_or(!0) as i32;
                 (queue_page.next_scroll_pos).set(QueueScrollAction::Offset(
                     match playing_index > NUM_ITEMS_BEHIND || queue_page.repeat_toggle.is_active() {
