@@ -90,7 +90,7 @@ impl QueueItem {
         P: FnOnce(&Song) -> bool,
     {
         match self {
-            Self::Song(song) => predicate(&song),
+            Self::Song(song) => predicate(song),
             Self::Stopper(_) => false,
         }
     }
