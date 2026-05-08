@@ -382,6 +382,7 @@ impl QueuePage {
             }
             true => {
                 let queue_length = self.queue_length.get();
+                let model_length = self.queue_item_objects.borrow().len();
                 if queue_length == 0 {
                     return Err(ItemNotFoundError);
                 }
@@ -395,7 +396,7 @@ impl QueuePage {
                 if n_items_before > 0 && queue_index > center + NUM_ITEMS_AHEAD {
                     let from = queue_length - n_items_before;
                     match queue_index - from {
-                        value if value >= queue_length => return Err(ItemNotFoundError),
+                        value if value >= model_length => return Err(ItemNotFoundError),
                         value => return Ok(value),
                     };
                 }
@@ -404,7 +405,7 @@ impl QueuePage {
                 if let Some(value) = (queue_index + NUM_ITEMS_BEHIND.min(center))
                     .checked_sub(center)
                     .map(|i| i + n_items_before)
-                    && value < queue_length
+                    && value < model_length
                 {
                     return Ok(value);
                 }
@@ -413,7 +414,7 @@ impl QueuePage {
                 let n_items_after = queue_length - center.saturating_sub(NUM_ITEMS_AHEAD);
                 if queue_index <= n_items_after {
                     match queue_index + n_items_after {
-                        value if value >= queue_length => return Err(ItemNotFoundError),
+                        value if value >= model_length => return Err(ItemNotFoundError),
                         value => return Ok(value),
                     }
                 }
@@ -899,8 +900,17 @@ impl QueuePage {
                         _ => 0,
                     },
                 ));
-                (player_tx().send(PlayerRequest::Shift(from_index, (to - from) as isize)))
-                    .expect(EXP_RX);
+                let shift_by = (to - from) as isize;
+                (player_tx().send(PlayerRequest::Shift(
+                    from_index,
+                    match from_index as isize + shift_by {
+                        // Wrapped items need to be offset by one
+                        n if n < 0 => shift_by + 1,
+                        n if n >= queue_page.queue_length.get() as isize => shift_by - 1,
+                        _ => shift_by,
+                    },
+                )))
+                .expect(EXP_RX);
             }
         ));
         self.list_box.add_controller(drag);
