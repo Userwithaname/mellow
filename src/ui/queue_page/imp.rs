@@ -236,6 +236,7 @@ impl QueuePage {
         let repeat_mode = self.repeat_toggle.is_active();
 
         let last_repeat_mode = self.last_repeat_mode.replace(repeat_mode);
+        // FIX: Incorrect offset when toggling repeat mode on a short queue
         if repeat_mode && queue_length != 0 {
             let n_items_before = (NUM_ITEMS_BEHIND - (center - start)).min(queue_length - 1);
             if n_items_before > 0 {
@@ -886,31 +887,24 @@ impl QueuePage {
                 let Some(to) = list_box.row_at_y(end_y as i32).map(|row| row.index()) else {
                     return;
                 };
+                let to_index = queue_page.model_index_to_queue(to as usize);
 
                 // If the item could not be found in the model, the value is -1
                 // (`!0` (bitwise inverted 0) becomes -1 when cast to `i32`)
                 let playing = (queue_page.queue_index_to_model(playing_index)).unwrap_or(!0) as i32;
                 (queue_page.next_scroll_pos).set(QueueScrollAction::Offset(
+                    // FIX: Scroll offset is incorrect when reordering repeat mode items
+                    // wrapped before the start of a short queue
                     match playing_index > NUM_ITEMS_BEHIND || queue_page.repeat_toggle.is_active() {
                         _ if playing == -1 => 0, // -1 means `playing` is out of view
                         false if from < playing && to > playing => 1,
                         true if from > playing && to <= playing => -1,
                         true if from < playing && to >= playing => 1,
-                        true if from == playing => from - to,
+                        true if from == playing => from_index as i32 - to_index as i32,
                         _ => 0,
                     },
                 ));
-                let shift_by = (to - from) as isize;
-                (player_tx().send(PlayerRequest::Shift(
-                    from_index,
-                    match from_index as isize + shift_by {
-                        // Wrapped items need to be offset by one
-                        n if n < 0 => shift_by + 1,
-                        n if n >= queue_page.queue_length.get() as isize => shift_by - 1,
-                        _ => shift_by,
-                    },
-                )))
-                .expect(EXP_RX);
+                (player_tx().send(PlayerRequest::Reorder(from_index, to_index))).expect(EXP_RX);
             }
         ));
         self.list_box.add_controller(drag);
