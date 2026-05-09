@@ -892,7 +892,7 @@ impl QueuePage {
                 (player_tx().send(PlayerRequest::Reorder(from_index, to_index))).expect(EXP_RX);
 
                 // Short queues don't need to be offset, even if wrapped items are shown
-                if queue_page.queue_length.get() < NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD + 1 {
+                if queue_page.queue_length.get() <= NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD {
                     return;
                 }
 
