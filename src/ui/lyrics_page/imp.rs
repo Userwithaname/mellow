@@ -3,7 +3,7 @@ use gtk::CompositeTemplate;
 use gtk::glib;
 
 #[derive(Default, CompositeTemplate)]
-#[template(resource = "/io/github/userwithaname/Mellow/lyrics_page.ui")]
+#[template(file = "lyrics_page.ui")]
 pub struct LyricsPage {
     #[template_child]
     pub song_title: TemplateChild<gtk::Label>,

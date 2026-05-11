@@ -22,7 +22,7 @@ custom_target(
   console: true,
   install: true,
   install_dir: bindir,
-  depends: resources,
+  # depends: resources,
   env: {
     'CARGO_HOME': meson.project_build_root() / 'cargo-home',
     'APP_ID': application_id,

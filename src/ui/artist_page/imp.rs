@@ -7,7 +7,7 @@ use crate::player::{PlayerRequest, player_tx};
 use crate::ui::{UpdateUI, show_queue, ui_tx};
 
 #[derive(Default, CompositeTemplate)]
-#[template(resource = "/io/github/userwithaname/Mellow/artist_page.ui")]
+#[template(file = "artist_page.ui")]
 pub struct ArtistPage {
     pub artist: RefCell<Option<SharedArtist>>,
 

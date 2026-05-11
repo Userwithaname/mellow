@@ -4,7 +4,7 @@ use gtk::CompositeTemplate;
 use gtk::glib;
 
 #[derive(Default, CompositeTemplate)]
-#[template(resource = "/io/github/userwithaname/Mellow/list_row.ui")]
+#[template(file = "list_row.ui")]
 pub struct ListRow {
     #[template_child]
     pub prefix_image: TemplateChild<gtk::Picture>,

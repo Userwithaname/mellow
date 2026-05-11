@@ -23,7 +23,7 @@ use crate::ui::{QueuePage, QueueSubpage};
 use crate::ui::{UpdateUI, ui_tx};
 
 #[derive(Default, CompositeTemplate)]
-#[template(resource = "/io/github/userwithaname/Mellow/window.ui")]
+#[template(file = "window.ui")]
 pub struct Window {
     #[template_child]
     pub main_player: TemplateChild<MainPlayer>,

@@ -1,22 +1,13 @@
 <?xml version="1.0" encoding="UTF-8"?>
+<!--
+  NOTE: This file is currently unused
+
+  To enable:
+  - Uncomment lines with "resources" in 'data/meson.build' and 'src/meson.build'
+  - Uncomment the lines near the bottom of `Application::init_components()`
+    (in 'src/ui/application/mod.rs')
+-->
 <gresources>
   <gresource prefix="/io/github/userwithaname/Mellow/">
-    <file compressed="true" preprocess="xml-stripblanks">album_page.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">albums_page.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">artist_page.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">artists_page.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">item_row.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">item_tile.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">library_page.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">list_row.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">lyrics_page.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">main_player.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">queue_page.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">queue_subpage.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">rating.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">settings_page.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">song_page.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">songs_page.ui</file>
-    <file compressed="true" preprocess="xml-stripblanks">window.ui</file>
   </gresource>
 </gresources>

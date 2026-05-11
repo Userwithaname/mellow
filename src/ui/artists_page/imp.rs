@@ -15,7 +15,7 @@ use crate::ui::{UpdateUI, ui_tx};
 use crate::util::search;
 
 #[derive(Default, CompositeTemplate)]
-#[template(resource = "/io/github/userwithaname/Mellow/artists_page.ui")]
+#[template(file = "artists_page.ui")]
 pub struct ArtistsPage {
     #[template_child]
     play_button: TemplateChild<adw::SplitButton>,

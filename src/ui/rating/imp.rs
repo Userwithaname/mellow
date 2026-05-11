@@ -13,7 +13,7 @@ const SMALL_STAR_MARGIN: i32 = (DEFAULT_STAR_SIZE - SMALL_STAR_SIZE) / 2;
 type RateFn = RefCell<Option<Box<dyn Fn(u8)>>>;
 
 #[derive(Default, CompositeTemplate)]
-#[template(resource = "/io/github/userwithaname/Mellow/rating.ui")]
+#[template(file = "rating.ui")]
 pub struct Rating {
     stars: OnceCell<Box<[gtk::Image]>>,
     pub rating: Cell<u8>,

@@ -1,5 +1,5 @@
 # Execute `meson.build` files in these directories
-subdir('resources')
+# subdir('resources')
 
 if host_machine.system() == 'linux'
   subdir('icons')

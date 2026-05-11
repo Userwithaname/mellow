@@ -11,7 +11,7 @@ use crate::ui::StartupQueueChoice;
 use crate::util::{approx_eq, lerp};
 
 #[derive(Default, CompositeTemplate)]
-#[template(resource = "/io/github/userwithaname/Mellow/settings_page.ui")]
+#[template(file = "settings_page.ui")]
 pub struct SettingsPage {
     // Playback Settings
     #[template_child]

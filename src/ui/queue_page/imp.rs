@@ -20,7 +20,7 @@ const PAN_UP_BUTTON_HEIGHT: i32 = 44;
 const PAN_REPEAT_INTERVAL: Duration = Duration::from_millis(150);
 
 #[derive(Default, CompositeTemplate)]
-#[template(resource = "/io/github/userwithaname/Mellow/queue_page.ui")]
+#[template(file = "queue_page.ui")]
 pub struct QueuePage {
     #[template_child]
     header_normal: TemplateChild<adw::HeaderBar>,

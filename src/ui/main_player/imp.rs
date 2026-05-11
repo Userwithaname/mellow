@@ -8,7 +8,7 @@ use crate::ui::fallback_song_image;
 use crate::util::approx_eq;
 
 #[derive(Default, CompositeTemplate)]
-#[template(resource = "/io/github/userwithaname/Mellow/main_player.ui")]
+#[template(file = "main_player.ui")]
 pub struct MainPlayer {
     #[template_child]
     pub album_cover: TemplateChild<gtk::Picture>,
