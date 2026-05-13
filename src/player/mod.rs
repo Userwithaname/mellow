@@ -770,6 +770,10 @@ impl Player {
                 }
                 gst::MessageType::Warning => eprintln!("gstreamer warning: {message:?}\n"),
                 gst::MessageType::Error => {
+                    // Update the UI manually, in case the `StreamStart` branch did not run
+                    self.queue.ui_update_queue_index();
+                    self.ui_update_song_info();
+
                     let error = format!("{message:?}");
                     eprintln!("gstreamer error: {error}\n");
 
@@ -788,6 +792,7 @@ impl Player {
         let _ = self.backend.set_state(State::Null);
         self.current_state = State::Null;
         self.pending_state = None;
+        self.next_song_loaded = false;
 
         let ui_tx = ui_tx();
         let _ = ui_tx.send(UpdateUI::PlayerState(false, true));
