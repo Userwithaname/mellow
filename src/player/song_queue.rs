@@ -68,7 +68,7 @@ impl SongQueue {
         self.index = index;
     }
 
-    /// Returns a mutable reference to the current song
+    /// Returns a reference to the current song
     #[inline]
     #[must_use]
     pub fn current(&self) -> &QueueItem {
@@ -312,6 +312,12 @@ impl SongQueue {
         let len = self.songs.len();
         self.shuffled.extend(len - items.len()..len);
         self.ui_update_queue();
+    }
+
+    /// Replaces the item at `self.songs[index]` with `new_item`
+    #[inline]
+    pub fn replace(&mut self, index: usize, new_item: QueueItem) {
+        self.songs[index] = new_item;
     }
 
     /// Removes a song from the queue at the specified index

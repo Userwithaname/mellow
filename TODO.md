@@ -36,14 +36,6 @@ Song queue:
   queue, then show a "Drop here to start playing" message, or the
   window could show an overlay (like Amberol does)
 
-- FIX: Moved songs are not playable in the restored queue,
-  even when the library is able to locate them
-  - IDEA: Create a lookup table containing the idexes for artists and their albums
-    when the library is built. Then, use binary search to locate the artist, see if
-    it has the album, and iterate forwards until the song is found or the end of the
-    album is reached. If the song was found, replace it. (Same could also be done for
-    the moved file search, but it would have to happen at the end of the rebuild.)
-
 Music library:
 
 - [x] Save/load user settings and application state

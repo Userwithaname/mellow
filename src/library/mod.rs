@@ -56,7 +56,7 @@ pub trait ToShuffledQueue {
 
 pub type Songs = Vec<Arc<Song>>;
 pub trait SortedSongs {
-    /// Returns `Ok(index)` if the item was found found
+    /// Returns `Ok(index)` if the item was found
     ///
     /// # Errors
     /// If the item was not found, the returned `Err(index)`
@@ -84,7 +84,7 @@ impl ToQueue for Songs {
 
 pub type Albums = Vec<Arc<Mutex<Album>>>;
 pub trait SortedAlbums {
-    /// Returns `Ok(index)` if the item was found found
+    /// Returns `Ok(index)` if the item was found
     ///
     /// # Errors
     /// If the item was not found, the returned `Err(index)`
@@ -133,7 +133,7 @@ impl ToShuffledQueue for Albums {
 
 pub type Artists = Vec<Arc<Mutex<Artist>>>;
 pub trait SortedArtists {
-    /// Returns `Ok(index)` if the item was found found
+    /// Returns `Ok(index)` if the item was found
     ///
     /// # Errors
     /// If the item was not found, the returned `Err(index)`
@@ -741,6 +741,7 @@ impl Library {
         let songs = Arc::new(songs.clone());
         let moved_count = check_moved.len() as f64;
         let cancelled = Arc::new(Mutex::new(Vec::new()));
+        let library_tx = library_tx();
 
         for _ in 0..num_tasks {
             let songs = Arc::clone(&songs);
@@ -748,7 +749,8 @@ impl Library {
             let missing_rx = Arc::clone(&missing_rx);
             let cancelled = Arc::clone(&cancelled);
             let cancel = Arc::clone(cancel);
-            Library::run_task(LIBRARY_TX.get().unwrap(), move || {
+
+            Library::run_task(library_tx, move || {
                 let mut timer = Instant::now();
                 let cancellation_interval = Duration::from_millis(100);
                 while let Some((i, missing)) = missing_rx.lock().unwrap().recv().unwrap() {
@@ -833,6 +835,39 @@ impl Library {
         while self.cancel_pending.load(atomic::Ordering::Relaxed) {
             thread::park();
         }
+    }
+
+    /// Returns an `Option<SharedSong>` depending on whether the song
+    /// was found within the library or not
+    ///
+    /// # Panics
+    /// Panics if the found item's associated album or ortist `Mutex`
+    /// is in a poisoned state
+    #[inline]
+    #[must_use]
+    pub fn locate_song_by_info(&self, info: &SongInfo) -> Option<SharedSong> {
+        if info.title.is_empty() {
+            return None;
+        }
+
+        let artist = match self.artists.find_artist(info) {
+            // SAFETY: `Ok` variant returned by `find_artist` is always within bounds
+            Ok(artist_index) => unsafe { self.artists.get_unchecked(artist_index).lock().unwrap() },
+            Err(_) => return None,
+        };
+
+        let albums = artist.albums();
+        let album = match albums.find_artist_album(info) {
+            // SAFETY: `Ok` variant returned by `find_artist_album` is always within bounds
+            Ok(album_index) => unsafe { albums.get_unchecked(album_index).lock().unwrap() },
+            Err(_) => return None,
+        };
+
+        let songs = album.songs();
+        songs.find_album_song(info).ok().map(|song_index| {
+            // SAFETY: `Ok` variant returned by `find_album_song` is always within bounds
+            unsafe { Arc::clone(songs.get_unchecked(song_index)) }
+        })
     }
 
     /// Uses `library_tx` to send the `task` to run on the thread pool.

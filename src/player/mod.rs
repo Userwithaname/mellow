@@ -1,10 +1,13 @@
 use core::error::Error;
 use gst::prelude::*;
 use gst::{ClockTime, SeekFlags, State};
+use gtk::gio::prelude::FileExt;
+use std::fs;
 use std::sync::{OnceLock, mpsc};
 
 use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_RX, INIT_ERR};
+use crate::library::{LibraryRequest, library_tx};
 use crate::ui::{UpdateUI, ui_tx};
 use crate::util::wrap_index;
 
@@ -80,9 +83,12 @@ pub enum PlayerRequest {
     InsertItems(Vec<(usize, QueueItem)>),
     /// Inserts an item into the queue relative to the currently playing index
     InsertRelative(Box<(isize, QueueItem)>),
-    /// Remove item at the specified index from the queue
+    /// Replaces each item at the index with a different `QueueItem`
+    /// For example, this can be useful for correcting file paths of queue items
+    ReplaceItems(Vec<(usize, QueueItem)>),
+    /// Removes the item at the specified index from the queue
     RemoveItem(usize),
-    /// Remove multiple items at the same time using the list of indices
+    /// Removes multiple items at the same time using the list of indices
     /// For proper behavior, indexes must be ordered from highest to lowest
     RemoveItems(Vec<usize>),
     /// Restores the queue to the previous snapshot
@@ -133,6 +139,7 @@ impl core::fmt::Debug for PlayerRequest {
                 Self::InsertAt(item) => format!("InsertAt({}, …)", item.0),
                 Self::InsertItems(items) => format!("InsertItems(…): {} items", items.len()),
                 Self::InsertRelative(item) => format!("InsertRelative({}, …)", item.0),
+                Self::ReplaceItems(items) => format!("ReplaceItems(…): {} items", items.len()),
                 Self::RemoveItem(index) => format!("RemoveAt({index})"),
                 Self::RemoveItems(indexes) => format!("RemoveItems{indexes:?}"),
                 Self::Undo => String::from("Undo"),
@@ -292,6 +299,14 @@ impl Player {
                     self.queue.ui_update_queue();
                     true
                 }
+                PlayerRequest::ReplaceItems(items) => {
+                    for (index, item) in items {
+                        self.queue.replace(index, item);
+                    }
+                    self.queue.ui_update_queue();
+                    self.ui_update_song_info();
+                    true
+                }
                 PlayerRequest::RemoveItem(index) => {
                     self.queue.create_snapshot_for_action(
                         UndoAction::Removed(vec![index]), //
@@ -382,7 +397,9 @@ impl Player {
     ///
     /// # Panics
     /// The function panics if `index` is out of bounds of `queue`,
-    /// except when the `queue` is empty
+    /// except when the `queue` is empty. May also panic if a song
+    /// item in `queue` is missing from disk, and its info in a
+    /// poisoned state.
     #[inline]
     fn load_queue(&mut self, queue: Vec<QueueItem>, shuffled: Option<Vec<usize>>, index: usize) {
         // Funky way of checking if the queue is empty to also hint a bounds check to the compiler
@@ -406,7 +423,8 @@ impl Player {
         )))
         .expect(EXP_RX);
 
-        self.queue.load_new(queue, shuffled);
+        let was_empty = self.queue.is_empty();
+        self.queue.load_new(queue.clone(), shuffled);
         self.skip_to(index);
 
         // Updating manually before using this thread to load the thumbnail
@@ -415,6 +433,49 @@ impl Player {
         // Ensure the current thumbnail is loaded before updating the UI queue
         queue_item.map_song(|song| drop(song.info().load_thumbnail()));
         self.queue.ui_update_queue();
+
+        // Correct the paths of moved queue items
+        if !was_empty {
+            // The below validation is only required for restored queues, which (currently)
+            // only happens during startup. Checking if the queue was empty avoids needing
+            // an extra field to check if this is the first queue to be loaded by the player
+            return;
+        }
+        let mut missing_items = Vec::new();
+        for (index, item) in queue.iter().enumerate() {
+            let QueueItem::Song(song) = item else {
+                continue;
+            };
+            if song.file.path().unwrap().exists() {
+                continue;
+            }
+
+            missing_items.push(index);
+        }
+        if missing_items.is_empty() {
+            return;
+        }
+
+        library_tx()
+            .send(LibraryRequest::OnBuildSucceeded(Box::new(move |library| {
+                let moved = (missing_items.into_iter())
+                    .filter_map(|index| {
+                        // SAFETY: Explained in the inner block
+                        let song = unsafe {
+                            queue
+                                // SAFETY: `missing_items` (`index`) is built from `queue.enumerate`
+                                .get_unchecked(index)
+                                // SAFETY: The above loop returns early if item is not a song
+                                .as_song_unchecked()
+                        };
+                        let new_song = library
+                            .locate_song_by_info(song.info().load_basic().as_ref().unwrap())?;
+                        Some((index, QueueItem::from_song(&new_song)))
+                    })
+                    .collect();
+                let _ = player_tx().send(PlayerRequest::ReplaceItems(moved));
+            })))
+            .expect(EXP_RX);
     }
 
     /// Starts or pauses playback depending on state
