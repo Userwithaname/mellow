@@ -66,7 +66,7 @@ pub async fn controller(mut rx: tokio_mpsc::UnboundedReceiver<UpdateMPRIS>) -> z
     });
     mpris_player.connect_previous(|_| player_tx().send(PlayerRequest::SkipPrevious).expect(EXP_RX));
     mpris_player.connect_next(|_| player_tx().send(PlayerRequest::SkipNext).expect(EXP_RX));
-    mpris_player.connect_quit(|_| ui_tx().send(UpdateUI::Shutdown).expect(EXP_RX));
+    mpris_player.connect_quit(|_| ui_tx().send(UpdateUI::RunAction("app.quit")).expect(EXP_RX));
     mpris_player.connect_raise(|_| {
         ui_tx()
             .send(UpdateUI::RunAction("app.show_window"))
