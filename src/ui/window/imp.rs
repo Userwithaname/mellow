@@ -164,7 +164,7 @@ impl Window {
                 }
                 UpdateUI::DismissNotifications => self.toast_overlay.dismiss_all(),
 
-                UpdateUI::Shutdown => loop {
+                UpdateUI::Uninit => loop {
                     // Ignore any further requests without closing the channel
                     ui_rx.recv().await.unwrap();
                 },

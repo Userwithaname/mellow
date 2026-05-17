@@ -235,7 +235,7 @@ pub enum LibraryRequest {
     OnBuildStopped(LibraryTask),
 
     /// Cleanly shuts down the library and thread pool, and writes the configuration data to disk
-    Shutdown,
+    Uninit,
 }
 
 impl Library {
@@ -308,7 +308,7 @@ impl Library {
                 LibraryRequest::UndoRemovedDirectory(dir) => self.undo_removed_directory(dir),
 
                 #[allow(clippy::unit_arg)]
-                LibraryRequest::Shutdown => return Ok(self.shutdown()),
+                LibraryRequest::Uninit => return Ok(self.shutdown()),
             }
         }
     }

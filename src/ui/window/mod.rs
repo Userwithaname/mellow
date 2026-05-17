@@ -147,7 +147,7 @@ impl Window {
     /// # Panics
     /// The function panics if either the library or player channel is closed
     pub fn save_and_uninit(&self) -> Result<(), glib::error::BoolError> {
-        let _ = ui_tx().send(UpdateUI::Shutdown);
+        let _ = ui_tx().send(UpdateUI::Uninit);
 
         let imp = self.imp();
         let settings_page = &imp.settings_page;
@@ -158,9 +158,8 @@ impl Window {
         (library_tx.send(LibraryRequest::CancelRebuild)).expect(EXP_RX);
         Library::run_task(library_tx, move || {
             LibraryConfig::create_config_dir();
-            library_tx.send(LibraryRequest::Shutdown).expect(EXP_RX);
-            (player_tx().send(PlayerRequest::Shutdown(remember_queue, remember_time)))
-                .expect(EXP_RX);
+            library_tx.send(LibraryRequest::Uninit).expect(EXP_RX);
+            (player_tx().send(PlayerRequest::Uninit(remember_queue, remember_time))).expect(EXP_RX);
         });
 
         imp.artists_page.uninit();

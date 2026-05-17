@@ -155,7 +155,7 @@ pub enum UpdateUI {
     DismissNotifications,
 
     /// Causes the channel to ignore any further requests (but does not close it)
-    Shutdown,
+    Uninit,
 }
 
 /// Shows the 'Playing' tab in the UI

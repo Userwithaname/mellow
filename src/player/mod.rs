@@ -2,7 +2,6 @@ use core::error::Error;
 use gst::prelude::*;
 use gst::{ClockTime, SeekFlags, State};
 use gtk::gio::prelude::FileExt;
-use std::fs;
 use std::sync::{OnceLock, mpsc};
 
 use crate::UI_TIMEOUT;
@@ -105,7 +104,7 @@ pub enum PlayerRequest {
 
     /// Uninitializes the player and saves the current queue to disk
     /// (save queue: `bool`, save time: `bool`)
-    Shutdown(bool, bool),
+    Uninit(bool, bool),
 }
 
 // Manual `Debug` implementation is required by certain variants
@@ -147,7 +146,7 @@ impl core::fmt::Debug for PlayerRequest {
                 Self::SetShuffle(shuffle) => format!("SetShuffle({shuffle})"),
                 Self::SetRepeat(repeat) => format!("SetRepeat({repeat})"),
                 Self::SetGapless(gapless) => format!("SetGapless({gapless})"),
-                Self::Shutdown(save, time) => format!("Shutdown({save}, {time})"),
+                Self::Uninit(save, time) => format!("Uninit({save}, {time})"),
             }
         )
     }
@@ -330,7 +329,7 @@ impl Player {
                 PlayerRequest::Update => true,
 
                 #[allow(clippy::unit_arg)]
-                PlayerRequest::Shutdown(save_queue, save_time) => {
+                PlayerRequest::Uninit(save_queue, save_time) => {
                     return Ok(self.shutdown(save_queue, save_time));
                 }
             } {
