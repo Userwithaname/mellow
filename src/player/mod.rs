@@ -130,9 +130,9 @@ impl core::fmt::Debug for PlayerRequest {
                 Self::SongEnd => "SongEnd".to_owned(),
                 Self::LoadQueue {
                     queue,
-                    shuffled,
+                    shuffled: Some(shuffled),
                     track,
-                } if let Some(shuffled) = shuffled => format!(
+                } => format!(
                     "InitQueue((…, Some(), {track})): {} items, {} shuffled",
                     queue.len(),
                     shuffled.len()
