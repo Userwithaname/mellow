@@ -76,8 +76,8 @@ pub enum PlayerRequest {
     Append(QueueItem),
     /// Moves a queue item from index at `from` to `to`
     Reorder { from: usize, to: usize },
-    /// Moves a queue item from `index` to `index + shift_by`
-    /// (resulting index may wrap around the queue in repeat mode)
+    /// Moves a queue item from index at `from` to `from + by`
+    /// (the resulting position may wrap around the queue in repeat mode)
     Shift { from: usize, by: isize },
     /// Inserts an item into the queue
     InsertAt(Box<(usize, QueueItem)>),
