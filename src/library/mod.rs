@@ -967,14 +967,14 @@ impl Library {
     /// The function errors if either the player or UI channel receiver is closed
     pub fn play_all_songs(&self, shuffle: bool) -> Result<(), Box<dyn Error>> {
         let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue(
-            self.songs.to_queue(),
-            match shuffle {
+        player_tx.send(PlayerRequest::LoadQueue {
+            queue: self.songs.to_queue(),
+            shuffled: match shuffle {
                 true => Some(vec![]),
                 false => None,
             },
-            0,
-        ))?;
+            track: 0,
+        })?;
         player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
         let ui_tx = ui_tx();
         ui_tx.send(UpdateUI::OpenSheet(false))?;
@@ -988,7 +988,11 @@ impl Library {
     /// The function errors if either the player or UI channel receiver is closed
     pub fn play_all_albums(&self) -> Result<(), Box<dyn Error>> {
         let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue(self.albums.to_queue(), None, 0))?;
+        player_tx.send(PlayerRequest::LoadQueue {
+            queue: self.albums.to_queue(),
+            shuffled: None,
+            track: 0,
+        })?;
         player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
         let ui_tx = ui_tx();
         ui_tx.send(UpdateUI::OpenSheet(false))?;
@@ -1002,11 +1006,11 @@ impl Library {
     /// The function errors if either the player or UI channel receiver is closed
     pub fn shuffle_all_albums(&self) -> Result<(), Box<dyn Error>> {
         let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue(
-            self.albums.to_shuffled_queue(),
-            None,
-            0,
-        ))?;
+        player_tx.send(PlayerRequest::LoadQueue {
+            queue: self.albums.to_shuffled_queue(),
+            shuffled: None,
+            track: 0,
+        })?;
         let ui_tx = ui_tx();
         player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
         ui_tx.send(UpdateUI::OpenSheet(false))?;
@@ -1020,7 +1024,11 @@ impl Library {
     /// The function errors if either the player or UI channel receiver is closed
     pub fn play_all_artists(&self) -> Result<(), Box<dyn Error>> {
         let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue(self.artists.to_queue(), None, 0))?;
+        player_tx.send(PlayerRequest::LoadQueue {
+            queue: self.artists.to_queue(),
+            shuffled: None,
+            track: 0,
+        })?;
         player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
         let ui_tx = ui_tx();
         ui_tx.send(UpdateUI::OpenSheet(false))?;
@@ -1034,11 +1042,11 @@ impl Library {
     /// The function errors if either the player or UI channel receiver is closed
     pub fn shuffle_all_artists(&self) -> Result<(), Box<dyn Error>> {
         let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue(
-            self.artists.to_shuffled_queue(),
-            None,
-            0,
-        ))?;
+        player_tx.send(PlayerRequest::LoadQueue {
+            queue: self.artists.to_shuffled_queue(),
+            shuffled: None,
+            track: 0,
+        })?;
         player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
         let ui_tx = ui_tx();
         ui_tx.send(UpdateUI::OpenSheet(false))?;
@@ -1060,7 +1068,11 @@ impl Library {
             return Ok(());
         }
         let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue(queue, None, 0))?;
+        player_tx.send(PlayerRequest::LoadQueue {
+            queue,
+            shuffled: None,
+            track: 0,
+        })?;
         player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
         let ui_tx = ui_tx();
         ui_tx.send(UpdateUI::OpenSheet(false))?;

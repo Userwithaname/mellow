@@ -72,14 +72,14 @@ impl SongsPage {
         }
 
         let player_tx = player_tx();
-        (player_tx.send(PlayerRequest::LoadQueue(
-            songs.to_queue(),
-            match self.shuffle.get() {
+        (player_tx.send(PlayerRequest::LoadQueue {
+            queue: songs.to_queue(),
+            shuffled: match self.shuffle.get() {
                 true => Some(vec![]),
                 false => None,
             },
-            0,
-        )))
+            track: 0,
+        }))
         .expect(EXP_RX);
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();

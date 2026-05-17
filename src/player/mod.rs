@@ -62,19 +62,23 @@ pub enum PlayerRequest {
     /// Signaled from `GStreamer` to load next track before EOS (for gapless playback)
     SongEnd,
 
-    /// Load a new queue and an optional shuffled queue. Shuffle mode is determined
-    /// by whether the second argument (the shuffled queue) is `Some`. If `Some` but
-    /// empty, a new shuffled queue is created.
-    /// (queue: `Vec<QueueItem>`, shuffled: `Option<Vec<usize>>`, index: `usize`)
-    LoadQueue(Vec<QueueItem>, Option<Vec<usize>>, usize),
+    /// Loads a new queue and an optional `shuffled` queue. Shuffle mode is set according to
+    /// whether `shuffled` is `Some` or `None`. If `Some` but empty, a new shuffled queue is
+    /// created.
+    LoadQueue {
+        queue: Vec<QueueItem>,
+        shuffled: Option<Vec<usize>>,
+        track: usize,
+    },
     /// Appends multiple items to the current queue
     AppendQueue(Vec<QueueItem>),
     /// Appends an item to the current queue
     Append(QueueItem),
-    /// Move a queue item from the first argument index to the second
-    Reorder(usize, usize),
-    /// Same as `Reorder`, but the second argument is relative to the index
-    Shift(usize, isize),
+    /// Moves a queue item from index at `from` to `to`
+    Reorder { from: usize, to: usize },
+    /// Moves a queue item from `index` to `index + shift_by`
+    /// (resulting index may wrap around the queue in repeat mode)
+    Shift { from: usize, by: isize },
     /// Inserts an item into the queue
     InsertAt(Box<(usize, QueueItem)>),
     /// Inserts multiple items into the queue at once
@@ -124,17 +128,21 @@ impl core::fmt::Debug for PlayerRequest {
                 Self::SeekToTime(time) => format!("SeekToTime({time})"),
                 Self::LoadNext => "LoadNext".to_owned(),
                 Self::SongEnd => "SongEnd".to_owned(),
-                Self::LoadQueue(queue, Some(shuffled), index) => format!(
-                    "InitQueue((…, Some(), {index})): {} items, {} shuffled",
+                Self::LoadQueue {
+                    queue,
+                    shuffled,
+                    track,
+                } if let Some(shuffled) = shuffled => format!(
+                    "InitQueue((…, Some(), {track})): {} items, {} shuffled",
                     queue.len(),
                     shuffled.len()
                 ),
-                Self::LoadQueue(queue, None, index) =>
-                    format!("InitQueue((…, None, {index})): {} items", queue.len()),
+                Self::LoadQueue { queue, track, .. } =>
+                    format!("InitQueue((…, None, {track})): {} items", queue.len()),
                 Self::AppendQueue(queue) => format!("AppendQueue(…): {} items", queue.len()),
                 Self::Append(_) => "Append(…)".to_owned(),
-                Self::Reorder(from, to) => format!("Reorder({from}, {to})"),
-                Self::Shift(from, by) => format!("Shift({from}, {by})"),
+                Self::Reorder { from, to } => format!("Reorder({from}, {to})"),
+                Self::Shift { from, by } => format!("Shift({from}, {by})"),
                 Self::InsertAt(item) => format!("InsertAt({}, …)", item.0),
                 Self::InsertItems(items) => format!("InsertItems(…): {} items", items.len()),
                 Self::InsertRelative(item) => format!("InsertRelative({}, …)", item.0),
@@ -235,9 +243,11 @@ impl Player {
             // To skip updating the player, use `!= ()`, `false`, or `continue`
             #[allow(clippy::unit_cmp)]
             if match dbg!(player_request) {
-                PlayerRequest::LoadQueue(queue, shuffled, index) => {
-                    self.load_queue(queue, shuffled, index) == ()
-                }
+                PlayerRequest::LoadQueue {
+                    queue,
+                    shuffled,
+                    track: playing_index,
+                } => self.load_queue(queue, shuffled, playing_index) == (),
 
                 PlayerRequest::SeekToTime(time) => self.seek_to_time(time)? != (),
                 PlayerRequest::Seek(pos) => self.seek_to_position_paused(pos)? != (),
@@ -273,8 +283,8 @@ impl Player {
                     self.queue.ui_update_queue();
                     true
                 }
-                PlayerRequest::Reorder(from, to) => self.reorder(from, to) == (),
-                PlayerRequest::Shift(from, by) => self.shift(from, by) == (),
+                PlayerRequest::Reorder { from, to } => self.reorder(from, to) == (),
+                PlayerRequest::Shift { from, by } => self.shift(from, by) == (),
                 PlayerRequest::InsertAt(item) => {
                     self.insert_to_queue(item.0, item.1);
                     self.queue.ui_update_queue();
@@ -416,10 +426,10 @@ impl Player {
             None => &queue[index],
             Some(shuffled) => &queue[shuffled[index]],
         });
-        (ui_tx().send(UpdateUI::SongInfo(
-            QueueItem::clone(&queue_item),
-            queue.get(index + 1).is_some_and(QueueItem::is_stopper),
-        )))
+        (ui_tx().send(UpdateUI::SongInfo {
+            item: QueueItem::clone(&queue_item),
+            pause_after: queue.get(index + 1).is_some_and(QueueItem::is_stopper),
+        }))
         .expect(EXP_RX);
 
         let was_empty = self.queue.is_empty();
@@ -769,7 +779,11 @@ impl Player {
         let playing = state.0.is_ok() && matches!(state.1, State::Playing);
         #[cfg(debug_assertions)]
         println!("ui_set_state(playing: {playing}, interactive: {interactive})");
-        (ui_tx().send(UpdateUI::PlayerState(playing, interactive))).expect(EXP_RX);
+        (ui_tx().send(UpdateUI::PlayerState {
+            playing,
+            interactive,
+        }))
+        .expect(EXP_RX);
     }
 
     /// Sends the current song info to the UI receiver
@@ -782,13 +796,13 @@ impl Player {
             true => QueueItem::new_stopper(false),
         };
         let pause_after = self.queue.next().is_some_and(QueueItem::is_stopper);
-        (ui_tx().send(UpdateUI::SongInfo(item, pause_after))).expect(EXP_RX);
+        (ui_tx().send(UpdateUI::SongInfo { item, pause_after })).expect(EXP_RX);
     }
 
     /// Sends the current playback time to the UI receiver
     fn ui_set_time(&self) {
         let time = self.current_time().map(ClockTime::mseconds);
-        ui_tx().send(UpdateUI::PlayerTime(time)).expect(EXP_RX);
+        ui_tx().send(UpdateUI::PlayerTime { time }).expect(EXP_RX);
     }
 
     /// Requests the UI to open the music library
@@ -855,7 +869,10 @@ impl Player {
         self.next_song_loaded = false;
 
         let ui_tx = ui_tx();
-        let _ = ui_tx.send(UpdateUI::PlayerState(false, true));
+        let _ = ui_tx.send(UpdateUI::PlayerState {
+            playing: false,
+            interactive: true,
+        });
         let _ = ui_tx.send(UpdateUI::DismissNotifications);
         let _ = ui_tx.send(UpdateUI::Notification(
             "A playback error has occurred".to_owned(),

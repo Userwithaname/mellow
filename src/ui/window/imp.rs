@@ -111,19 +111,25 @@ impl Window {
         let mut song_duration_ms = 0;
         loop {
             match ui_rx.recv().await.unwrap() {
-                UpdateUI::SongInfo(queue_item, pause_after) => {
-                    self.update_song_info(&queue_item, pause_after, &mut song_duration_ms);
-                    (mpris_tx().send(UpdateMPRIS::SongInfo(queue_item))).expect(EXP_RX);
+                UpdateUI::SongInfo { item, pause_after } => {
+                    self.update_song_info(&item, pause_after, &mut song_duration_ms);
+                    (mpris_tx().send(UpdateMPRIS::SongInfo(item))).expect(EXP_RX);
                 }
-                UpdateUI::PlayerTime(time_ms) => {
-                    self.main_player.set_time(time_ms, song_duration_ms as f64);
+                UpdateUI::PlayerTime { time } => {
+                    self.main_player.set_time(time, song_duration_ms as f64);
                 }
-                UpdateUI::PlayerState(playing, interactive) => {
+                UpdateUI::PlayerState {
+                    playing,
+                    interactive,
+                } => {
                     self.main_player.set_state(playing, interactive);
                     (mpris_tx().send(UpdateMPRIS::PlayState(playing))).expect(EXP_RX);
                 }
 
-                UpdateUI::SetQueue(queue, index) => self.set_song_queue(queue, index),
+                UpdateUI::SetQueue {
+                    queue,
+                    playing_index,
+                } => self.set_song_queue(queue, playing_index),
                 UpdateUI::SetQueueIndex(index) => self.set_queue_index(index),
                 UpdateUI::RedrawQueue => self.queue_page.redraw_queue(),
                 UpdateUI::OpenQueueSubpage(index) => self.open_queue_subpage(index),
@@ -137,11 +143,11 @@ impl Window {
                 UpdateUI::SetLibraryAlbums(albums) => self.load_library_albums(albums),
                 UpdateUI::SetLibraryArtists(artists) => self.load_library_artists(artists),
 
-                UpdateUI::LibrarySongLoaded(index, song) => self.song_loaded(index, &song),
-                UpdateUI::LibraryAlbumLoaded(index, song) => self.album_loaded(index, &song),
-                UpdateUI::LibraryArtistLoaded(index) => self.artist_loaded(index),
-                UpdateUI::QueueSongLoaded(index, song) => self.queue_song_loaded(index, song),
-                UpdateUI::AlbumPageLoaded(index, song) => self.album_page_loaded(index, &song),
+                UpdateUI::LibrarySongLoaded { index, song } => self.song_loaded(index, &song),
+                UpdateUI::LibraryAlbumLoaded { index, song } => self.album_loaded(index, &song),
+                UpdateUI::LibraryArtistLoaded { index } => self.artist_loaded(index),
+                UpdateUI::QueueSongLoaded { index, song } => self.queue_song_loaded(index, song),
+                UpdateUI::AlbumPageLoaded { index, song } => self.album_page_loaded(index, &song),
 
                 UpdateUI::SongPageByIndex(index) => self.open_song_page_by_index(index),
                 UpdateUI::SongPage(ctx) => self.open_song_page(ctx.0, ctx.1, ctx.2),
@@ -172,17 +178,12 @@ impl Window {
         }
     }
 
-    fn update_song_info(
-        &self,
-        queue_item: &QueueItem,
-        pause_after: bool,
-        song_duration_ms: &mut u64,
-    ) {
-        #[cfg(debug_assertions)]
+    fn update_song_info(&self, item: &QueueItem, pause_after: bool, song_duration_ms: &mut u64) {
+        #[cfg(feature = "startup-logs")]
         println!("update_song_info()");
 
         self.queue_subpage.set_stop_after(pause_after);
-        let song = match &queue_item {
+        let song = match &item {
             QueueItem::Song(song) => song,
             QueueItem::Stopper(_) => {
                 self.settings_page.reset_background_color();
@@ -213,10 +214,10 @@ impl Window {
             }
             _ => {
                 let song = Arc::clone(song);
-                let queue_item = QueueItem::clone(queue_item);
+                let item = QueueItem::clone(item);
                 Library::run_task(library_tx(), move || {
                     drop(song.info().load_detailed());
-                    let _ = ui_tx().send(UpdateUI::SongInfo(queue_item, pause_after));
+                    let _ = ui_tx().send(UpdateUI::SongInfo { item, pause_after });
                 });
                 (None, false)
             }
@@ -390,7 +391,7 @@ impl Window {
             println!("⚠️ {index}: queue song thumbnail would block; retrying later...");
             Library::run_task(library_tx(), move || {
                 thread::sleep(Duration::from_millis(30));
-                let _ = ui_tx().send(UpdateUI::QueueSongLoaded(index, song));
+                let _ = ui_tx().send(UpdateUI::QueueSongLoaded { index, song });
             });
             return;
         };

@@ -76,7 +76,7 @@ impl QueueItemObject {
                 return;
             };
             drop(song.info().load_thumbnail());
-            let _ = ui_tx().send(UpdateUI::QueueSongLoaded(index, song));
+            let _ = ui_tx().send(UpdateUI::QueueSongLoaded { index, song });
         });
     }
 

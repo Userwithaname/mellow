@@ -350,7 +350,10 @@ impl SongQueue {
             } else if index == self.len() {
                 if index == 0 {
                     // Clear the currently displayed song info in the UI if the queue is now empty
-                    let _ = ui_tx().send(UpdateUI::SongInfo(QueueItem::new_stopper(false), true));
+                    let _ = ui_tx().send(UpdateUI::SongInfo {
+                        item: QueueItem::new_stopper(false),
+                        pause_after: true,
+                    });
                 } else {
                     self.index = match self.repeat {
                         true => 0,
@@ -517,7 +520,11 @@ impl SongQueue {
     pub fn ui_update_queue(&mut self) {
         #[cfg(debug_assertions)]
         println!("ui_update_queue()");
-        (ui_tx().send(UpdateUI::SetQueue(self.ordered_queue(), self.index))).expect(EXP_RX);
+        (ui_tx().send(UpdateUI::SetQueue {
+            queue: self.ordered_queue(),
+            playing_index: self.index,
+        }))
+        .expect(EXP_RX);
         self.last_ui_index = self.index;
     }
 
@@ -637,7 +644,11 @@ impl SongQueue {
                 None
             };
             let player_tx = player_tx();
-            player_tx.send(PlayerRequest::LoadQueue(queue, shuffled, track))?;
+            player_tx.send(PlayerRequest::LoadQueue {
+                queue,
+                shuffled,
+                track,
+            })?;
             if let Ok(time) = time.parse() {
                 let _ = player_tx.send(PlayerRequest::SeekToTime(ClockTime::from_mseconds(time)));
             }

@@ -56,14 +56,14 @@ impl AlbumPage {
     #[inline]
     pub fn play_now(queue: Vec<QueueItem>, shuffle: bool) {
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::LoadQueue(
+        let _ = player_tx.send(PlayerRequest::LoadQueue {
             queue,
-            match shuffle {
+            shuffled: match shuffle {
                 true => Some(vec![]),
                 false => None,
             },
-            0,
-        ));
+            track: 0,
+        });
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
         let _ = ui_tx.send(UpdateUI::OpenSheet(false));

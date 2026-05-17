@@ -78,15 +78,24 @@ pub fn init_ui_tx(
 
 pub type ToastButtonAction = Box<(&'static str, Box<dyn Fn() + Send + 'static>)>;
 pub enum UpdateUI {
-    /// (playing: `bool`, interactive: `bool`)
-    PlayerState(bool, bool),
+    PlayerState {
+        playing: bool,
+        interactive: bool,
+    },
     /// Current song time in milliseconds
-    PlayerTime(Option<u64>),
+    PlayerTime {
+        time: Option<u64>,
+    },
     /// Updates the song info displayed in the UI to the given item (use `Stopper` to reset)
-    /// (item: `QueueItem`, pause after: `bool`)
-    SongInfo(QueueItem, bool),
+    SongInfo {
+        item: QueueItem,
+        pause_after: bool,
+    },
     /// Replaces the UI song queue with a new one, with the playing index as the second argument
-    SetQueue(Box<[QueueItem]>, usize),
+    SetQueue {
+        queue: Box<[QueueItem]>,
+        playing_index: usize,
+    },
     /// Updates the playing song index and redraws the queue
     SetQueueIndex(usize),
     /// Redraws the current queue
@@ -110,16 +119,31 @@ pub enum UpdateUI {
     SetLibraryArtists(Artists),
 
     /// Prompts the library UI to assign the now-loaded song artwork for the item at index
-    LibrarySongLoaded(usize, SharedSong),
+    LibrarySongLoaded {
+        index: usize,
+        song: SharedSong,
+    },
     /// Prompts the library UI to assign the now-loaded album artwork for the item at index
-    /// The `SharedSong` field is the song the info will be read from (usually first song)
-    LibraryAlbumLoaded(usize, SharedSong),
+    /// The `song` field is the song the info will be read from (usually first song)
+    LibraryAlbumLoaded {
+        index: usize,
+        song: SharedSong,
+    },
     /// Prompts the library UI to assign the now-loaded artist artwork for the item at index
-    LibraryArtistLoaded(usize),
+    LibraryArtistLoaded {
+        index: usize,
+    },
     /// Prompts the queue UI to assign the now-loaded song artwork for the item at index
-    QueueSongLoaded(usize, SharedSong),
+    QueueSongLoaded {
+        index: usize,
+        song: SharedSong,
+    },
     /// Prompts the album page UI to assign the now-loaded album artwork for the page at index
-    AlbumPageLoaded(usize, SharedSong),
+    /// The `song` field is the song the info will be read from (usually first song)
+    AlbumPageLoaded {
+        index: usize,
+        song: SharedSong,
+    },
 
     /// Opens the library song page for the item at the given index
     SongPageByIndex(usize),

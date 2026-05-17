@@ -60,7 +60,7 @@ impl SongObject {
             }
             drop(song.info().load_thumbnail());
             song.info().unload_detailed(); // `load_thumbnail` may have loaded it
-            let _ = ui_tx().send(UpdateUI::LibrarySongLoaded(index, song));
+            let _ = ui_tx().send(UpdateUI::LibrarySongLoaded { index, song });
         });
     }
 

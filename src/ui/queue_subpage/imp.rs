@@ -91,12 +91,20 @@ impl QueueSubpage {
     #[template_callback]
     pub fn handle_move_up(&self) {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
-        (player_tx().send(PlayerRequest::Shift(self.index.get(), -1))).expect(EXP_RX);
+        (player_tx().send(PlayerRequest::Shift {
+            from: self.index.get(),
+            by: -1,
+        }))
+        .expect(EXP_RX);
     }
     #[template_callback]
     pub fn handle_move_down(&self) {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
-        (player_tx().send(PlayerRequest::Shift(self.index.get(), 1))).expect(EXP_RX);
+        (player_tx().send(PlayerRequest::Shift {
+            from: self.index.get(),
+            by: 1,
+        }))
+        .expect(EXP_RX);
     }
     #[template_callback]
     pub fn handle_go_to_album(&self) {

@@ -157,7 +157,10 @@ impl AlbumPage {
                     println!("Arwork assignment cancelled");
                     return;
                 }
-                let _ = ui_tx().send(UpdateUI::AlbumPageLoaded(page_index, first_song));
+                let _ = ui_tx().send(UpdateUI::AlbumPageLoaded {
+                    index: page_index,
+                    song: first_song,
+                });
             });
 
             return album_page;

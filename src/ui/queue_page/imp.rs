@@ -889,7 +889,11 @@ impl QueuePage {
                 };
                 let to_index = queue_page.model_index_to_queue(to as usize);
 
-                (player_tx().send(PlayerRequest::Reorder(from_index, to_index))).expect(EXP_RX);
+                (player_tx().send(PlayerRequest::Reorder {
+                    from: from_index,
+                    to: to_index,
+                }))
+                .expect(EXP_RX);
 
                 // Short queues don't need to be offset, even if wrapped items are shown
                 if queue_page.queue_length.get() <= NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD {

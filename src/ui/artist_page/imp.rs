@@ -43,11 +43,11 @@ impl ArtistPage {
     #[template_callback]
     pub fn play_sequential(&self) {
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::LoadQueue(
-            self.artist.borrow().as_ref().unwrap().to_queue(),
-            None,
-            0,
-        ));
+        let _ = player_tx.send(PlayerRequest::LoadQueue {
+            queue: self.artist.borrow().as_ref().unwrap().to_queue(),
+            shuffled: None,
+            track: 0,
+        });
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
         let _ = ui_tx.send(UpdateUI::OpenSheet(false));
@@ -56,11 +56,11 @@ impl ArtistPage {
     #[template_callback]
     pub fn play_shuffled(&self) {
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::LoadQueue(
-            self.artist.borrow().as_ref().unwrap().to_shuffled_queue(),
-            None,
-            0,
-        ));
+        let _ = player_tx.send(PlayerRequest::LoadQueue {
+            queue: self.artist.borrow().as_ref().unwrap().to_shuffled_queue(),
+            shuffled: None,
+            track: 0,
+        });
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
         let _ = ui_tx.send(UpdateUI::OpenSheet(false));

@@ -34,11 +34,11 @@ impl SongPage {
     pub fn handle_play_now(&self) {
         (self.obj().activate_action("ui.library_nav_pop", None)).expect(ACTION_ERR);
         let player_tx = player_tx();
-        (player_tx.send(PlayerRequest::LoadQueue(
-            self.context.borrow().as_ref().expect(EXP_INIT).to_queue(),
-            None,
-            self.index.get(),
-        )))
+        (player_tx.send(PlayerRequest::LoadQueue {
+            queue: self.context.borrow().as_ref().expect(EXP_INIT).to_queue(),
+            shuffled: None,
+            track: self.index.get(),
+        }))
         .expect(EXP_RX);
         (player_tx.send(PlayerRequest::TogglePlay(Some(true)))).expect(EXP_RX);
         let ui_tx = ui_tx();
