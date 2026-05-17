@@ -133,12 +133,12 @@ impl core::fmt::Debug for PlayerRequest {
                     shuffled: Some(shuffled),
                     track,
                 } => format!(
-                    "InitQueue((…, Some(), {track})): {} items, {} shuffled",
+                    "LoadQueue((…, Some(), {track})): {} items, {} shuffled",
                     queue.len(),
                     shuffled.len()
                 ),
                 Self::LoadQueue { queue, track, .. } =>
-                    format!("InitQueue((…, None, {track})): {} items", queue.len()),
+                    format!("LoadQueue((…, None, {track})): {} items", queue.len()),
                 Self::AppendQueue(queue) => format!("AppendQueue(…): {} items", queue.len()),
                 Self::Append(_) => "Append(…)".to_owned(),
                 Self::Reorder { from, to } => format!("Reorder({from}, {to})"),
@@ -147,7 +147,7 @@ impl core::fmt::Debug for PlayerRequest {
                 Self::InsertItems(items) => format!("InsertItems(…): {} items", items.len()),
                 Self::InsertRelative(item) => format!("InsertRelative({}, …)", item.0),
                 Self::ReplaceItems(items) => format!("ReplaceItems(…): {} items", items.len()),
-                Self::RemoveItem(index) => format!("RemoveAt({index})"),
+                Self::RemoveItem(index) => format!("RemoveItem({index})"),
                 Self::RemoveItems(indexes) => format!("RemoveItems{indexes:?}"),
                 Self::Undo => String::from("Undo"),
                 Self::SetVolume(volume) => format!("SetVolume({volume})"),
