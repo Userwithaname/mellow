@@ -145,8 +145,11 @@ impl QueuePage {
     #[template_callback]
     pub fn handle_show_playing(&self) {
         self.next_scroll_pos.set(QueueScrollAction::ToPlaying);
-        if self.view_pan_offset.get() == 0 {
-            self.scroll_to_item(self.playing_index.get());
+        let model_index = self.queue_index_to_model(self.playing_index.get());
+        if let Ok(model_index) = model_index
+            && (self.view_pan_offset.get() == 0 || self.selection_mode.get().is_some())
+        {
+            self.scroll_to_model_item(model_index);
         } else {
             self.draw_queue(&self.song_queue.borrow(), self.playing_index.get());
         }
@@ -189,17 +192,21 @@ impl QueuePage {
     #[inline]
     pub fn scroll_to_item(&self, index: usize) {
         if let Ok(model_index) = self.queue_index_to_model(index) {
-            self.scroll_to_pos(
-                (model_index * ROW_HEIGHT) as f64
-                    + (self.view_further_up.is_visible() as i32 * PAN_UP_BUTTON_HEIGHT
-                        // NOTE: For some reason, `margin_top` only has
-                        // to be accounted for when building with Meson
-                        - self.list_box.margin_top()) as f64,
-            );
+            self.scroll_to_model_item(model_index);
 
             #[cfg(debug_assertions)]
             self.model_index_to_queue_discrepancy_check(model_index, index);
         }
+    }
+    #[inline]
+    pub fn scroll_to_model_item(&self, model_index: usize) {
+        self.scroll_to_pos(
+            (model_index * ROW_HEIGHT) as f64
+                + (self.view_further_up.is_visible() as i32 * PAN_UP_BUTTON_HEIGHT
+                    // NOTE: For some reason, `margin_top` only has
+                    // to be accounted for when building with Meson
+                    - self.list_box.margin_top()) as f64,
+        );
     }
 
     #[inline]
@@ -511,7 +518,6 @@ impl QueuePage {
         self.header_normal.set_visible(!selection_mode);
 
         // Disabling these buttons because selection mode resets when queue is redrawn
-        self.to_playing.set_visible(!selection_mode);
         self.view_further_up.set_sensitive(!selection_mode);
         self.view_further_down.set_sensitive(!selection_mode);
 
