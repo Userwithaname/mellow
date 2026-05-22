@@ -145,8 +145,7 @@ impl QueuePage {
     #[template_callback]
     pub fn handle_show_playing(&self) {
         self.next_scroll_pos.set(QueueScrollAction::ToPlaying);
-        let model_index = self.queue_index_to_model(self.playing_index.get());
-        if let Ok(model_index) = model_index
+        if let Ok(model_index) = self.queue_index_to_model(self.playing_index.get())
             && (self.view_pan_offset.get() == 0 || self.selection_mode.get().is_some())
         {
             self.scroll_to_model_item(model_index);
