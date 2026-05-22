@@ -144,12 +144,12 @@ impl QueuePage {
     }
     #[template_callback]
     pub fn handle_show_playing(&self) {
-        self.next_scroll_pos.set(QueueScrollAction::ToPlaying);
         if let Ok(model_index) = self.queue_index_to_model(self.playing_index.get())
             && (self.view_pan_offset.get() == 0 || self.selection_mode.get().is_some())
         {
             self.scroll_to_model_item(model_index);
         } else {
+            self.next_scroll_pos.set(QueueScrollAction::ToPlaying);
             self.draw_queue(&self.song_queue.borrow(), self.playing_index.get());
         }
     }
