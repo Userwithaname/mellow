@@ -513,6 +513,7 @@ impl SongQueue {
         }
 
         let queue = self.songs.clone();
+        let playing_index = self.index;
         library_tx()
             .send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
                 let moved = (missing_items.into_iter())
@@ -529,6 +530,13 @@ impl SongQueue {
                         };
                         let new_song = library
                             .locate_song_by_info(song.info().load_basic().as_ref().unwrap())?;
+
+                        if index == playing_index {
+                            // If the currently playing song has been moved, there is likely an
+                            // error shown in the interface; dismissing if found
+                            let _ = ui_tx().send(UpdateUI::DismissNotifications);
+                        }
+
                         Some((index, QueueItem::from_song(&new_song)))
                     })
                     .collect();

@@ -313,6 +313,9 @@ impl Player {
                 PlayerRequest::ReplaceItems(items) => {
                     for (index, item) in items {
                         self.queue.replace(index, item);
+                        if index == self.queue.index() {
+                            self.queue.pending_track = true;
+                        }
                     }
                     self.queue.ui_update_queue();
                     self.ui_update_song_info();
