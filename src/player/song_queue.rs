@@ -1,5 +1,6 @@
 use core::error::Error;
 use gst::ClockTime;
+use gtk::gio::prelude::FileExt;
 use rand::random_range;
 use std::fs;
 use std::sync::Arc;
@@ -488,6 +489,52 @@ impl SongQueue {
             #[cfg(debug_assertions)]
             panic!("Cannot undo: `create_snapshot_for_action` must be called first")
         }
+    }
+
+    /// Attempts to correct moved file paths in the current queue
+    /// if the library was able to find them in a different location
+    ///
+    /// For proper behavior, only call this function after building
+    /// the library successfully been built
+    pub fn validate_file_paths(&mut self) {
+        let mut missing_items = Vec::new();
+        for (index, item) in self.songs.iter().enumerate() {
+            let QueueItem::Song(song) = item else {
+                continue;
+            };
+            if song.file.path().unwrap().exists() {
+                continue;
+            }
+
+            missing_items.push(index);
+        }
+        if missing_items.is_empty() {
+            return;
+        }
+
+        let queue = self.songs.clone();
+        library_tx()
+            .send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
+                let moved = (missing_items.into_iter())
+                    .filter_map(|index| {
+                        // SAFETY: Explained in the inner block
+                        let song = unsafe {
+                            queue
+                                // SAFETY: `missing_items` (`index`) is built using `.enumerate`
+                                // (`queue` is assigned from `self.songs.clone()`, which could
+                                // not have changed because the song queue is single-threaded)
+                                .get_unchecked(index)
+                                // SAFETY: The above loop returns early if item is not a song
+                                .as_song_unchecked()
+                        };
+                        let new_song = library
+                            .locate_song_by_info(song.info().load_basic().as_ref().unwrap())?;
+                        Some((index, QueueItem::from_song(&new_song)))
+                    })
+                    .collect();
+                let _ = player_tx().send(PlayerRequest::ReplaceItems(moved));
+            })))
+            .expect(EXP_RX);
     }
 
     /// Updates the UI with the current queue shuffle mode setting

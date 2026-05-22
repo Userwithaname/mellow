@@ -599,6 +599,7 @@ impl Library {
                     // Cancel any background tasks which might still be running
                     library.cancel_library_build();
                     library.build_succeeded();
+                    let _ = player_tx().send(PlayerRequest::ValidateFilePaths);
                 }
             }
         })))?;

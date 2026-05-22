@@ -6,7 +6,6 @@ use std::sync::{OnceLock, mpsc};
 
 use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_RX, INIT_ERR};
-use crate::library::{LibraryRequest, library_tx};
 use crate::ui::{UpdateUI, ui_tx};
 use crate::util::wrap_index;
 
@@ -106,6 +105,8 @@ pub enum PlayerRequest {
     /// Turn gapless playback on or off
     SetGapless(bool),
 
+    ValidateFilePaths,
+
     /// Uninitializes the player and saves the current queue to disk
     /// (save queue: `bool`, save time: `bool`)
     Uninit(bool, bool),
@@ -154,6 +155,7 @@ impl core::fmt::Debug for PlayerRequest {
                 Self::SetShuffle(shuffle) => format!("SetShuffle({shuffle})"),
                 Self::SetRepeat(repeat) => format!("SetRepeat({repeat})"),
                 Self::SetGapless(gapless) => format!("SetGapless({gapless})"),
+                Self::ValidateFilePaths => "ValidateFilePaths".to_owned(),
                 Self::Uninit(save, time) => format!("Uninit({save}, {time})"),
             }
         )
@@ -336,6 +338,7 @@ impl Player {
                 }
                 PlayerRequest::Undo => self.queue.pefrofm_undo() == (),
 
+                PlayerRequest::ValidateFilePaths => self.queue.validate_file_paths() == (),
                 PlayerRequest::Update => true,
 
                 #[allow(clippy::unit_arg)]
@@ -432,8 +435,7 @@ impl Player {
         }))
         .expect(EXP_RX);
 
-        let was_empty = self.queue.is_empty();
-        self.queue.load_new(queue.clone(), shuffled);
+        self.queue.load_new(queue, shuffled);
         self.skip_to(index);
 
         // Updating manually before using this thread to load the thumbnail
@@ -442,49 +444,6 @@ impl Player {
         // Ensure the current thumbnail is loaded before updating the UI queue
         queue_item.map_song(|song| drop(song.info().load_thumbnail()));
         self.queue.ui_update_queue();
-
-        // Correct the paths of moved queue items
-        if !was_empty {
-            // The below validation is only required for restored queues, which (currently)
-            // only happens during startup. Checking if the queue was empty avoids needing
-            // an extra field to check if this is the first queue to be loaded by the player
-            return;
-        }
-        let mut missing_items = Vec::new();
-        for (index, item) in queue.iter().enumerate() {
-            let QueueItem::Song(song) = item else {
-                continue;
-            };
-            if song.file.path().unwrap().exists() {
-                continue;
-            }
-
-            missing_items.push(index);
-        }
-        if missing_items.is_empty() {
-            return;
-        }
-
-        library_tx()
-            .send(LibraryRequest::OnBuildSucceeded(Box::new(move |library| {
-                let moved = (missing_items.into_iter())
-                    .filter_map(|index| {
-                        // SAFETY: Explained in the inner block
-                        let song = unsafe {
-                            queue
-                                // SAFETY: `missing_items` (`index`) is built from `queue.enumerate`
-                                .get_unchecked(index)
-                                // SAFETY: The above loop returns early if item is not a song
-                                .as_song_unchecked()
-                        };
-                        let new_song = library
-                            .locate_song_by_info(song.info().load_basic().as_ref().unwrap())?;
-                        Some((index, QueueItem::from_song(&new_song)))
-                    })
-                    .collect();
-                let _ = player_tx().send(PlayerRequest::ReplaceItems(moved));
-            })))
-            .expect(EXP_RX);
     }
 
     /// Starts or pauses playback depending on state
