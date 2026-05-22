@@ -147,7 +147,7 @@ impl SongQueue {
     #[must_use]
     pub fn ordered_queue(&self) -> Box<[QueueItem]> {
         match self.shuffle {
-            false => self.songs.iter().map(QueueItem::clone).collect(),
+            false => self.songs.as_slice().into(),
             true => (self.shuffled.iter().map(|i| self.songs[*i].clone())).collect(),
         }
     }
