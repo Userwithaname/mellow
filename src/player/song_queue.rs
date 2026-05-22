@@ -494,8 +494,8 @@ impl SongQueue {
     /// Attempts to correct moved file paths in the current queue
     /// if the library was able to find them in a different location
     ///
-    /// For proper behavior, only call this function after building
-    /// the library successfully been built
+    /// For proper behavior, only call this function after the
+    /// library has successfully been built
     pub fn validate_file_paths(&mut self) {
         let mut missing_items = Vec::new();
         for (index, item) in self.songs.iter().enumerate() {
