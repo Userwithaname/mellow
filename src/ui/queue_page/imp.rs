@@ -144,8 +144,6 @@ impl QueuePage {
     }
     #[template_callback]
     pub fn handle_show_playing(&self) {
-        // TODO: Only show the button when the playing item is out of view
-        // (either due to scrolling or panning)
         self.next_scroll_pos.set(QueueScrollAction::ToPlaying);
         if self.view_pan_offset.get() == 0 {
             self.scroll_to_item(self.playing_index.get());
@@ -969,6 +967,32 @@ impl QueuePage {
         ));
         self.view_further_down.add_controller(hold_to_pan_down);
     }
+    #[inline]
+    fn setup_reset_scroll_button_visibility(&self) {
+        self.scrolled_window
+            .vadjustment()
+            .connect_value_changed(glib::clone!(
+                #[weak(rename_to = queue_page)]
+                self,
+                move |vadjustment| {
+                    queue_page.to_playing.set_visible(
+                        // Only show the 'Scroll To Playing' button when the item is out of view
+                        match queue_page.queue_index_to_model(queue_page.playing_index.get()) {
+                            Err(_) => false,
+                            Ok(index) => {
+                                let scroll_pos = vadjustment.value() as usize;
+                                let view_height = queue_page.scrolled_window.height() as usize;
+                                let playing_item_pos = index * ROW_HEIGHT
+                                    + queue_page.view_further_up.is_visible() as usize
+                                        * PAN_UP_BUTTON_HEIGHT as usize;
+                                !(scroll_pos..scroll_pos + view_height - ROW_HEIGHT)
+                                    .contains(&playing_item_pos)
+                            }
+                        },
+                    );
+                }
+            ));
+    }
 
     /// Empties the list model, cancelling any pending background tasks during drop
     #[inline]
@@ -1036,6 +1060,7 @@ impl ObjectImpl for QueuePage {
         self.setup_drag_and_drop();
         self.setup_selection_mode();
         self.setup_pan_repeat_on_hold();
+        self.setup_reset_scroll_button_visibility();
     }
 }
 
