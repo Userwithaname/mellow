@@ -220,9 +220,8 @@ impl QueuePage {
             self.queue_item_objects.take();
             self.next_scroll_pos.take();
             return;
-        } else {
-            self.view_stack.set_visible_child_name("song_queue");
-        };
+        }
+        self.view_stack.set_visible_child_name("song_queue");
 
         // Exit selection mode before resetting the model
         self.set_selection_mode(None);
