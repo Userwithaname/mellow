@@ -90,6 +90,12 @@ impl QueuePage {
     pub fn borrow_queue(&self) -> Ref<'_, Box<[QueueItem]>> {
         self.imp().song_queue.borrow()
     }
+    /// Returns the length of the currently assigned song queue
+    #[inline]
+    #[must_use]
+    pub fn queue_length(&self) -> usize {
+        self.imp().queue_length.get()
+    }
 
     /// Assigns the `artwork` for the queue item at `index`
     ///

@@ -250,7 +250,9 @@ impl Window {
         println!("set_queue_index({index})");
 
         self.queue_page.set_playing_index(index);
-        self.queue_page.redraw_queue();
+        if self.queue_page.queue_length() != 0 {
+            self.queue_page.redraw_queue();
+        }
     }
     fn open_queue_subpage(&self, index: usize) {
         self.playing.push_by_tag("info");

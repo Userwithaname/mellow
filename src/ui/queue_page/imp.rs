@@ -65,7 +65,7 @@ pub struct QueuePage {
 
     pub song_queue: RefCell<Box<[QueueItem]>>,
     pub playing_index: Cell<usize>,
-    queue_length: Cell<usize>,
+    pub queue_length: Cell<usize>,
     last_repeat_mode: Cell<bool>,
 }
 
@@ -210,13 +210,19 @@ impl QueuePage {
     }
 
     pub fn draw_queue(&self, queue: &[QueueItem], playing: usize) {
+        self.playing_index.set(playing);
         let queue_length = queue.len();
         let old_queue_length = self.queue_length.replace(queue_length);
-        self.view_stack
-            .set_visible_child_name(match queue.is_empty() {
-                true => "queue_empty",
-                false => "song_queue",
-            });
+
+        if queue_length == 0 {
+            self.view_stack.set_visible_child_name("queue_empty");
+            self.list_model.get().unwrap().remove_all();
+            self.queue_item_objects.take();
+            self.next_scroll_pos.take();
+            return;
+        } else {
+            self.view_stack.set_visible_child_name("song_queue");
+        };
 
         // Exit selection mode before resetting the model
         self.set_selection_mode(None);
@@ -238,10 +244,10 @@ impl QueuePage {
         .collect();
 
         let repeat_mode = self.repeat_toggle.is_active();
-
         let last_repeat_mode = self.last_repeat_mode.replace(repeat_mode);
-        // FIX: Incorrect offset when toggling repeat mode on a short queue
-        if repeat_mode && queue_length != 0 {
+
+        if repeat_mode {
+            // FIX: Incorrect offset when toggling repeat mode on a short queue
             let n_items_before = (NUM_ITEMS_BEHIND - (center - start)).min(queue_length - 1);
             if n_items_before > 0 {
                 if repeat_mode != last_repeat_mode {
@@ -273,7 +279,6 @@ impl QueuePage {
         let list_model = self.list_model.get().unwrap();
         list_model.splice(0, list_model.n_items(), &items);
         self.queue_item_objects.replace(items);
-        self.playing_index.set(playing);
 
         let last_up_button_visible = self.view_further_up.is_visible();
         let up_button_visible = repeat_mode || center > NUM_ITEMS_BEHIND;
@@ -308,9 +313,7 @@ impl QueuePage {
             Library::run_task(library_tx(), {
                 let queue = queue.to_vec();
                 move || {
-                    let Some(len) = queue.len().checked_sub(1) else {
-                        return;
-                    };
+                    let len = queue_length - 1;
                     let short_start = playing.saturating_sub(2);
                     let short_end = (playing + 2).min(queue.len());
                     for (index, song) in queue.into_iter().enumerate() {
