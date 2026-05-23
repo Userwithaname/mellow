@@ -34,6 +34,8 @@ pub struct QueuePage {
     #[template_child]
     pub remove_selection: TemplateChild<gtk::Button>,
 
+    // IDEA: This could be a `Vec<usize>` instead to track selection indexes,
+    // which could allow preserving selections between queue redraws
     pub selection_mode: Rc<Cell<Option<usize>>>,
 
     #[template_child]
@@ -102,14 +104,11 @@ impl QueuePage {
         let list_model = self.list_model.get().expect(EXP_INIT);
         for i in 0..list_model.n_items() {
             let item = (list_model.item(i).and_downcast::<QueueItemObject>()).unwrap();
-            if item.selected() {
-                let index = item.index() as usize;
-                selected_items.insert(
-                    selected_items
-                        .binary_search_by(|item| index.cmp(item))
-                        .unwrap_err( /* each index is unique */ ),
-                    index,
-                );
+            if item.selected()
+                && let index = item.index() as usize
+                && let Err(selected_index) = selected_items.binary_search_by(|item| index.cmp(item))
+            {
+                selected_items.insert(selected_index, index);
             }
         }
         if selected_items.is_empty() {
@@ -620,6 +619,8 @@ impl QueuePage {
                 move |_| match selection_mode.get() {
                     None => (ui_tx().send(UpdateUI::OpenQueueSubpage(index))).expect(EXP_RX),
                     Some(mut selections) => {
+                        // IDEA: Selections between wrapped item rows could stay in sync
+                        // for rows which appear multiple times (in repeat mode)
                         let selected = !queue_item_object.selected();
                         queue_item_object.set_selected(selected);
                         match selected {
