@@ -24,22 +24,20 @@ impl MainPlayer {
     /// bar if the player channel is closed
     #[inline]
     pub fn init_seek(&self) {
-        // Connect the seek bar `release` callback to resume playback after seeking
-        // As a workaround for `release` not being signaled by `GtkScale`,
-        // set propagation phase to `Capture` and add controller to parent
-        // Source: https://stackoverflow.com/a/79108304
-        let release_seek_bar = gtk::GestureClick::builder()
-            .propagation_phase(gtk::PropagationPhase::Capture)
-            .build();
-        // Connecting both `released` and `unpaired_release`,
-        // because either one or the other works depending on the system
-        release_seek_bar.connect_released(|_, _, _, _| {
-            player_tx().send(PlayerRequest::SeekDone).expect(EXP_RX);
-        });
-        release_seek_bar.connect_unpaired_release(|_, _, _, _, _| {
-            player_tx().send(PlayerRequest::SeekDone).expect(EXP_RX);
-        });
-        (self.imp().seek_bar.parent().unwrap()).add_controller(release_seek_bar);
+        // Locate the `gtk::GestureClick` controller already present on `GtkScale`
+        // and connect a closure to resume playback when seek bar is released
+        let mut i = 0;
+        let controllers = self.imp().seek_bar.observe_controllers();
+        while let Some(controller) = controllers.item(i) {
+            let Some(gesture_click) = controller.downcast_ref::<gtk::GestureClick>() else {
+                i += 1;
+                continue;
+            };
+            gesture_click.connect_released(|_, _, _, _| {
+                player_tx().send(PlayerRequest::SeekDone).expect(EXP_RX);
+            });
+            break;
+        }
     }
 
     #[inline]
