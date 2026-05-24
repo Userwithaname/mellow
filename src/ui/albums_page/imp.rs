@@ -39,6 +39,7 @@ pub struct AlbumsPage {
     sort_mode: OnceCell<SortConfig<AlbumOrdering>>,
 
     shuffle: Cell<bool>,
+    pending_scroll_pos: Cell<Option<f64>>,
 }
 
 #[gtk::template_callbacks]
@@ -110,6 +111,9 @@ impl AlbumsPage {
             return;
         }
         self.view_stack.set_visible_child_name("albums");
+        self.pending_scroll_pos.set(Some(
+            self.albums_grid.vadjustment().map_or(0.0, |v| v.value()),
+        ));
 
         // The timers are used to reduce major UI stutters
         // by turning them into multiple smaller ones
@@ -169,6 +173,15 @@ impl AlbumsPage {
 
         self.albums_grid
             .set_model(Some(&gtk::NoSelection::new(Some(sort_model))));
+
+        // Restore the previous scroll position if already mapped, otherwise it will
+        // be restored when mapped (see `connect_map` in `constructed`)
+        if self.albums_grid.is_mapped()
+            && let Some(scroll_pos) = self.pending_scroll_pos.take()
+            && let Some(vadjustment) = self.albums_grid.vadjustment()
+        {
+            glib::idle_add_local_once(move || vadjustment.set_value(scroll_pos));
+        }
     }
 
     #[inline]
@@ -285,6 +298,19 @@ impl ObjectImpl for AlbumsPage {
             );
             ui_tx().send(UpdateUI::AlbumPage(album)).expect(EXP_RX);
         });
+
+        // Restore the previous scroll position after reload
+        // Setting the scroll position must be done when mapped; if it wasn't
+        // set in `load_artists`, it is restored in `connect_map` instead.
+        self.albums_grid.connect_map(glib::clone!(
+            #[weak(rename_to=albums_page)]
+            self,
+            move |_| if let Some(scroll_pos) = albums_page.pending_scroll_pos.take()
+                && let Some(vadjustment) = albums_page.albums_grid.vadjustment()
+            {
+                glib::idle_add_local_once(move || vadjustment.set_value(scroll_pos));
+            }
+        ));
 
         let fallback_image = fallback_album_image();
         let factory = gtk::SignalListItemFactory::new();
