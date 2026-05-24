@@ -110,9 +110,7 @@ impl ArtistsPage {
             return;
         }
         self.view_stack.set_visible_child_name("artists");
-        self.pending_scroll_pos.set(Some(
-            self.artists_grid.vadjustment().map_or(0.0, |v| v.value()),
-        ));
+        self.remember_scroll_pos();
 
         // The timers are used to reduce major UI stutters
         // by turning them into multiple smaller ones
@@ -174,11 +172,8 @@ impl ArtistsPage {
 
         // Restore the previous scroll position if already mapped, otherwise it
         // will be restored when mapped (see `connect_map` in `constructed`)
-        if self.artists_grid.is_mapped()
-            && let Some(scroll_pos) = self.pending_scroll_pos.take()
-            && let Some(vadjustment) = self.artists_grid.vadjustment()
-        {
-            glib::idle_add_local_once(move || vadjustment.set_value(scroll_pos));
+        if self.artists_grid.is_mapped() {
+            self.restore_scroll_pos();
         }
     }
 
@@ -231,6 +226,7 @@ impl ArtistsPage {
 
     #[template_callback]
     pub fn handle_reverse_sort(&self) {
+        self.remember_scroll_pos();
         let reversed = self.sort_mode.get().expect(EXP_INIT).reversed;
         let reverse = !reversed.get();
         reversed.set(reverse);
@@ -239,20 +235,38 @@ impl ArtistsPage {
             true => "view-sort-ascending-symbolic",
             false => "view-sort-descending-symbolic",
         });
+        self.restore_scroll_pos();
     }
     #[inline]
     pub async fn set_sort_mode(&self, sort_mode: ArtistOrdering) {
+        self.remember_scroll_pos();
         let ordering = self.sort_mode.get().expect(EXP_INIT).ordering;
         ordering.replace(sort_mode);
         self.sorter.borrow().changed(gtk::SorterChange::Different);
         if let Some(model) = &self.artists_grid.model() {
             self.update_sort_fields(model).await;
         }
+        self.restore_scroll_pos();
     }
     #[inline]
     #[must_use]
     pub fn get_sort_mode(&self) -> &SortConfig<ArtistOrdering> {
         self.sort_mode.get().expect(EXP_INIT)
+    }
+
+    #[inline]
+    fn remember_scroll_pos(&self) {
+        self.pending_scroll_pos.set(Some(
+            self.artists_grid.vadjustment().map_or(0.0, |v| v.value()),
+        ));
+    }
+    #[inline]
+    fn restore_scroll_pos(&self) {
+        if let Some(scroll_pos) = self.pending_scroll_pos.take()
+            && let Some(vadjustment) = self.artists_grid.vadjustment()
+        {
+            glib::idle_add_local_once(move || vadjustment.set_value(scroll_pos));
+        }
     }
 
     #[inline]
@@ -301,11 +315,7 @@ impl ObjectImpl for ArtistsPage {
         self.artists_grid.connect_map(glib::clone!(
             #[weak(rename_to=artists_page)]
             self,
-            move |_| if let Some(scroll_pos) = artists_page.pending_scroll_pos.take()
-                && let Some(vadjustment) = artists_page.artists_grid.vadjustment()
-            {
-                glib::idle_add_local_once(move || vadjustment.set_value(scroll_pos));
-            }
+            move |_| artists_page.restore_scroll_pos()
         ));
 
         // let fallback_image = fallback_artist_image();
