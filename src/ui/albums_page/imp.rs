@@ -174,8 +174,8 @@ impl AlbumsPage {
         self.albums_grid
             .set_model(Some(&gtk::NoSelection::new(Some(sort_model))));
 
-        // Restore the previous scroll position if already mapped, otherwise it will
-        // be restored when mapped (see `connect_map` in `constructed`)
+        // Restore the previous scroll position if already mapped, otherwise it
+        // will be restored when mapped (see `connect_map` in `constructed`)
         if self.albums_grid.is_mapped()
             && let Some(scroll_pos) = self.pending_scroll_pos.take()
             && let Some(vadjustment) = self.albums_grid.vadjustment()
@@ -301,7 +301,7 @@ impl ObjectImpl for AlbumsPage {
 
         // Restore the previous scroll position after reload
         // Setting the scroll position must be done when mapped; if it wasn't
-        // set in `load_artists`, it is restored in `connect_map` instead.
+        // set in `load_albums`, it is restored in `connect_map` instead.
         self.albums_grid.connect_map(glib::clone!(
             #[weak(rename_to=albums_page)]
             self,
