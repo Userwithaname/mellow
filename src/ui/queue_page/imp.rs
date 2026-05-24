@@ -181,10 +181,7 @@ impl QueuePage {
         let scrolled_window = self.scrolled_window.get();
         // WORKAROUND: Setting the scroll position in an idle task because it
         // doesn't update otherwise
-        glib::idle_add_local(move || {
-            scrolled_window.vadjustment().set_value(scroll_target);
-            glib::ControlFlow::Break
-        });
+        glib::idle_add_local_once(move || scrolled_window.vadjustment().set_value(scroll_target));
     }
 
     #[inline]

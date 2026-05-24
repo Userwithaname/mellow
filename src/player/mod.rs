@@ -1,7 +1,6 @@
 use core::error::Error;
 use gst::prelude::*;
 use gst::{ClockTime, SeekFlags, State};
-use gtk::gio::prelude::FileExt;
 use std::sync::{OnceLock, mpsc};
 
 use crate::UI_TIMEOUT;
@@ -39,8 +38,6 @@ pub fn init_player_tx(
 }
 
 pub enum PlayerRequest {
-    /// Refresh local player state
-    Update,
     /// Play or pause depending on the current state
     TogglePlay(Option<bool>),
     /// Skip to beginning or previous song
@@ -105,6 +102,7 @@ pub enum PlayerRequest {
     /// Turn gapless playback on or off
     SetGapless(bool),
 
+    /// Attempts to correct file paths of moved song files in the queue
     ValidateFilePaths,
 
     /// Uninitializes the player and saves the current queue to disk
@@ -119,7 +117,6 @@ impl core::fmt::Debug for PlayerRequest {
             f,
             "{}",
             match self {
-                Self::Update => "Update".to_owned(),
                 Self::TogglePlay(play) => format!("TogglePlay({play:?})"),
                 Self::SkipPrevious => "SkipPrevious".to_owned(),
                 Self::SkipNext => "SkipNext".to_owned(),
@@ -342,7 +339,6 @@ impl Player {
                 PlayerRequest::Undo => self.queue.pefrofm_undo() == (),
 
                 PlayerRequest::ValidateFilePaths => self.queue.validate_file_paths() == (),
-                PlayerRequest::Update => true,
 
                 #[allow(clippy::unit_arg)]
                 PlayerRequest::Uninit(save_queue, save_time) => {
