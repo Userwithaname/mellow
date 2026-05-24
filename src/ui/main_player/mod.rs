@@ -29,14 +29,19 @@ impl MainPlayer {
         let mut i = 0;
         let controllers = self.imp().seek_bar.observe_controllers();
         while let Some(controller) = controllers.item(i) {
-            let Some(gesture_click) = controller.downcast_ref::<gtk::GestureClick>() else {
-                i += 1;
-                continue;
+            if let Some(gesture_click) = controller.downcast_ref::<gtk::GestureClick>() {
+                gesture_click.connect_released(|_, _, _, _| {
+                    player_tx().send(PlayerRequest::SeekDone).expect(EXP_RX);
+                });
+                break;
             };
-            gesture_click.connect_released(|_, _, _, _| {
-                player_tx().send(PlayerRequest::SeekDone).expect(EXP_RX);
-            });
-            break;
+            i += 1;
+        }
+
+        // A debug-only check to ensure the above lookup doesn't break in the future
+        #[cfg(debug_assertions)]
+        if i == controllers.n_items() {
+            eprintln!("WARNING: Could not find `GtkGestureClick` controller on the seek bar");
         }
     }
 
