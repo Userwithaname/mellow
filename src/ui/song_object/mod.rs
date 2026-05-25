@@ -1,4 +1,5 @@
 use adw::{prelude::*, subclass::prelude::*};
+use core::mem::MaybeUninit;
 use core::{cmp, sync::atomic};
 use glib::Object;
 use gtk::{gdk, glib};
@@ -23,8 +24,8 @@ impl SongObject {
     pub fn new(index: u32, song: SharedSong) -> Self {
         let (title, album, artist, year) = {
             let mut info = song.info();
-            let info_temp = info.load_basic();
-            let info = info_temp.as_ref().unwrap();
+            let mut guard = MaybeUninit::uninit();
+            let info = info.get_basic(&mut guard);
             (
                 info.title.clone(),
                 info.album.clone(),

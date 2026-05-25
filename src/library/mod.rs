@@ -1,5 +1,6 @@
+use core::mem::{self, MaybeUninit};
 use core::sync::atomic::{self, AtomicBool};
-use core::{cmp::Ordering, error::Error, mem};
+use core::{cmp::Ordering, error::Error};
 use gio::prelude::FileExt;
 use gtk::gio;
 use rand::random_range;
@@ -500,8 +501,8 @@ impl Library {
 
         for song in &songs {
             let mut info = song.info();
-            let song_info_lock = info.load_basic();
-            let song_info = song_info_lock.as_ref().unwrap();
+            let mut song_info_guard = MaybeUninit::uninit();
+            let song_info = info.get_basic(&mut song_info_guard);
 
             let album_index = albums.find_album(song_info);
             let artist_index = artists.find_artist(song_info);
@@ -515,7 +516,6 @@ impl Library {
 
                         // Add the song to the album songs
                         album_locked.add_song(Arc::clone(song), song_info);
-                        drop(song_info_lock);
                         drop(album_locked);
                         drop(info);
 
@@ -534,7 +534,6 @@ impl Library {
                         // Add the album to the artist's albums
                         let mut artist_locked = artist.lock().unwrap();
                         artist_locked.add_album(Arc::clone(&album), song_info);
-                        drop(song_info_lock);
                         drop(artist_locked);
                         drop(info);
 
@@ -551,7 +550,6 @@ impl Library {
                         song_info, //
                         Arc::clone(song),
                     );
-                    drop(song_info_lock);
                     drop(info);
 
                     // Add to the library albums as well

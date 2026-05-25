@@ -1,4 +1,5 @@
 use core::error::Error;
+use core::mem::MaybeUninit;
 use gst::ClockTime;
 use gtk::gio::prelude::FileExt;
 use rand::random_range;
@@ -528,8 +529,10 @@ impl SongQueue {
                                 // SAFETY: The above loop returns early if item is not a song
                                 .as_song_unchecked()
                         };
-                        let new_song = library
-                            .locate_song_by_info(song.info().load_basic().as_ref().unwrap())?;
+                        let new_song = {
+                            let mut guard = MaybeUninit::uninit();
+                            library.locate_song_by_info(song.info().get_basic(&mut guard))?
+                        };
 
                         if index == playing_index {
                             // If the currently playing song has been moved, there is likely an

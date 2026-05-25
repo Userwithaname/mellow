@@ -1,4 +1,5 @@
 use adw::{prelude::*, subclass::prelude::*};
+use core::mem::MaybeUninit;
 use glib::{Object, clone};
 use gtk::{Orientation, gdk, glib};
 use std::sync::{Arc, atomic::Ordering};
@@ -65,8 +66,8 @@ impl AlbumPage {
             let song_row = ListRow::new();
 
             let mut info = song.info();
-            let info = info.load_basic();
-            let info = info.as_ref().unwrap();
+            let mut guard = MaybeUninit::uninit();
+            let info = info.get_basic(&mut guard);
             song_row.add_prefix(
                 &gtk::Label::builder()
                     .width_chars(2)

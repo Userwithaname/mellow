@@ -85,7 +85,7 @@ impl ToShuffledQueue for SharedArtist {
 
 pub type ArtistAlbums = Vec<Arc<Mutex<Album>>>;
 pub trait SortedArtistAlbums {
-    /// Returns `Ok(index)` if the item was found found
+    /// Returns `Ok(index)` if the item was found
     ///
     /// # Errors
     /// If the item was not found, the returned `Err(index)`
