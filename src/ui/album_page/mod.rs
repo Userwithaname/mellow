@@ -1,5 +1,4 @@
 use adw::{prelude::*, subclass::prelude::*};
-use core::mem::MaybeUninit;
 use glib::{Object, clone};
 use gtk::{Orientation, gdk, glib};
 use std::sync::{Arc, atomic::Ordering};
@@ -65,74 +64,73 @@ impl AlbumPage {
         for (i, song) in album_locked.songs().iter().enumerate() {
             let song_row = ListRow::new();
 
-            let mut info = song.info();
-            let mut guard = MaybeUninit::uninit();
-            let info = info.get_basic(&mut guard);
-            song_row.add_prefix(
-                &gtk::Label::builder()
-                    .width_chars(2)
-                    .label(info.track.to_string())
-                    .justify(gtk::Justification::Center)
-                    .css_classes(["dimmed", "numeric"])
-                    .build(),
-            );
-            song_row.set_title(&info.title);
-            let duration = info.duration_ms;
-            song_row.set_suffix_label(&format_duration_ms(duration));
-            duration_total_ms += duration;
+            song.info().load_basic_and(|info| {
+                song_row.add_prefix(
+                    &gtk::Label::builder()
+                        .width_chars(2)
+                        .label(info.track.to_string())
+                        .justify(gtk::Justification::Center)
+                        .css_classes(["dimmed", "numeric"])
+                        .build(),
+                );
+                song_row.set_title(&info.title);
+                let duration = info.duration_ms;
+                song_row.set_suffix_label(&format_duration_ms(duration));
+                duration_total_ms += duration;
 
-            let song = Arc::clone(song);
-            let album = Arc::clone(album);
-            song_row.connect_activated(move |_| {
-                ui_tx()
-                    .send(UpdateUI::SongPage(Box::new((
-                        i,
-                        Arc::clone(&song),
-                        Box::new(album.clone() as SharedAlbum),
-                    ))))
-                    .expect(EXP_RX);
+                let song = Arc::clone(song);
+                let album = Arc::clone(album);
+                song_row.connect_activated(move |_| {
+                    ui_tx()
+                        .send(UpdateUI::SongPage(Box::new((
+                            i,
+                            Arc::clone(&song),
+                            Box::new(album.clone() as SharedAlbum),
+                        ))))
+                        .expect(EXP_RX);
+                });
+
+                ui.details
+                    .set_label(&format_duration_minutes(duration_total_ms / (1000 * 60)));
+
+                if info.disc != disc_number {
+                    disc_number = info.disc;
+                    let play_buttons = gtk::Box::new(Orientation::Horizontal, 16);
+                    let queue_disc_button = gtk::Button::builder()
+                        // TODO: Support translations
+                        .tooltip_text(format!("Add Disc {disc_number} To Queue"))
+                        .icon_name("list-add-symbolic")
+                        .css_name("flat")
+                        .build();
+                    queue_disc_button.connect_clicked(clone!(
+                        #[weak(rename_to=album_page)]
+                        ui,
+                        move |_| album_page.add_disc_to_queue(disc_number)
+                    ));
+                    queue_disc_button.set_cursor_from_name(Some("pointer"));
+                    let play_disc_button = gtk::Button::builder()
+                        // TODO: Support translations
+                        .tooltip_text(format!("Play Disc {disc_number}"))
+                        .icon_name("media-playback-start-symbolic")
+                        .css_name("flat")
+                        .build();
+                    play_disc_button.connect_clicked(clone!(
+                        #[weak(rename_to=album_page)]
+                        ui,
+                        move |_| album_page.play_disc(disc_number)
+                    ));
+                    play_disc_button.set_cursor_from_name(Some("pointer"));
+                    play_buttons.append(&queue_disc_button);
+                    play_buttons.append(&play_disc_button);
+                    album_group = adw::PreferencesGroup::builder()
+                        // TODO: Support translations
+                        .title(format!("Disc {disc_number}"))
+                        .header_suffix(&play_buttons)
+                        .build();
+                    ui.album_pref_page.insert(&album_group, album_group_index);
+                    album_group_index += 1;
+                }
             });
-
-            ui.details
-                .set_label(&format_duration_minutes(duration_total_ms / (1000 * 60)));
-
-            if info.disc != disc_number {
-                disc_number = info.disc;
-                let play_buttons = gtk::Box::new(Orientation::Horizontal, 16);
-                let queue_disc_button = gtk::Button::builder()
-                    // TODO: Support translations
-                    .tooltip_text(format!("Add Disc {disc_number} To Queue"))
-                    .icon_name("list-add-symbolic")
-                    .css_name("flat")
-                    .build();
-                queue_disc_button.connect_clicked(clone!(
-                    #[weak(rename_to=album_page)]
-                    ui,
-                    move |_| album_page.add_disc_to_queue(disc_number)
-                ));
-                queue_disc_button.set_cursor_from_name(Some("pointer"));
-                let play_disc_button = gtk::Button::builder()
-                    // TODO: Support translations
-                    .tooltip_text(format!("Play Disc {disc_number}"))
-                    .icon_name("media-playback-start-symbolic")
-                    .css_name("flat")
-                    .build();
-                play_disc_button.connect_clicked(clone!(
-                    #[weak(rename_to=album_page)]
-                    ui,
-                    move |_| album_page.play_disc(disc_number)
-                ));
-                play_disc_button.set_cursor_from_name(Some("pointer"));
-                play_buttons.append(&queue_disc_button);
-                play_buttons.append(&play_disc_button);
-                album_group = adw::PreferencesGroup::builder()
-                    // TODO: Support translations
-                    .title(format!("Disc {disc_number}"))
-                    .header_suffix(&play_buttons)
-                    .build();
-                ui.album_pref_page.insert(&album_group, album_group_index);
-                album_group_index += 1;
-            }
 
             album_group.add(&song_row);
         }

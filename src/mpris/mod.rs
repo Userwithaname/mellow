@@ -1,6 +1,5 @@
 // IDEA: Could `GIO` be used instead of the `mpris-server` crate?
 
-use core::mem::MaybeUninit;
 use gio::prelude::FileExt;
 use gtk::{gio, glib};
 use mpris_server::{self, LoopStatus, Metadata, PlaybackStatus, zbus};
@@ -80,17 +79,13 @@ pub async fn controller(mut rx: tokio_mpsc::UnboundedReceiver<UpdateMPRIS>) -> z
         match rx.recv().await.unwrap() {
             UpdateMPRIS::SongInfo(QueueItem::Song(song)) => {
                 let mut info = song.info();
-                let mut metadata = {
-                    // The scope ensures that the read lock guard is dropped before `await`
-                    // (explicit `drop` still triggers the `clippy::await_holding_lock` warning)
-                    let mut guard = MaybeUninit::uninit();
-                    let basic_info = info.get_basic(&mut guard);
+                let mut metadata = info.load_basic_and(|basic_info| {
                     Metadata::builder()
                         .title(&basic_info.title)
                         .album(&basic_info.album)
                         .artist([&basic_info.artist])
                         .build()
-                };
+                });
                 metadata.set_art_url(match info.inspect_thumbnail().is_some() {
                     true => Some(gio::File::for_path(info.thumbnail_file_path()).uri()),
                     false => None,

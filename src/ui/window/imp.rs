@@ -1,7 +1,6 @@
 use adw::ApplicationWindow;
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, OnceCell, RefCell};
-use core::mem::MaybeUninit;
 use core::time::Duration;
 use glib::subclass::InitializingObject;
 use gtk::{CompositeTemplate, gio, glib};
@@ -194,14 +193,14 @@ impl Window {
         };
 
         let mut info = song.info();
-        let mut guard = MaybeUninit::uninit();
-        let song_info = info.get_basic(&mut guard);
-        let (title, album, artist) = (
-            song_info.title.clone(),
-            song_info.album.clone(),
-            song_info.artist.clone(),
-        );
-        *song_duration_ms = song_info.duration_ms;
+        let (title, album, artist) = info.load_basic_and(|song_info| {
+            *song_duration_ms = song_info.duration_ms;
+            (
+                song_info.title.clone(),
+                song_info.album.clone(),
+                song_info.artist.clone(),
+            )
+        });
 
         let detailed_info = info.try_inspect_detailed();
         let (artwork, has_artwork) = match detailed_info

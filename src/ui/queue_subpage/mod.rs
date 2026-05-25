@@ -1,5 +1,4 @@
 use adw::{prelude::*, subclass::prelude::*};
-use core::mem::MaybeUninit;
 use gtk::glib;
 use std::sync::Arc;
 
@@ -36,11 +35,11 @@ impl QueueSubpage {
         song_page.album.replace(album);
 
         let mut info = song.info();
-        let mut guard = MaybeUninit::uninit();
-        let song_info = info.get_basic(&mut guard);
-        song_page.song_title.set_label(&song_info.title);
-        song_page.album_title.set_label(&song_info.album);
-        song_page.artist_name.set_label(&song_info.artist);
+        info.load_basic_and(|song_info| {
+            song_page.song_title.set_label(&song_info.title);
+            song_page.album_title.set_label(&song_info.album);
+            song_page.artist_name.set_label(&song_info.artist);
+        });
 
         let user_info = info.user();
         song_page.rating.set_rating_silent(user_info.rating);

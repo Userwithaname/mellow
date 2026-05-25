@@ -1,5 +1,4 @@
 use core::error::Error;
-use core::mem::MaybeUninit;
 use gdk::{gdk_pixbuf::Pixbuf, prelude::*};
 use gtk::{gdk, gio, glib};
 use std::fs::{self, File};
@@ -451,41 +450,28 @@ impl SongInfoLoader<'_> {
         // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
         self.info.read().unwrap()
     }
-    /// Loads the basic song info if needed and returns a reference to it
-    ///
-    /// Note: The `guard` parameter is used so it exists at the call site.
-    /// The value of `guard` is overwritten without dropping, so it should be
-    /// set to `MaybeUninit::uninit()` at the time this function is called.
-    ///
-    /// Note: Dropping the `guard` requires the returned reference to go out of scope,
-    /// since Rust does not currently allow dropping references. If manually dropping
-    /// the guard is required, `load_basic` should be used instead.
+    /// Loads the basic song info if needed and runs the given closure
     ///
     /// # Panics
-    /// The function could panic in the rare case where the `SongInfo` is not
-    /// loaded prior and is unloaded in the brief moment between when the write
-    /// guard is dropped and the read guard is obtained
+    /// The function panics if the basic info `RwLock` is poisoned. It may
+    /// also panic in the rare case where the `SongInfo` is not loaded prior,
+    /// and is concurrently unloaded in the brief moment between when the
+    /// write guard is dropped and the read guard is obtained.
     #[inline]
-    #[must_use]
-    pub fn get_basic<'i: 'g, 'g: 'd, 'd: 'i>(
-        &'i mut self,
-        guard: &'g mut MaybeUninit<RwLockReadGuard<'d, Option<SongInfo>>>,
-    ) -> &'d SongInfo {
+    pub fn load_basic_and<O, F: FnOnce(&SongInfo) -> O>(&mut self, f: F) -> O {
         #[cfg(debug_assertions)]
         if self.detailed_info.try_write().is_err() {
-            eprintln!(
-                "Note: Blocking on read lock for `get_basic` (would `try_load_basic` make sense here?)"
-            );
+            eprintln!("Note: Blocking on read lock for `load_basic_and`");
         }
         let info = self.info.read().unwrap();
         if info.is_some() {
             // SAFETY: `info` is `Some`
-            return unsafe { guard.write(info).as_ref().unwrap_unchecked() };
+            return f(unsafe { info.as_ref().unwrap_unchecked() });
         }
         drop(info);
         self.assign_basic();
         // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
-        guard.write(self.info.read().unwrap()).as_ref().unwrap()
+        f(self.info.read().unwrap().as_ref().unwrap())
     }
     /// Returns the basic song info if it is currently accessible without
     /// blocking the thread

@@ -97,7 +97,7 @@ impl AlbumPage {
         (self.album.borrow().as_ref().unwrap())
             .to_queue()
             .into_iter()
-            .filter(|item| item.as_song().info().load_basic().as_ref().unwrap().disc == disc_number)
+            .filter(|item| (item.as_song().info()).load_basic_and(|song| song.disc == disc_number))
             .collect()
     }
     #[template_callback]

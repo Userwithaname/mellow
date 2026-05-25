@@ -1,6 +1,5 @@
-use core::mem::{self, MaybeUninit};
 use core::sync::atomic::{self, AtomicBool};
-use core::{cmp::Ordering, error::Error};
+use core::{cmp::Ordering, error::Error, mem};
 use gio::prelude::FileExt;
 use gtk::gio;
 use rand::random_range;
@@ -500,70 +499,65 @@ impl Library {
         let mut timer = Instant::now();
 
         for song in &songs {
-            let mut info = song.info();
-            let mut song_info_guard = MaybeUninit::uninit();
-            let song_info = info.get_basic(&mut song_info_guard);
+            song.info().load_basic_and(|song_info| {
+                let album_index = albums.find_album(song_info);
+                let artist_index = artists.find_artist(song_info);
 
-            let album_index = albums.find_album(song_info);
-            let artist_index = artists.find_artist(song_info);
+                match artist_index {
+                    Ok(artist_index) => match album_index {
+                        Ok(album_index) => {
+                            // SAFETY: `album_index` is `Ok`, therefore within bounds
+                            let album = unsafe { albums.get_unchecked(album_index) };
+                            let mut album_locked = album.lock().unwrap();
 
-            match artist_index {
-                Ok(artist_index) => match album_index {
-                    Ok(album_index) => {
-                        // SAFETY: `album_index` is `Ok`, therefore within bounds
-                        let album = unsafe { albums.get_unchecked(album_index) };
-                        let mut album_locked = album.lock().unwrap();
+                            // Add the song to the album songs
+                            album_locked.add_song(Arc::clone(song), song_info);
+                            drop(album_locked);
 
-                        // Add the song to the album songs
-                        album_locked.add_song(Arc::clone(song), song_info);
-                        drop(album_locked);
-                        drop(info);
+                            // Associate the song with its album
+                            song.set_album(Arc::clone(album));
+                        }
+                        Err(album_index) => {
+                            // SAFETY: `artist_index` is `Ok`, therefore within bounds
+                            let artist = unsafe { artists.get_unchecked(artist_index) };
+                            let album = SharedAlbum::new_album(
+                                song_info, //
+                                Arc::clone(song),
+                                Arc::clone(artist),
+                            );
 
-                        // Associate the song with its album
-                        song.set_album(Arc::clone(album));
-                    }
-                    Err(album_index) => {
-                        // SAFETY: `artist_index` is `Ok`, therefore within bounds
-                        let artist = unsafe { artists.get_unchecked(artist_index) };
-                        let album = SharedAlbum::new_album(
+                            // Add the album to the artist's albums
+                            let mut artist_locked = artist.lock().unwrap();
+                            artist_locked.add_album(Arc::clone(&album), song_info);
+                            drop(artist_locked);
+
+                            // Add to the library albums as well
+                            albums.insert(album_index, Arc::clone(&album));
+
+                            // Associate the song with its album
+                            song.set_album(album);
+                        }
+                    },
+                    Err(artist_index) => {
+                        // Create the artist and album connected pair
+                        let (artist, album) = SharedArtist::new_artist_album_pair(
                             song_info, //
                             Arc::clone(song),
-                            Arc::clone(artist),
                         );
 
-                        // Add the album to the artist's albums
-                        let mut artist_locked = artist.lock().unwrap();
-                        artist_locked.add_album(Arc::clone(&album), song_info);
-                        drop(artist_locked);
-                        drop(info);
-
                         // Add to the library albums as well
-                        albums.insert(album_index, Arc::clone(&album));
+                        match album_index {
+                            Err(index) | Ok(index) => albums.insert(index, Arc::clone(&album)),
+                        }
+
+                        // Add the artist entry
+                        artists.insert(artist_index, artist);
 
                         // Associate the song with its album
                         song.set_album(album);
                     }
-                },
-                Err(artist_index) => {
-                    // Create the artist and album connected pair
-                    let (artist, album) = SharedArtist::new_artist_album_pair(
-                        song_info, //
-                        Arc::clone(song),
-                    );
-                    drop(info);
-
-                    // Add to the library albums as well
-                    match album_index {
-                        Err(index) | Ok(index) => albums.insert(index, Arc::clone(&album)),
-                    }
-
-                    // Add the artist entry
-                    artists.insert(artist_index, artist);
-
-                    // Associate the song with its album
-                    song.set_album(album);
                 }
-            }
+            });
 
             progress += progress_step;
             if timer.elapsed() > UI_TIMEOUT {

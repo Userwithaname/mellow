@@ -1,5 +1,4 @@
 use adw::subclass::prelude::*;
-use core::mem::MaybeUninit;
 use core::sync::atomic::{AtomicBool, Ordering};
 use glib::Object;
 use gtk::{gdk, glib};
@@ -32,13 +31,11 @@ impl QueueItemObject {
         match &item {
             QueueItem::Song(song) => {
                 let mut info = song.info();
-
-                let mut guard = MaybeUninit::uninit();
-                let song_info = info.get_basic(&mut guard);
-                queue_object.set_title(song_info.title.clone());
-                queue_object.set_subtitle(song_info.artist.clone());
-                queue_object.set_suffix(format_duration_ms(song_info.duration_ms));
-
+                info.load_basic_and(|song_info| {
+                    queue_object.set_title(song_info.title.clone());
+                    queue_object.set_subtitle(song_info.artist.clone());
+                    queue_object.set_suffix(format_duration_ms(song_info.duration_ms));
+                });
                 if let Ok(thumbnail) = info.try_inspect_thumbnail()
                     && let Some(thumbnail) = thumbnail.as_ref()
                 {

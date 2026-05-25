@@ -1,5 +1,4 @@
 use adw::{prelude::*, subclass::prelude::*};
-use core::mem::MaybeUninit;
 use glib::Object;
 use gtk::glib;
 use std::sync::Arc;
@@ -37,13 +36,13 @@ impl SongPage {
         ui.index.set(index);
         let mut info = song.info();
 
-        let mut song_info_guard = MaybeUninit::uninit();
-        let song_info = info.get_basic(&mut song_info_guard);
-        song_page.set_title(&["Song: ", &song_info.title].concat());
-        ui.song_title.set_label(&song_info.title);
-        ui.album_title.set_label(&song_info.album);
-        ui.artist_name.set_label(&song_info.artist);
-        ui.context.replace(Some(to_queue));
+        info.load_basic_and(|song_info| {
+            song_page.set_title(&["Song: ", &song_info.title].concat());
+            ui.song_title.set_label(&song_info.title);
+            ui.album_title.set_label(&song_info.album);
+            ui.artist_name.set_label(&song_info.artist);
+            ui.context.replace(Some(to_queue));
+        });
 
         let user_info = info.user();
         ui.rating.set_rating_silent(user_info.rating);
