@@ -711,7 +711,7 @@ impl Library {
         #[inline]
         #[must_use]
         fn merge_if_matching(info: &mut SongInfoLoader, cmp_info: &SongInfoLoader) -> bool {
-            drop(info.load_basic()); // Load info for more accurate matching
+            info.load_basic(); // Load info for more accurate matching
             if cmp_info.matches(info) {
                 // Copy the user-assigned song info to the new entry
                 #[cfg(debug_assertions)]

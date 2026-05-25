@@ -325,7 +325,7 @@ impl QueuePage {
                         {
                             song.info().try_unload_detailed();
                         } else {
-                            drop(song.info().load_detailed());
+                            song.info().load_detailed();
                             continue;
                         }
 

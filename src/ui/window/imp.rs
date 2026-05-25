@@ -215,7 +215,7 @@ impl Window {
                 let song = Arc::clone(song);
                 let item = QueueItem::clone(item);
                 Library::run_task(library_tx(), move || {
-                    drop(song.info().load_detailed());
+                    song.info().load_detailed();
                     let _ = ui_tx().send(UpdateUI::SongInfo { item, pause_after });
                 });
                 (None, false)

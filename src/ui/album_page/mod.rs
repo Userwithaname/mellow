@@ -150,7 +150,7 @@ impl AlbumPage {
                     println!("Arwork loading cancelled");
                     return;
                 }
-                drop(first_song.info().load_detailed());
+                first_song.info().load_detailed();
                 if cancel.load(Ordering::Relaxed) {
                     #[cfg(debug_assertions)]
                     println!("Arwork assignment cancelled");

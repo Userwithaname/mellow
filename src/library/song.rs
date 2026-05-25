@@ -5,6 +5,7 @@ use std::fs::{self, File};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::Read;
 use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{TryLockError, TryLockResult};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use lofty::file::TaggedFile;
@@ -217,8 +218,6 @@ impl<'s> Song {
     }
 }
 
-pub struct TryLockError;
-
 pub struct SongInfoLoader<'i> {
     file: &'i gio::File,
     uri: &'i str,
@@ -238,7 +237,6 @@ impl SongInfoLoader<'_> {
     #[inline]
     #[must_use]
     pub fn matches(&self, other: &SongInfoLoader) -> bool {
-        // NOTE: Could use `match` with `if let` guard for `other` once available in stable Rust
         if let (Some(own_info), Some(other_info)) =
             (&*self.inspect_basic(), &*other.inspect_basic())
         {
@@ -421,34 +419,25 @@ impl SongInfoLoader<'_> {
     /// # Errors
     /// The function errors if the `RwLock` is currently busy
     #[inline]
-    pub fn try_inspect_basic(&self) -> Result<RwLockReadGuard<'_, Option<SongInfo>>, TryLockError> {
-        self.info.try_read().map_err(|_| TryLockError)
+    pub fn try_inspect_basic(&self) -> TryLockResult<RwLockReadGuard<'_, Option<SongInfo>>> {
+        self.info.try_read()
     }
-    /// Loads the basic song info if needed and returns its `RwLockReadGuard`
-    ///
-    /// The returned inner `Option` is expected to be `Some`, but
-    /// may be `None` if concurrently unloaded between when the info
-    /// was assigned and when the read guard was returned, if the info
-    /// was not loaded prior to calling this function
+    /// Loads the basic song info unless it is already loaded
     ///
     /// # Panics
     /// The function panics if the basic info `RwLock` is poisoned
     #[inline]
-    pub fn load_basic(&mut self) -> RwLockReadGuard<'_, Option<SongInfo>> {
+    pub fn load_basic(&mut self) {
         #[cfg(debug_assertions)]
         if self.detailed_info.try_write().is_err() {
             eprintln!(
                 "Note: Blocking on read lock for `load_basic` (would `try_load_basic` make sense here?)"
             );
         }
-        let info = self.info.read().unwrap();
-        if info.is_some() {
-            return info;
+        if self.info.read().unwrap().is_some() {
+            return;
         }
-        drop(info);
         self.assign_basic();
-        // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
-        self.info.read().unwrap()
     }
     /// Loads the basic song info if needed and runs the given closure
     ///
@@ -470,13 +459,8 @@ impl SongInfoLoader<'_> {
         // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
         f(self.info.read().unwrap().as_ref().unwrap())
     }
-    /// Returns the basic song info if it is currently accessible without
-    /// blocking the thread
-    ///
-    /// The returned inner `Option` of the `Ok` variant is expected to
-    /// be `Some`, but may be `None` if concurrently unloaded between
-    /// when the info was assigned and when the read guard was returned,
-    /// if the info was not loaded prior to calling this function
+    /// Loads the detailed song info if it possible to do so without
+    /// blocking the thread and is not already loaded
     ///
     /// # Errors
     /// Returns an error if the info cannot be accessed without blocking
@@ -486,17 +470,14 @@ impl SongInfoLoader<'_> {
     #[inline]
     pub fn try_load_basic(
         &mut self,
-    ) -> Result<RwLockReadGuard<'_, Option<SongInfo>>, TryLockError> {
-        let Ok(info) = self.info.try_read() else {
-            return Err(TryLockError);
-        };
+    ) -> Result<(), TryLockError<RwLockReadGuard<'_, Option<SongInfo>>>> {
+        let info = self.info.try_read()?;
         if info.is_some() {
-            return Ok(info);
+            return Ok(());
         }
         drop(info);
         self.assign_basic();
-        // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
-        Ok(self.info.read().unwrap())
+        Ok(())
     }
     /// Loads the basic song info and assigns it
     ///
@@ -606,55 +587,41 @@ impl SongInfoLoader<'_> {
     #[inline]
     pub fn try_inspect_detailed(
         &self,
-    ) -> Result<RwLockReadGuard<'_, Option<DetailedSongInfo>>, TryLockError> {
-        self.detailed_info.try_read().map_err(|_| TryLockError)
+    ) -> TryLockResult<RwLockReadGuard<'_, Option<DetailedSongInfo>>> {
+        self.detailed_info.try_read()
     }
-    /// Loads detailed song info and returns its `RwLockReadGuard`
-    ///
-    /// The returned inner `Option` is expected to be `Some`, but
-    /// may be `None` if concurrently unloaded between when the info
-    /// was assigned and when the read guard was returned, if the info
-    /// was not loaded prior to calling this function
+    /// Loads the detailed song info unless it is alrealy loaded
     ///
     /// # Panics
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
-    pub fn load_detailed(&mut self) -> RwLockReadGuard<'_, Option<DetailedSongInfo>> {
+    pub fn load_detailed(&mut self) {
         let detailed_info = self.detailed_info.read().unwrap();
         if detailed_info.is_some() {
-            return detailed_info;
+            return;
         }
         drop(detailed_info);
         self.assign_detailed();
-        // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
-        self.detailed_info.read().unwrap()
     }
-    /// Returns the detailed song info if it is currently accessible without
-    /// blocking the thread
-    ///
-    /// The returned inner `Option` of the `Ok` variant is expected to
-    /// be `Some`, but may be `None` if concurrently unloaded between
-    /// when the info was assigned and when the read guard was returned,
-    /// if the info was not loaded prior to calling this function
-    ///
-    /// # Errors
-    /// Returns an error if the info cannot be accessed without blocking
+    /// Loads the detailed song info if needed and runs the given closure
     ///
     /// # Panics
-    /// The function panics if the detailed info `RwLock` is poisoned
+    /// The function panics if the detailed info `RwLock` is poisoned. It may
+    /// also panic in the rare case where the `SongInfo` is not loaded prior,
+    /// and is concurrently unloaded in the brief moment between when the
+    /// write guard is dropped and the read guard is obtained.
     #[inline]
-    pub fn try_load_detailed(
-        &mut self,
-    ) -> Result<RwLockReadGuard<'_, Option<DetailedSongInfo>>, TryLockError> {
-        let Ok(detailed_info) = self.detailed_info.try_read() else {
-            return Err(TryLockError);
-        };
-        if detailed_info.is_some() {
-            return Ok(detailed_info);
+    pub fn load_detailed_and<O, F: FnOnce(&DetailedSongInfo) -> O>(&mut self, f: F) -> O {
+        #[cfg(debug_assertions)]
+        if self.detailed_info.try_write().is_err() {
+            eprintln!("Note: Blocking on read lock for `load_detailed_and`");
+        }
+        if let Some(info) = self.detailed_info.read().unwrap().as_ref() {
+            return f(info);
         }
         self.assign_detailed();
         // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
-        Ok(self.detailed_info.read().unwrap())
+        f(self.detailed_info.read().unwrap().as_ref().unwrap())
     }
     /// Loads the detailed song info and assigns it if it is not already loaded
     ///
@@ -755,6 +722,38 @@ impl SongInfoLoader<'_> {
         })
     }
 
+    /// Returns the thumbnail without loading it first
+    ///
+    /// If the returned inner value is `None`, the thumbnail is either
+    /// not currently loaded, or it is unavailable for this song
+    ///
+    /// # Panics
+    /// The function panics if the detailed info `RwLock` is poisoned
+    #[inline]
+    pub fn inspect_thumbnail(&self) -> RwLockReadGuard<'_, Option<gdk::Texture>> {
+        #[cfg(debug_assertions)]
+        if self.thumbnail.try_read().is_err() {
+            println!(
+                "Note: Blocking on read lock for `inspect_thumbnail` (would `try_inspect_thumbnail` make sense here?)"
+            );
+        }
+        self.thumbnail.read().unwrap()
+    }
+    /// Returns the thumbnail if accessible without blocking the
+    /// current thread, but does not load it
+    ///
+    /// If the returned inner value of the `Ok` variant is `None`,
+    /// the thumbnail is either not currently loaded, or it is
+    /// unavailable for this song
+    ///
+    /// # Errors
+    /// The function errors if the `RwLock` is currently busy
+    #[inline]
+    pub fn try_inspect_thumbnail(
+        &self,
+    ) -> TryLockResult<RwLockReadGuard<'_, Option<gdk::Texture>>> {
+        self.thumbnail.try_read()
+    }
     /// Loads the thumbnail or creates it if necessary
     ///
     /// Note: The returned inner `Option` could be `None`
@@ -784,31 +783,6 @@ impl SongInfoLoader<'_> {
         };
 
         self.thumbnail.read().unwrap()
-    }
-    /// Returns the thumbnail, but does not load it
-    ///
-    /// # Panics
-    /// The function panics if the detailed info `RwLock` is poisoned
-    #[inline]
-    pub fn inspect_thumbnail(&self) -> RwLockReadGuard<'_, Option<gdk::Texture>> {
-        #[cfg(debug_assertions)]
-        if self.thumbnail.try_read().is_err() {
-            println!(
-                "Note: Blocking on read lock for `inspect_thumbnail` (would `try_inspect_thumbnail` make sense here?)"
-            );
-        }
-        self.thumbnail.read().unwrap()
-    }
-    /// Returns the thumbnail if accessible without blocking
-    /// the current thread, but does not load it
-    ///
-    /// # Errors
-    /// The function errors if the `RwLock` is currently busy
-    #[inline]
-    pub fn try_inspect_thumbnail(
-        &self,
-    ) -> Result<RwLockReadGuard<'_, Option<gdk::Texture>>, TryLockError> {
-        self.thumbnail.try_read().map_err(|_| TryLockError)
     }
     /// Unloads the song's thumbnail from memory if it is no longer used
     ///
@@ -864,10 +838,7 @@ impl SongInfoLoader<'_> {
         let thumbnail_file_path = self.thumbnail_file_path();
         fs::create_dir_all(thumbnail_file_path.rsplit_once('/').unwrap().0).unwrap();
 
-        let detailed = self.load_detailed();
-        let artwork = detailed.as_ref().unwrap().artwork.clone();
-        drop(detailed);
-
+        let artwork = self.load_detailed_and(|detailed| detailed.artwork.clone());
         let thumbnail = 'thumbnail: {
             let Some(artwork) = artwork else {
                 break 'thumbnail None;
