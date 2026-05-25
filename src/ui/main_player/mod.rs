@@ -34,7 +34,7 @@ impl MainPlayer {
                     player_tx().send(PlayerRequest::SeekDone).expect(EXP_RX);
                 });
                 break;
-            };
+            }
             i += 1;
         }
 

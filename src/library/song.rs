@@ -485,7 +485,7 @@ impl SongInfoLoader<'_> {
         drop(info);
         self.assign_basic();
         // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
-        return &guard.write(self.info.read().unwrap()).as_ref().unwrap();
+        guard.write(self.info.read().unwrap()).as_ref().unwrap()
     }
     /// Returns the basic song info if it is currently accessible without
     /// blocking the thread

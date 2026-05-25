@@ -497,6 +497,10 @@ impl SongQueue {
     ///
     /// For proper behavior, only call this function after the
     /// library has successfully been built
+    ///
+    /// # Panics
+    /// This function panics if the song file path could not be
+    /// determined, or if the library channel is closed
     pub fn validate_file_paths(&mut self) {
         let mut missing_items = Vec::new();
         for (index, item) in self.songs.iter().enumerate() {
