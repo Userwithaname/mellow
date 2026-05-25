@@ -463,12 +463,9 @@ impl SongInfoLoader<'_> {
         if self.detailed_info.try_write().is_err() {
             eprintln!("Note: Blocking on read lock for `load_basic_and`");
         }
-        let info = self.info.read().unwrap();
-        if info.is_some() {
-            // SAFETY: `info` is `Some`
-            return f(unsafe { info.as_ref().unwrap_unchecked() });
+        if let Some(info) = self.info.read().unwrap().as_ref() {
+            return f(info);
         }
-        drop(info);
         self.assign_basic();
         // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
         f(self.info.read().unwrap().as_ref().unwrap())
