@@ -203,11 +203,8 @@ impl Window {
         });
 
         let detailed_info = info.try_inspect_detailed();
-        let (artwork, has_artwork) = match detailed_info
-            .as_ref()
-            .map_or_else(|_| None, |info| info.as_ref())
-        {
-            Some(detailed) => {
+        let (artwork, has_artwork) = match detailed_info.as_deref() {
+            Ok(Some(detailed)) => {
                 self.lyrics_page.set_content(&title, &detailed.lyrics);
                 (detailed.artwork.as_ref(), true)
             }
