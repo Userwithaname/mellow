@@ -17,7 +17,9 @@ const NUM_ITEMS_AHEAD: usize = 45;
 const NUM_ITEMS_BEHIND: usize = 45;
 const ROW_HEIGHT: usize = 55;
 const PAN_UP_BUTTON_HEIGHT: i32 = 44;
-const PAN_REPEAT_INTERVAL: Duration = Duration::from_millis(150);
+const PAN_REPEAT_DELAY: Duration = Duration::from_millis(200);
+const PAN_REPEAT_DELAY_MIN: Duration = Duration::from_millis(10);
+const PAN_REPEAT_SPEEDUP: Duration = Duration::from_millis(2);
 
 #[derive(Default, CompositeTemplate)]
 #[template(file = "queue_page.ui")]
@@ -160,13 +162,15 @@ impl QueuePage {
             #[weak(rename_to=queue_page)]
             self,
             async move {
+                let mut repeat_delay = PAN_REPEAT_DELAY;
                 loop {
                     match queue_page.pan_loop_direction.get() {
                         PanLoopDirection::Down => queue_page.handle_pan_down(),
                         PanLoopDirection::None => return,
                         PanLoopDirection::Up => queue_page.handle_pan_up(),
                     }
-                    glib::timeout_future(PAN_REPEAT_INTERVAL).await;
+                    glib::timeout_future(repeat_delay).await;
+                    repeat_delay = (repeat_delay - PAN_REPEAT_SPEEDUP).max(PAN_REPEAT_DELAY_MIN);
                 }
             }
         ));
