@@ -36,9 +36,7 @@ pub struct QueuePage {
     #[template_child]
     pub remove_selection: TemplateChild<gtk::Button>,
 
-    // IDEA: This could be a `Vec<usize>` instead to track selection indexes,
-    // which could allow preserving selections between queue redraws
-    pub selection_mode: Rc<Cell<Option<usize>>>,
+    pub selections: Rc<RefCell<Option<Vec<u32>>>>,
 
     #[template_child]
     list_box: TemplateChild<gtk::ListBox>,
@@ -146,7 +144,7 @@ impl QueuePage {
     #[template_callback]
     pub fn handle_show_playing(&self) {
         if let Ok(model_index) = self.queue_index_to_model(self.playing_index.get())
-            && (self.view_pan_offset.get() == 0 || self.selection_mode.get().is_some())
+            && self.view_pan_offset.get() == 0
         {
             self.scroll_to_model_item(model_index);
         } else {
@@ -223,9 +221,6 @@ impl QueuePage {
             return;
         }
         self.view_stack.set_visible_child_name("song_queue");
-
-        // Exit selection mode before resetting the model
-        self.set_selection_mode(None);
 
         // Panning offset has to be updated first to avoid having to draw twice
         if let QueueScrollAction::ToPlaying = self.next_scroll_pos.get() {
@@ -487,37 +482,34 @@ impl QueuePage {
         }
     }
 
-    // #[inline]
-    // fn for_each_object<F: Fn(&QueueItemObject, u32)>(&self, f: F) {
-    //     let mut i = 0;
-    //     let list_model = self.list_model.get().expect(EXP_INIT);
-    //     while let Some(item) = list_model.item(i).and_downcast_ref::<QueueItemObject>() {
-    //         f(item, i);
-    //         i += 1;
-    //     }
-    // }
-
     #[inline]
-    fn update_selection_count(&self, selections: usize) {
-        if self.selection_mode.get().is_some() {
-            self.selection_mode.set(Some(selections));
-            self.remove_selection.set_sensitive(selections != 0);
+    fn toggle_selected_item(&self, index: u32, selections: &mut Vec<u32>) -> bool {
+        match selections.binary_search(&index) {
+            Err(insert_at) => {
+                selections.insert(insert_at, index);
+                self.remove_selection.set_sensitive(true);
+                true
+            }
+            Ok(remove_at) => {
+                selections.remove(remove_at);
+                self.remove_selection.set_sensitive(selections.len() != 0);
+                false
+            }
         }
     }
-
     #[inline]
-    fn set_selection_mode(&self, selection_mode: Option<usize>) {
-        self.selection_mode.set(selection_mode);
-        self.remove_selection
-            .set_sensitive(selection_mode.is_some_and(|count| count > 0));
-        let selection_mode = selection_mode.is_some();
+    fn set_selection_mode(&self, selections: Option<Vec<u32>>) {
+        let selection_mode = match &selections {
+            Some(selections) => {
+                self.remove_selection.set_sensitive(selections.len() > 0);
+                true
+            }
+            None => false,
+        };
+        *self.selections.borrow_mut() = selections;
 
         self.header_selection.set_visible(selection_mode);
         self.header_normal.set_visible(!selection_mode);
-
-        // Disabling these buttons because selection mode resets when queue is redrawn
-        self.view_further_up.set_sensitive(!selection_mode);
-        self.view_further_down.set_sensitive(!selection_mode);
 
         let model = self.list_model.get().expect(EXP_INIT);
         self.for_each_row(|list_row, index| {
@@ -547,7 +539,7 @@ impl QueuePage {
     #[inline]
     fn setup_model(&self) {
         let model = gio::ListStore::new::<QueueItemObject>();
-        let selection_mode = Rc::clone(&self.selection_mode);
+        let selections = Rc::clone(&self.selections);
         let fallback_image = fallback_song_image();
         let queue_page = self.obj().clone();
         self.list_box.bind_model(Some(&model), move |object| {
@@ -612,25 +604,34 @@ impl QueuePage {
                 }
             }
 
-            let index = queue_item_object.index() as usize;
-            let selection_mode = Rc::clone(&selection_mode);
+            let queue_index = queue_item_object.index();
+            let selection_mode = match selections.borrow().as_deref() {
+                Some(selections) => {
+                    for index in selections {
+                        if *index == queue_index {
+                            queue_item_object.set_selected(true);
+                        }
+                    }
+                    true
+                }
+                None => false,
+            };
+            row_imp.selection_toggle.set_visible(selection_mode);
+            row_imp.open_subpage_icon.set_visible(!selection_mode);
+
+            let selections = Rc::clone(&selections);
+            let queue_index = queue_index as usize;
             queue_row.connect_activated(glib::clone!(
                 #[weak(rename_to=queue_page)]
                 queue_page.imp(),
                 #[weak]
                 queue_item_object,
-                move |_| match selection_mode.get() {
-                    None => (ui_tx().send(UpdateUI::OpenQueueSubpage(index))).expect(EXP_RX),
-                    Some(mut selections) => {
-                        // IDEA: Selections between wrapped item rows could stay in sync
-                        // for rows which appear multiple times (in repeat mode)
-                        let selected = !queue_item_object.selected();
+                move |_| match &mut *selections.borrow_mut() {
+                    None => (ui_tx().send(UpdateUI::OpenQueueSubpage(queue_index))).expect(EXP_RX),
+                    Some(selections) => {
+                        let selected =
+                            queue_page.toggle_selected_item(queue_item_object.index(), selections);
                         queue_item_object.set_selected(selected);
-                        match selected {
-                            true => selections += 1,
-                            false => selections -= 1,
-                        }
-                        queue_page.update_selection_count(selections);
                     }
                 }
             ));
@@ -677,8 +678,8 @@ impl QueuePage {
             self,
             #[weak(rename_to=list_box)]
             self.list_box,
-            #[strong(rename_to=selection_mode)]
-            self.selection_mode,
+            #[strong(rename_to=selections)]
+            self.selections,
             #[weak(rename_to=scrolled_window)]
             self.scrolled_window,
             #[weak(rename_to=drag_widget)]
@@ -695,7 +696,7 @@ impl QueuePage {
             dragged_item_index,
             #[weak]
             dragging,
-            move |_, start_x, start_y| if selection_mode.get().is_none()
+            move |_, start_x, start_y| if selections.borrow().is_none()
                 && Self::should_drag(start_x)
             {
                 dragging.set_drag_state(true);
@@ -930,16 +931,15 @@ impl QueuePage {
     fn setup_selection_mode(&self) {
         // IDEA: Rating dropdown button for rating multiple songs at once
         // TODO: Exit selection mode by pressing escape
-        // FIX: Item selections will likely be lost with each queue update
 
-        let selection_mode = Rc::clone(&self.selection_mode);
         let hold = gtk::GestureLongPress::new();
         hold.connect_pressed(glib::clone!(
             #[weak(rename_to=queue_page)]
             self,
-            move |_, x, y| if selection_mode.get().is_none() && !Self::should_drag(x) {
-                queue_page.set_selection_mode(Some(1));
+            move |_, x, y| if queue_page.selections.borrow().is_none() && !Self::should_drag(x) {
                 let object_index = queue_page.list_box.row_at_y(y as i32).unwrap().index();
+                let index = queue_page.model_index_to_queue(object_index as usize) as u32;
+                queue_page.set_selection_mode(Some(vec![index]));
                 queue_page.queue_item_objects.borrow()[object_index as usize].set_selected(true);
             }
         ));

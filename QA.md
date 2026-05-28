@@ -28,7 +28,6 @@ Song Queue:
   - TODO: Improvement: Scroll when dragging close to the view borders
     - IDEA: Also pan if dragging onto the pan button, once panning is implemented
 - [x] Selection mode works as expected
-  - FIX: Selection mode should not exit when the song changes, and selections should be preserved
   - [x] Removing multiple items at once works as expected
 - [x] Stoppers work and behave as expected
   - TODO: Improvement: Stoppers should not shift when toggling shuffle mode
