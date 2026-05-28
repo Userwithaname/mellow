@@ -103,21 +103,20 @@ impl QueuePage {
     }
     #[template_callback]
     pub fn handle_remove_selected(&self) {
-        let Some(selected_items) = self.selections.take() else {
-            return;
+        if let Some(selected_items) = self.selections.take() {
+            (ui_tx().send(UpdateUI::Notification(
+                format!("Removed {} items from the queue", selected_items.len()),
+                Some(Box::new((
+                    "Undo",
+                    Box::new(|| player_tx().send(PlayerRequest::Undo).expect(EXP_RX)),
+                ))),
+            )))
+            .expect(EXP_RX);
+            let _ = player_tx().send(PlayerRequest::RemoveItems(
+                selected_items.iter().map(|i| *i as usize).collect(),
+            ));
         };
-        (ui_tx().send(UpdateUI::Notification(
-            format!("Removed {} items from the queue", selected_items.len()),
-            Some(Box::new((
-                "Undo",
-                Box::new(|| player_tx().send(PlayerRequest::Undo).expect(EXP_RX)),
-            ))),
-        )))
-        .expect(EXP_RX);
 
-        let _ = player_tx().send(PlayerRequest::RemoveItems(
-            selected_items.iter().map(|i| *i as usize).collect(),
-        ));
         self.set_selection_mode(None);
     }
     #[template_callback]
