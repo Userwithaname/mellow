@@ -36,6 +36,9 @@ pub struct QueuePage {
     #[template_child]
     pub remove_selection: TemplateChild<gtk::Button>,
 
+    // FIX: Handle the case when the queue changes (insertions, stoppers, etc)
+    // Maybe each selection should store the queue item as well,
+    // and the index can be corrected if they don't match?
     pub selections: Rc<RefCell<Option<Vec<u32>>>>,
 
     #[template_child]
@@ -100,21 +103,9 @@ impl QueuePage {
     }
     #[template_callback]
     pub fn handle_remove_selected(&self) {
-        let mut selected_items = Vec::<usize>::new();
-        let list_model = self.list_model.get().expect(EXP_INIT);
-        for i in 0..list_model.n_items() {
-            let item = (list_model.item(i).and_downcast::<QueueItemObject>()).unwrap();
-            if item.selected()
-                && let index = item.index() as usize
-                && let Err(selected_index) = selected_items.binary_search_by(|item| index.cmp(item))
-            {
-                selected_items.insert(selected_index, index);
-            }
-        }
-        if selected_items.is_empty() {
+        let Some(selected_items) = self.selections.take() else {
             return;
-        }
-
+        };
         (ui_tx().send(UpdateUI::Notification(
             format!("Removed {} items from the queue", selected_items.len()),
             Some(Box::new((
@@ -124,7 +115,9 @@ impl QueuePage {
         )))
         .expect(EXP_RX);
 
-        let _ = player_tx().send(PlayerRequest::RemoveItems(selected_items));
+        let _ = player_tx().send(PlayerRequest::RemoveItems(dbg!(
+            selected_items.iter().map(|i| *i as usize).collect()
+        )));
         self.set_selection_mode(None);
     }
     #[template_callback]
@@ -484,7 +477,7 @@ impl QueuePage {
 
     #[inline]
     fn toggle_selected_item(&self, index: u32, selections: &mut Vec<u32>) -> bool {
-        match selections.binary_search(&index) {
+        match selections.binary_search_by(|existing| index.cmp(&existing)) {
             Err(insert_at) => {
                 selections.insert(insert_at, index);
                 self.remove_selection.set_sensitive(true);
