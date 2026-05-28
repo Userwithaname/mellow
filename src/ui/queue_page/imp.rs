@@ -115,7 +115,7 @@ impl QueuePage {
             let _ = player_tx().send(PlayerRequest::RemoveItems(
                 selected_items.iter().map(|i| *i as usize).collect(),
             ));
-        };
+        }
 
         self.set_selection_mode(None);
     }
@@ -476,7 +476,7 @@ impl QueuePage {
 
     #[inline]
     fn toggle_selected_item(&self, index: u32, selections: &mut Vec<u32>) -> bool {
-        match selections.binary_search_by(|existing| index.cmp(&existing)) {
+        match selections.binary_search_by(|existing| index.cmp(existing)) {
             Err(insert_at) => {
                 selections.insert(insert_at, index);
                 self.remove_selection.set_sensitive(true);
@@ -484,7 +484,7 @@ impl QueuePage {
             }
             Ok(remove_at) => {
                 selections.remove(remove_at);
-                self.remove_selection.set_sensitive(selections.len() != 0);
+                self.remove_selection.set_sensitive(!selections.is_empty());
                 false
             }
         }
@@ -493,7 +493,7 @@ impl QueuePage {
     fn set_selection_mode(&self, selections: Option<Vec<u32>>) {
         let selection_mode = match &selections {
             Some(selections) => {
-                self.remove_selection.set_sensitive(selections.len() > 0);
+                self.remove_selection.set_sensitive(!selections.is_empty());
                 true
             }
             None => false,
