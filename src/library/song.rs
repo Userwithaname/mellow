@@ -434,10 +434,9 @@ impl SongInfoLoader<'_> {
                 "Note: Blocking on read lock for `load_basic` (would `try_load_basic` make sense here?)"
             );
         }
-        if self.info.read().unwrap().is_some() {
-            return;
+        if self.info.read().unwrap().is_none() {
+            self.assign_basic();
         }
-        self.assign_basic();
     }
     /// Loads the basic song info if needed and runs the given closure
     ///
@@ -471,12 +470,9 @@ impl SongInfoLoader<'_> {
     pub fn try_load_basic(
         &mut self,
     ) -> Result<(), TryLockError<RwLockReadGuard<'_, Option<SongInfo>>>> {
-        let info = self.info.try_read()?;
-        if info.is_some() {
-            return Ok(());
+        if self.info.try_read()?.is_none() {
+            self.assign_basic();
         }
-        drop(info);
-        self.assign_basic();
         Ok(())
     }
     /// Loads the basic song info and assigns it
@@ -596,12 +592,9 @@ impl SongInfoLoader<'_> {
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
     pub fn load_detailed(&mut self) {
-        let detailed_info = self.detailed_info.read().unwrap();
-        if detailed_info.is_some() {
-            return;
+        if self.detailed_info.read().unwrap().is_none() {
+            self.assign_detailed();
         }
-        drop(detailed_info);
-        self.assign_detailed();
     }
     /// Loads the detailed song info if needed and runs the given closure
     ///
