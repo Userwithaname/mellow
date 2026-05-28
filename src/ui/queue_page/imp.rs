@@ -976,7 +976,7 @@ impl QueuePage {
                     queue_page.to_playing.set_visible(
                         // Only show the 'Scroll To Playing' button when the item is out of view
                         match queue_page.queue_index_to_model(queue_page.playing_index.get()) {
-                            Err(_) => false,
+                            Err(_) => true,
                             Ok(index) => {
                                 let scroll_pos = vadjustment.value() as usize;
                                 let view_height = queue_page.scrolled_window.height() as usize;
