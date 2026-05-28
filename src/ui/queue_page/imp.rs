@@ -115,9 +115,9 @@ impl QueuePage {
         )))
         .expect(EXP_RX);
 
-        let _ = player_tx().send(PlayerRequest::RemoveItems(dbg!(
-            selected_items.iter().map(|i| *i as usize).collect()
-        )));
+        let _ = player_tx().send(PlayerRequest::RemoveItems(
+            selected_items.iter().map(|i| *i as usize).collect(),
+        ));
         self.set_selection_mode(None);
     }
     #[template_callback]
