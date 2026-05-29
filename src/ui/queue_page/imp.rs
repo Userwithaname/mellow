@@ -227,8 +227,7 @@ impl QueuePage {
                 // `selection` indexes are sorted high-to-low. If one item is offset, it is likely
                 // that other items ahead will be offset by the same amount.
                 let mut offset = 0;
-                let (left, right) = (&queue[..index], &queue[index + 1..]);
-                let (mut left, mut right) = (left.into_iter(), right.into_iter());
+                let (mut left, mut right) = (queue[..index].iter(), queue[index + 1..].iter());
                 loop {
                     offset += 1;
                     match (left.next_back(), right.next()) {

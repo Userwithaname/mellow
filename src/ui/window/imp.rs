@@ -276,8 +276,7 @@ impl Window {
         }
 
         let mut offset = 0;
-        let (left, right) = (&queue[..index], &queue[index + 1..]);
-        let (mut left, mut right) = (left.into_iter(), right.into_iter());
+        let (mut left, mut right) = (queue[..index].iter(), queue[index + 1..].iter());
         loop {
             offset += 1;
             match (left.next_back(), right.next()) {
