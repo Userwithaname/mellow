@@ -84,6 +84,16 @@ impl QueuePage {
         );
         queue_page.draw_queue(queue, playing);
     }
+
+    /// Exits the selection mode if currently active
+    #[inline]
+    pub fn exit_selection(&self) {
+        let queue_page = self.imp();
+        if queue_page.selections.borrow().is_some() {
+            queue_page.set_selection_mode(None);
+        }
+    }
+
     /// Returns a borrowed reference to the currently assigned song queue
     #[inline]
     #[must_use]

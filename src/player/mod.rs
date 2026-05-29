@@ -442,6 +442,7 @@ impl Player {
 
         // Ensure the current thumbnail is loaded before updating the UI queue
         queue_item.map_song(|song| drop(song.info().load_thumbnail()));
+        let _ = ui_tx().send(UpdateUI::ExitQueueSelection);
         self.queue.ui_update_queue();
     }
 

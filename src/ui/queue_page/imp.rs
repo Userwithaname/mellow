@@ -490,7 +490,7 @@ impl QueuePage {
         }
     }
     #[inline]
-    fn set_selection_mode(&self, selections: Option<Vec<u32>>) {
+    pub(super) fn set_selection_mode(&self, selections: Option<Vec<u32>>) {
         let selection_mode = match &selections {
             Some(selections) => {
                 self.remove_selection.set_sensitive(!selections.is_empty());

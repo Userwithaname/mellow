@@ -132,6 +132,7 @@ impl Window {
                 } => self.set_song_queue(queue, playing_index),
                 UpdateUI::SetQueueIndex(index) => self.set_queue_index(index),
                 UpdateUI::RedrawQueue => self.queue_page.redraw_queue(),
+                UpdateUI::ExitQueueSelection => self.queue_page.exit_selection(),
                 UpdateUI::OpenQueueSubpage(index) => self.open_queue_subpage(index),
                 UpdateUI::CloseQueueSubpage => self.close_queue_subpage(),
                 UpdateUI::Shuffle(shuffle) => self.queue_page.update_shuffle(shuffle),

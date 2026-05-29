@@ -100,6 +100,8 @@ pub enum UpdateUI {
     SetQueueIndex(usize),
     /// Redraws the current queue
     RedrawQueue,
+    /// Exits queue selection mode if currently active
+    ExitQueueSelection,
     /// Opens the subpage for the queue song at the given index
     OpenQueueSubpage(usize),
     /// Closes the subpage if it is open
