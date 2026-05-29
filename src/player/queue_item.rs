@@ -154,7 +154,7 @@ impl PartialEq for QueueItem {
     fn eq(&self, other: &Self) -> bool {
         match (self, other) {
             (QueueItem::Song(this), QueueItem::Song(other)) => Arc::ptr_eq(this, other),
-            (QueueItem::Stopper(_), QueueItem::Stopper(_)) => true,
+            (QueueItem::Stopper(this), QueueItem::Stopper(other)) => Arc::ptr_eq(&this.0, &other.0),
             _ => false,
         }
     }
