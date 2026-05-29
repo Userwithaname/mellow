@@ -36,10 +36,7 @@ pub struct QueuePage {
     #[template_child]
     pub remove_selection: TemplateChild<gtk::Button>,
 
-    // FIX: Handle the case when the queue changes (insertions, stoppers, etc)
-    // Maybe each selection should store the queue item as well,
-    // and the index can be corrected if they don't match?
-    pub selections: Rc<RefCell<Option<Vec<u32>>>>,
+    pub selections: Rc<RefCell<Option<Vec<(u32, QueueItem)>>>>,
 
     #[template_child]
     list_box: TemplateChild<gtk::ListBox>,
@@ -113,7 +110,7 @@ impl QueuePage {
             )))
             .expect(EXP_RX);
             let _ = player_tx().send(PlayerRequest::RemoveItems(
-                selected_items.iter().map(|i| *i as usize).collect(),
+                selected_items.iter().map(|item| item.0 as usize).collect(),
             ));
         }
 
@@ -213,6 +210,41 @@ impl QueuePage {
             return;
         }
         self.view_stack.set_visible_child_name("song_queue");
+
+        // Validate queue selection positions if items were added or removed
+        if queue_length != old_queue_length
+            && let Some(selections) = self.selections.take()
+        {
+            let selections = selections.into_iter().filter_map(|mut selection| {
+                let index = selection.0 as usize;
+                if selection.1 == queue[index] {
+                    return Some(selection);
+                }
+
+                // IDEA: It might be more efficient to check the item at the previous offset
+                // first (by offsetting `index` directly on each iteration) and then using this
+                // offset on top, but this logic only applies when looping in reverse since
+                // `selection` indexes are sorted high-to-low. If one item is offset, it is likely
+                // that other items ahead will be offset by the same amount.
+                let mut offset = 0;
+                let (left, right) = (&queue[..index], &queue[index + 1..]);
+                let (mut left, mut right) = (left.into_iter(), right.into_iter());
+                loop {
+                    offset += 1;
+                    match (left.next_back(), right.next()) {
+                        (Some(left), _) if *left == selection.1 => break selection.0 -= offset,
+                        (_, Some(right)) if *right == selection.1 => break selection.0 += offset,
+                        // NOTE: If the selected item is no longer present, this will loop through
+                        // the entire queue before determining it doesn't exist. Should the number
+                        // of iterations be limited somehow?
+                        (None, None) => return None,
+                        _ => (),
+                    }
+                }
+                Some(selection)
+            });
+            self.set_selection_mode(Some(selections.collect()));
+        }
 
         // Panning offset has to be updated first to avoid having to draw twice
         if let QueueScrollAction::ToPlaying = self.next_scroll_pos.get() {
@@ -475,10 +507,14 @@ impl QueuePage {
     }
 
     #[inline]
-    fn toggle_selected_item(&self, index: u32, selections: &mut Vec<u32>) -> bool {
-        match selections.binary_search_by(|existing| index.cmp(existing)) {
+    fn toggle_selected_item(
+        &self,
+        item: (u32, QueueItem),
+        selections: &mut Vec<(u32, QueueItem)>,
+    ) -> bool {
+        match selections.binary_search_by(|existing| item.0.cmp(&existing.0)) {
             Err(insert_at) => {
-                selections.insert(insert_at, index);
+                selections.insert(insert_at, item);
                 self.remove_selection.set_sensitive(true);
                 true
             }
@@ -490,7 +526,7 @@ impl QueuePage {
         }
     }
     #[inline]
-    pub(super) fn set_selection_mode(&self, selections: Option<Vec<u32>>) {
+    pub(super) fn set_selection_mode(&self, selections: Option<Vec<(u32, QueueItem)>>) {
         let selection_mode = match &selections {
             Some(selections) => {
                 self.remove_selection.set_sensitive(!selections.is_empty());
@@ -600,7 +636,7 @@ impl QueuePage {
             let selection_mode = match selections.borrow().as_deref() {
                 Some(selections) => {
                     for index in selections {
-                        if *index == queue_index {
+                        if index.0 == queue_index {
                             queue_item_object.set_selected(true);
                         }
                     }
@@ -621,8 +657,13 @@ impl QueuePage {
                 move |_| match &mut *selections.borrow_mut() {
                     None => (ui_tx().send(UpdateUI::OpenQueueSubpage(queue_index))).expect(EXP_RX),
                     Some(selections) => {
-                        let selected =
-                            queue_page.toggle_selected_item(queue_item_object.index(), selections);
+                        let selected = queue_page.toggle_selected_item(
+                            (
+                                queue_item_object.index(),
+                                queue_item_object.queue_item().clone(),
+                            ),
+                            selections,
+                        );
                         queue_item_object.set_selected(selected);
                     }
                 }
@@ -930,9 +971,13 @@ impl QueuePage {
             self,
             move |_, x, y| if queue_page.selections.borrow().is_none() && !Self::should_drag(x) {
                 let object_index = queue_page.list_box.row_at_y(y as i32).unwrap().index();
-                let index = queue_page.model_index_to_queue(object_index as usize) as u32;
-                queue_page.set_selection_mode(Some(vec![index]));
-                queue_page.queue_item_objects.borrow()[object_index as usize].set_selected(true);
+                let queue_item_object =
+                    &queue_page.queue_item_objects.borrow()[object_index as usize];
+                queue_item_object.set_selected(true);
+                queue_page.set_selection_mode(Some(vec![(
+                    queue_page.model_index_to_queue(object_index as usize) as u32,
+                    QueueItem::clone(queue_item_object.queue_item()),
+                )]));
             }
         ));
         self.list_box.add_controller(hold);
