@@ -1,5 +1,6 @@
 use adw::{prelude::*, subclass::prelude::*};
 use gtk::glib;
+use std::cell::Ref;
 use std::sync::Arc;
 
 use crate::library::{SharedSong, SharedSongExt};
@@ -16,11 +17,8 @@ glib::wrapper! {
 
 impl QueueSubpage {
     /// Updates the subpage contents using the info from `song`,
-    /// and sets the `index` for actions such as playing or removing
-    /// the item from the queue
-    ///
-    /// # Panics
-    /// The function panics if `song` is not properly initialized
+    /// and sets the `index` used for performing actions on the
+    /// associated queue item
     pub fn show_song_info(&self, index: usize, song: SharedSong) {
         let song_page = self.imp();
         song_page.index.set(index);
@@ -53,6 +51,9 @@ impl QueueSubpage {
         self.show_song_elements(true);
     }
 
+    /// Updates the subpage contents using the info from `stopper`,
+    /// and sets the `index` used for performing actions on the
+    /// associated queue item
     pub fn show_stopper_info(&self, index: usize, stopper: &SharedStopper) {
         let stopper_page = self.imp();
         stopper_page.index.set(index);
@@ -67,6 +68,24 @@ impl QueueSubpage {
             .set_label(SharedStopper::display_name_from_bool(closes_player));
 
         self.show_song_elements(false);
+    }
+
+    /// Returns the current queue subpage item index
+    #[inline]
+    #[must_use]
+    pub fn index(&self) -> usize {
+        self.imp().index.get()
+    }
+    /// Sets the subpage item index to the given value
+    #[inline]
+    pub fn set_index(&self, index: usize) {
+        self.imp().index.set(index);
+    }
+
+    /// Returns a referecne to the currently assigned `QueueItem`
+    #[inline]
+    pub fn item(&self) -> Ref<'_, QueueItem> {
+        self.imp().queue_item.borrow()
     }
 
     #[inline]
@@ -84,6 +103,10 @@ impl QueueSubpage {
         subpage.go_to_artist_button.set_visible(is_song);
     }
 
+    /// Sets the 'Pause After' button text based on whether
+    /// `stop_after` is `true` or `false`
+    ///
+    /// This is purely visual, and does not affect functionality
     #[inline]
     pub fn set_stop_after(&self, stop_after: bool) {
         let song_page = self.imp();

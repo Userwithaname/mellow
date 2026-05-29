@@ -289,7 +289,6 @@ impl SongQueue {
 
         if self.index >= index && !self.is_empty() {
             self.index += 1;
-            self.ui_close_queue_subpage();
         }
 
         if self.shuffle {
@@ -362,8 +361,6 @@ impl SongQueue {
                     }
                 }
             }
-            // Closing the subpage because the index now points to a different item
-            self.ui_close_queue_subpage();
         }
         previous
     }
@@ -557,7 +554,7 @@ impl SongQueue {
     #[inline]
     fn ui_update_shuffle(&self) {
         #[cfg(debug_assertions)]
-        println!("ui_update_shuffle({})", self.shuffle);
+        println!("ui_update_shuffle(): {}", self.shuffle);
         ui_tx().send(UpdateUI::Shuffle(self.shuffle)).expect(EXP_RX);
     }
 
@@ -568,7 +565,7 @@ impl SongQueue {
     #[inline]
     fn ui_update_repeat(&self) {
         #[cfg(debug_assertions)]
-        println!("ui_update_repeat({})", self.repeat);
+        println!("ui_update_repeat(): {}", self.repeat);
         ui_tx().send(UpdateUI::Repeat(self.repeat)).expect(EXP_RX);
     }
 
@@ -598,7 +595,7 @@ impl SongQueue {
             return;
         }
         #[cfg(debug_assertions)]
-        println!("ui_update_queue_index({})", self.index);
+        println!("ui_update_queue_index(): {}", self.index);
         (ui_tx().send(UpdateUI::SetQueueIndex(self.index))).expect(EXP_RX);
         self.last_ui_index = self.index;
     }
@@ -610,8 +607,22 @@ impl SongQueue {
     #[inline]
     fn ui_close_queue_subpage(&self) {
         #[cfg(debug_assertions)]
-        println!("ui_close_queue_subpage({})", self.index);
+        println!("ui_close_queue_subpage()");
         ui_tx().send(UpdateUI::CloseQueueSubpage).expect(EXP_RX);
+    }
+
+    /// Attempts to correct the queue subpage item index if open,
+    /// or closes it
+    ///
+    /// # Panics
+    /// The function panics if the UI channel receiver is closed
+    #[inline]
+    pub fn ui_validate_queue_subpage_index(&self) {
+        #[cfg(debug_assertions)]
+        println!("ui_validate_queue_subpage_index()");
+        ui_tx()
+            .send(UpdateUI::ValidateQueueSubpageIndex)
+            .expect(EXP_RX);
     }
 
     /// Serializes `self.queue` to a file on disk, or removes

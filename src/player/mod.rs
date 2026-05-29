@@ -287,6 +287,7 @@ impl Player {
                 PlayerRequest::InsertAt(item) => {
                     self.insert_to_queue(item.0, item.1);
                     self.queue.ui_update_queue();
+                    self.queue.ui_validate_queue_subpage_index();
                     true
                 }
                 PlayerRequest::InsertItems(items) => {
@@ -294,6 +295,7 @@ impl Player {
                         self.insert_to_queue(item.0, item.1);
                     }
                     self.queue.ui_update_queue();
+                    self.queue.ui_validate_queue_subpage_index();
                     true
                 }
                 PlayerRequest::InsertRelative(item) => {
@@ -305,6 +307,7 @@ impl Player {
                         item.1,
                     );
                     self.queue.ui_update_queue();
+                    self.queue.ui_validate_queue_subpage_index();
                     true
                 }
                 PlayerRequest::ReplaceItems(items) => {
@@ -324,6 +327,7 @@ impl Player {
                     );
                     self.remove_item(index);
                     self.queue.ui_update_queue();
+                    self.queue.ui_validate_queue_subpage_index();
                     continue;
                 }
                 PlayerRequest::RemoveItems(indexes) => {

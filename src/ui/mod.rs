@@ -104,6 +104,11 @@ pub enum UpdateUI {
     ExitQueueSelection,
     /// Opens the subpage for the queue song at the given index
     OpenQueueSubpage(usize),
+    /// Attempts to correct the queue subpage index by looking for the currently assigned item
+    /// in the queue if they don't match, or closes the subpage if the item cannot be found
+    ///
+    /// Note: The UI queue must be updated first
+    ValidateQueueSubpageIndex,
     /// Closes the subpage if it is open
     CloseQueueSubpage,
     /// Informs the UI of the new shuffle mode (so icons can be updated)

@@ -134,6 +134,7 @@ impl Window {
                 UpdateUI::RedrawQueue => self.queue_page.redraw_queue(),
                 UpdateUI::ExitQueueSelection => self.queue_page.exit_selection(),
                 UpdateUI::OpenQueueSubpage(index) => self.open_queue_subpage(index),
+                UpdateUI::ValidateQueueSubpageIndex => self.validate_subpage_index(),
                 UpdateUI::CloseQueueSubpage => self.close_queue_subpage(),
                 UpdateUI::Shuffle(shuffle) => self.queue_page.update_shuffle(shuffle),
                 UpdateUI::Repeat(repeat) => self.queue_page.update_repeat(repeat),
@@ -261,6 +262,36 @@ impl Window {
             QueueItem::Stopper(stopper) => self.queue_subpage.show_stopper_info(index, stopper),
         }
         self.queue_subpage.set_stop_after(stop_after);
+    }
+    fn validate_subpage_index(&self) {
+        if !self.queue_subpage_visible.get() {
+            return;
+        }
+
+        let item = self.queue_subpage.item();
+        let mut index = self.queue_subpage.index();
+        let queue = self.queue_page.borrow_queue();
+        if queue[index] == *item {
+            return;
+        }
+
+        let mut offset = 0;
+        let (left, right) = (&queue[..index], &queue[index + 1..]);
+        let (mut left, mut right) = (left.into_iter(), right.into_iter());
+        loop {
+            offset += 1;
+            match (left.next_back(), right.next()) {
+                (Some(left), _) if *left == *item => break index -= offset,
+                (_, Some(right)) if *right == *item => break index += offset,
+                // NOTE: If the subpage item is no longer present, this will loop through
+                // the entire queue before determining it doesn't exist. Should the number
+                // of iterations be limited somehow?
+                (None, None) => return self.close_queue_subpage(),
+                _ => (),
+            }
+        }
+
+        self.queue_subpage.set_index(index);
     }
     fn close_queue_subpage(&self) {
         #[cfg(debug_assertions)]
