@@ -112,11 +112,11 @@ pub fn library_search(window: &Window) -> gio::ActionEntry<gio::SimpleActionGrou
             #[weak(rename_to=ui)]
             window,
             move |_, _, _| if ui.artists_page.is_mapped() {
-                ui.artists_page.focus_search()
+                ui.artists_page.focus_search();
             } else if ui.songs_page.is_mapped() {
-                ui.songs_page.focus_search()
+                ui.songs_page.focus_search();
             } else if ui.albums_page.is_mapped() {
-                ui.albums_page.focus_search()
+                ui.albums_page.focus_search();
             }
         ))
         .build()
