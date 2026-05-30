@@ -84,6 +84,7 @@ impl QueueSubpage {
 
     /// Returns a referecne to the currently assigned `QueueItem`
     #[inline]
+    #[must_use]
     pub fn item(&self) -> Ref<'_, QueueItem> {
         self.imp().queue_item.borrow()
     }

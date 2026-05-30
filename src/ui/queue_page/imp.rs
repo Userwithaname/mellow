@@ -588,6 +588,17 @@ impl QueuePage {
             queue_row.set_title(&queue_item_object.title());
             queue_row.set_subtitle(&queue_item_object.subtitle());
 
+            queue_row.add_bindings(&[
+                queue_item_object
+                    .bind_property("artwork", &row_imp.prefix_image.get(), "paintable")
+                    .sync_create()
+                    .build(),
+                queue_item_object
+                    .bind_property("selected", &row_imp.selection_toggle.get(), "active")
+                    .sync_create()
+                    .build(),
+            ]);
+
             match queue_item_object.queue_item() {
                 QueueItem::Song(_) => {
                     if queue_item_object.playing() {
@@ -612,17 +623,6 @@ impl QueuePage {
                     // IDEA: A pause icon could be shown in place of the album cover
                 }
             }
-
-            queue_row.add_bindings(&[
-                queue_item_object
-                    .bind_property("artwork", &row_imp.prefix_image.get(), "paintable")
-                    .sync_create()
-                    .build(),
-                queue_item_object
-                    .bind_property("selected", &row_imp.selection_toggle.get(), "active")
-                    .sync_create()
-                    .build(),
-            ]);
 
             let queue_index = queue_item_object.index();
             let selection_mode = match selections.borrow().as_deref() {
