@@ -423,7 +423,7 @@ impl Library {
                     info.invalidate_thumbnail();
                 }
                 // If files were modified, queue another rebuild so the new info gets loaded
-                if needs_rebuild && !cancel.swap(true, atomic::Ordering::Relaxed) {
+                if needs_rebuild && !cancel.swap(true, atomic::Ordering::Release) {
                     let _ = library_tx.send(LibraryRequest::CancelRebuild);
                     let _ = library_tx.send(LibraryRequest::OnBuildStopped(Box::new(|_| {
                         ui_tx.send(UpdateUI::Progress(Some(0.0))).expect(EXP_RX);
@@ -804,28 +804,28 @@ impl Library {
 
     /// Cancels any currently running library build operation
     pub fn cancel_library_build(&self) {
-        self.cancel_pending.store(true, atomic::Ordering::Relaxed);
+        self.cancel_pending.store(true, atomic::Ordering::Release);
         self.tasks.await_all_tasks();
         let cancel_pending = Arc::clone(&self.cancel_pending);
         self.tasks.run(move || {
-            cancel_pending.store(false, atomic::Ordering::Relaxed);
+            cancel_pending.store(false, atomic::Ordering::Release);
         });
     }
 
     /// Cancels any currently running library build operation
     /// and blocks the current thread until fully cancelled
     pub fn cancel_library_build_blocking(&self) {
-        self.cancel_pending.store(true, atomic::Ordering::Relaxed);
+        self.cancel_pending.store(true, atomic::Ordering::Release);
         self.tasks.await_all_tasks();
         let cancel_pending = Arc::clone(&self.cancel_pending);
         let library_thread = thread::current();
         self.tasks.run(move || {
-            cancel_pending.store(false, atomic::Ordering::Relaxed);
+            cancel_pending.store(false, atomic::Ordering::Release);
             library_thread.unpark();
         });
         // Parking the thread in a loop until cancellation, because
         // threads can supposedly unpark themselves in some cases
-        while self.cancel_pending.load(atomic::Ordering::Relaxed) {
+        while self.cancel_pending.load(atomic::Ordering::Acquire) {
             thread::park();
         }
     }
@@ -1174,7 +1174,7 @@ impl Library {
     /// # Panics
     /// The function panics if it encounters a poisoned `Mutex`
     fn shutdown(mut self) {
-        self.cancel_pending.store(true, atomic::Ordering::Relaxed);
+        self.cancel_pending.store(true, atomic::Ordering::Release);
         (self.missing_songs).extend(mem::take(&mut *self.check_moved.lock().unwrap()));
         for missing in self.missing_songs {
             // Re-insert missing songs so their info is kept
