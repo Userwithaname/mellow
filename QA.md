@@ -53,8 +53,7 @@ User Experience:
 - [x] The interface is responsive as soon as launched, without delays
   - [x] With existing library
   - [x] On fresh launch
-- [ ] All actions respond to user input without delay
-  - FIX: UI momentarily hangs whenever the queue is updated
+- [x] All actions respond to user input without delay
 - [ ] All actions provide visual feedback
   - TODO: Visual feedback for dragging files onto the player
 - [x] Lengthy tasks display a progress bar without blocking the interface
