@@ -595,17 +595,6 @@ impl QueuePage {
                         queue_row.add_css_class("card");
                     }
 
-                    queue_row.add_bindings(&[
-                        queue_item_object
-                            .bind_property("artwork", &row_imp.prefix_image.get(), "paintable")
-                            .sync_create()
-                            .build(),
-                        queue_item_object
-                            .bind_property("selected", &row_imp.selection_toggle.get(), "active")
-                            .sync_create()
-                            .build(),
-                    ]);
-
                     let artwork = queue_item_object.artwork();
                     if artwork.is_some() {
                         queue_row.set_prefix_image(artwork.as_ref());
@@ -620,22 +609,26 @@ impl QueuePage {
                     queue_row.add_css_class("heading");
                     queue_row.add_css_class("dimmed");
 
-                    // IDEA: Draw a pause icon in place of the album cover
-
-                    queue_row.add_binding(
-                        queue_item_object
-                            .bind_property("selected", &row_imp.selection_toggle.get(), "active")
-                            .sync_create()
-                            .build(),
-                    );
+                    // IDEA: A pause icon could be shown in place of the album cover
                 }
             }
+
+            queue_row.add_bindings(&[
+                queue_item_object
+                    .bind_property("artwork", &row_imp.prefix_image.get(), "paintable")
+                    .sync_create()
+                    .build(),
+                queue_item_object
+                    .bind_property("selected", &row_imp.selection_toggle.get(), "active")
+                    .sync_create()
+                    .build(),
+            ]);
 
             let queue_index = queue_item_object.index();
             let selection_mode = match selections.borrow().as_deref() {
                 Some(selections) => {
-                    for index in selections {
-                        if index.0 == queue_index {
+                    for (index, _) in selections {
+                        if *index == queue_index {
                             queue_item_object.set_selected(true);
                         }
                     }
