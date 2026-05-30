@@ -606,12 +606,9 @@ impl QueuePage {
                         queue_row.add_css_class("card");
                     }
 
-                    match queue_item_object.artwork() {
-                        Some(artwork) => queue_row.set_prefix_image(Some(&artwork)),
-                        None => {
-                            queue_item_object.load_artwork();
-                            queue_row.set_prefix_image(Some(&fallback_image));
-                        }
+                    if queue_item_object.artwork().is_none() {
+                        queue_item_object.load_artwork();
+                        queue_row.set_prefix_image(Some(&fallback_image));
                     }
 
                     queue_row.set_suffix_label(&queue_item_object.suffix());
