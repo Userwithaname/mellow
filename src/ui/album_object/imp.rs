@@ -47,6 +47,6 @@ impl ObjectImpl for AlbumObject {}
 
 impl Drop for AlbumObject {
     fn drop(&mut self) {
-        self.is_visible.store(false, Ordering::Relaxed);
+        self.is_visible.store(false, Ordering::Release);
     }
 }

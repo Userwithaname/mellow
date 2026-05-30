@@ -261,7 +261,7 @@ impl SongsPage {
 
     pub fn uninit(&self) {
         for song in self.songs.take() {
-            song.imp().is_visible.store(false, Ordering::Relaxed);
+            song.imp().is_visible.store(false, Ordering::Release);
         }
     }
 }

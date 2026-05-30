@@ -276,7 +276,7 @@ impl AlbumsPage {
 
     pub fn uninit(&self) {
         for album in self.albums.take() {
-            album.imp().is_visible.store(false, Ordering::Relaxed);
+            album.imp().is_visible.store(false, Ordering::Release);
         }
     }
 }

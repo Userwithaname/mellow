@@ -44,6 +44,6 @@ impl ObjectImpl for QueueItemObject {}
 
 impl Drop for QueueItemObject {
     fn drop(&mut self) {
-        self.is_visible.store(false, Ordering::Relaxed);
+        self.is_visible.store(false, Ordering::Release);
     }
 }

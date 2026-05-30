@@ -47,6 +47,6 @@ impl ObjectImpl for SongObject {}
 
 impl Drop for SongObject {
     fn drop(&mut self) {
-        self.is_visible.store(false, Ordering::Relaxed);
+        self.is_visible.store(false, Ordering::Release);
     }
 }

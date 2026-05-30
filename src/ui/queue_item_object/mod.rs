@@ -64,9 +64,9 @@ impl QueueItemObject {
         let index = self.index() as usize;
         let item = imp.queue_item().clone();
         let is_visible = Arc::clone(&imp.is_visible);
-        is_visible.store(true, Ordering::Relaxed);
+        is_visible.store(true, Ordering::Release);
         Library::run_task(library_tx(), move || {
-            if !is_visible.load(Ordering::Relaxed) {
+            if !is_visible.load(Ordering::Acquire) {
                 return;
             }
             let QueueItem::Song(song) = item else {

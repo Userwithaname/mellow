@@ -50,9 +50,9 @@ impl AlbumObject {
         let imp = self.imp();
         let album = Arc::clone(self.shared_album());
         let is_visible = Arc::clone(&imp.is_visible);
-        is_visible.store(true, atomic::Ordering::Relaxed);
+        is_visible.store(true, atomic::Ordering::Release);
         Library::run_task(library_tx(), move || {
-            if !is_visible.load(atomic::Ordering::Relaxed) {
+            if !is_visible.load(atomic::Ordering::Acquire) {
                 return;
             }
             let song = Arc::clone(album.lock().unwrap().first_song());
@@ -72,10 +72,10 @@ impl AlbumObject {
         let imp = self.imp();
         let album = Arc::clone(self.shared_album());
         let is_visible = Arc::clone(&imp.is_visible);
-        is_visible.store(false, atomic::Ordering::Relaxed);
+        is_visible.store(false, atomic::Ordering::Release);
         // NOTE: Unloading in the background in case the `RwLock` is busy
         Library::run_task(library_tx(), move || {
-            if is_visible.load(atomic::Ordering::Relaxed) {
+            if is_visible.load(atomic::Ordering::Acquire) {
                 return;
             }
             album.lock().unwrap().first_song().info().unload_thumbnail();
