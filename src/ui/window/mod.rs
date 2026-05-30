@@ -136,7 +136,7 @@ impl Window {
         Ok(())
     }
 
-    /// Loads the appliaction settings and sets up `gio` actions
+    /// Loads the application settings and sets up `gio` actions
     #[inline]
     fn load_and_setup_actions(&self, settings: &Settings) {
         let imp = self.imp();
