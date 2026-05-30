@@ -23,6 +23,7 @@ impl Shortcuts for Application {
         self.set_accels_for_action("ui.open_library", &["<Ctrl><Shift>L"]);
         self.set_accels_for_action("ui.open_playing", &["<Ctrl><Shift>P", "<Ctrl>period"]);
         self.set_accels_for_action("ui.open_settings", &["<Ctrl><Shift>S", "<Ctrl>comma"]);
+        self.set_accels_for_action("ui.library_search", &["<Ctrl>F"]);
 
         // Application Shortcuts
         self.set_accels_for_action("win.show_shortcuts_dialog", &["<Ctrl>question"]);
@@ -47,6 +48,7 @@ pub fn show_shortcuts_dialog(parent: &impl IsA<gtk::Widget>) {
     overlay_section.add(ShortcutsItem::new("Show Library Tab", "<Ctrl><Shift>L"));
     overlay_section.add(ShortcutsItem::new("Show Playing Tab", "<Ctrl><Shift>P"));
     overlay_section.add(ShortcutsItem::new("Show Settings Tab", "<Ctrl>comma"));
+    overlay_section.add(ShortcutsItem::new("Focus Search Field", "<Ctrl>F"));
     shortcuts.add(overlay_section);
 
     let application_section = adw::ShortcutsSection::new(Some("Application"));

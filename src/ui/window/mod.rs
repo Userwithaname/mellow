@@ -72,6 +72,7 @@ impl Window {
             actions::ui::playing_nav_push(self),
             actions::ui::playing_nav_pop(self),
             actions::ui::library_nav_pop(self),
+            actions::ui::library_search(self),
         ]);
         self.insert_action_group("ui", Some(&ui_actions));
 

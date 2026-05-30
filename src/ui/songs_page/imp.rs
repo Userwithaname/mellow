@@ -29,7 +29,7 @@ pub struct SongsPage {
     songs_grid: TemplateChild<gtk::GridView>,
 
     #[template_child]
-    search_entry: TemplateChild<gtk::SearchEntry>,
+    pub search_entry: TemplateChild<gtk::SearchEntry>,
     search_query: Rc<RefCell<String>>,
 
     songs: RefCell<Vec<SongObject>>,

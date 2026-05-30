@@ -28,7 +28,7 @@ pub struct ArtistsPage {
     artists_grid: TemplateChild<gtk::GridView>,
 
     #[template_child]
-    search_entry: TemplateChild<gtk::SearchEntry>,
+    pub search_entry: TemplateChild<gtk::SearchEntry>,
     search_query: Rc<RefCell<String>>,
 
     artists: RefCell<Vec<ArtistObject>>,

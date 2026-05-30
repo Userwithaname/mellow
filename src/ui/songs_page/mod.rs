@@ -1,4 +1,4 @@
-use adw::subclass::prelude::*;
+use adw::{prelude::*, subclass::prelude::*};
 use gtk::{gdk, glib};
 
 use crate::library::Songs;
@@ -21,6 +21,10 @@ impl SongsPage {
             self.imp(),
             async move { songs_page.load_songs(&songs).await }
         ));
+    }
+
+    pub fn focus_search(&self) {
+        self.imp().search_entry.grab_focus();
     }
 
     #[inline]

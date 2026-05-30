@@ -1,6 +1,6 @@
 use adw::subclass::prelude::*;
 use glib::{clone, variant::StaticVariantType};
-use gtk::{gio, glib};
+use gtk::{gio, glib, prelude::WidgetExt};
 
 use crate::ui::Window;
 
@@ -107,6 +107,23 @@ pub fn library_nav_pop(window: &Window) -> gio::ActionEntry<gio::SimpleActionGro
             window.imp(),
             move |_, _, _| {
                 ui.library.pop();
+            }
+        ))
+        .build()
+}
+
+#[inline]
+pub fn library_search(window: &Window) -> gio::ActionEntry<gio::SimpleActionGroup> {
+    gio::ActionEntry::builder("library_search")
+        .activate(clone!(
+            #[weak(rename_to=ui)]
+            window.imp(),
+            move |_, _, _| if ui.artists_page.is_mapped() {
+                ui.artists_page.focus_search()
+            } else if ui.songs_page.is_mapped() {
+                ui.songs_page.focus_search()
+            } else if ui.albums_page.is_mapped() {
+                ui.albums_page.focus_search()
             }
         ))
         .build()
