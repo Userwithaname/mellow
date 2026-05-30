@@ -595,12 +595,12 @@ impl QueuePage {
                         queue_row.add_css_class("card");
                     }
 
-                    let artwork = queue_item_object.artwork();
-                    if artwork.is_some() {
-                        queue_row.set_prefix_image(artwork.as_ref());
-                    } else {
-                        queue_item_object.load_artwork();
-                        queue_row.set_prefix_image(Some(&fallback_image));
+                    match queue_item_object.artwork() {
+                        Some(artwork) => queue_row.set_prefix_image(Some(&artwork)),
+                        None => {
+                            queue_item_object.load_artwork();
+                            queue_row.set_prefix_image(Some(&fallback_image));
+                        }
                     }
 
                     queue_row.set_suffix_label(&queue_item_object.suffix());
