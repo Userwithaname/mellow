@@ -54,7 +54,6 @@ impl ArtistsPage {
             sorter.borrow().changed(gtk::SorterChange::Different);
         });
         // TODO: Empty the query when pressing escape
-        // TODO: Focus the search bar with CTRL+F
     }
 
     #[template_callback]

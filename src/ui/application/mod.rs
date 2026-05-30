@@ -11,7 +11,7 @@ use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::{Library, LibraryConfig, LibraryRequest, library_tx};
 use crate::player::{Player, PlayerRequest, SongQueue};
 use crate::shortcuts::Shortcuts;
-use crate::ui::{UpdateUI, Window, actions};
+use crate::ui::{UpdateUI, Window, actions::Actions};
 use crate::{about, music_dir, util::unescaped_split};
 use crate::{init_channels, mpris};
 
@@ -134,7 +134,7 @@ impl Application {
     /// Returns the window associated with the `Application`
     #[inline]
     #[must_use]
-    fn window(&self) -> &Window {
+    pub fn window(&self) -> &Window {
         self.imp().window.get().expect(EXP_INIT)
     }
 
@@ -178,15 +178,6 @@ impl Application {
     pub fn show_window(&self) {
         // FIX: Window does not get raised if already shown
         self.window().present();
-    }
-
-    /// Registers the application actions
-    #[inline]
-    fn setup_actions(&self) {
-        self.add_action_entries([
-            actions::app::show_window(self),
-            actions::app::quit(self, self.window()),
-        ]);
     }
 
     /// Cleanly shuts down the application by saving the settings and state,
