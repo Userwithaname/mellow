@@ -7,7 +7,7 @@ use crate::player::{PlayerRequest, player_tx};
 use crate::ui::fallback_song_image;
 use crate::util::format_duration_ms;
 
-mod imp;
+pub mod imp;
 
 glib::wrapper! {
     pub struct MainPlayer(ObjectSubclass<imp::MainPlayer>)

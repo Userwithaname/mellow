@@ -1,15 +1,14 @@
-use adw::subclass::prelude::*;
 use glib::{clone, variant::StaticVariantType};
 use gtk::{gio, glib, prelude::WidgetExt};
 
-use crate::ui::Window;
+use crate::ui::window::imp::Window;
 
 #[inline]
 pub fn open_sheet(window: &Window) -> gio::ActionEntry<gio::SimpleActionGroup> {
     gio::ActionEntry::builder("open_sheet")
         .activate(clone!(
             #[weak(rename_to=ui)]
-            window.imp(),
+            window,
             move |_, _, _| ui.open_sheet(true)
         ))
         .build()
@@ -19,7 +18,7 @@ pub fn close_sheet(window: &Window) -> gio::ActionEntry<gio::SimpleActionGroup> 
     gio::ActionEntry::builder("close_sheet")
         .activate(clone!(
             #[weak(rename_to=ui)]
-            window.imp(),
+            window,
             move |_, _, _| ui.open_sheet(false)
         ))
         .build()
@@ -29,7 +28,7 @@ pub fn toggle_sheet(window: &Window) -> gio::ActionEntry<gio::SimpleActionGroup>
     gio::ActionEntry::builder("toggle_sheet")
         .activate(clone!(
             #[weak(rename_to=ui)]
-            window.imp(),
+            window,
             move |_, _, _| ui.toggle_sheet()
         ))
         .build()
@@ -39,7 +38,7 @@ pub fn open_library(window: &Window) -> gio::ActionEntry<gio::SimpleActionGroup>
     gio::ActionEntry::builder("open_library")
         .activate(clone!(
             #[weak(rename_to=ui)]
-            window.imp(),
+            window,
             move |_, _, _| {
                 ui.focus_library();
                 ui.open_sheet(true);
@@ -52,7 +51,7 @@ pub fn open_playing(window: &Window) -> gio::ActionEntry<gio::SimpleActionGroup>
     gio::ActionEntry::builder("open_playing")
         .activate(clone!(
             #[weak(rename_to=ui)]
-            window.imp(),
+            window,
             move |_, _, _| {
                 ui.focus_playing();
                 ui.open_sheet(true);
@@ -65,7 +64,7 @@ pub fn open_settings(window: &Window) -> gio::ActionEntry<gio::SimpleActionGroup
     gio::ActionEntry::builder("open_settings")
         .activate(clone!(
             #[weak(rename_to=ui)]
-            window.imp(),
+            window,
             move |_, _, _| {
                 ui.focus_settings();
                 ui.open_sheet(true);
@@ -74,41 +73,35 @@ pub fn open_settings(window: &Window) -> gio::ActionEntry<gio::SimpleActionGroup
         .build()
 }
 #[inline]
-pub fn playing_nav_push(window: &Window) -> gio::ActionEntry<gio::SimpleActionGroup> {
+pub fn playing_nav_push(
+    playing_navigation_view: adw::NavigationView,
+) -> gio::ActionEntry<gio::SimpleActionGroup> {
     gio::ActionEntry::builder("playing_nav_push")
         .parameter_type(Some(&String::static_variant_type()))
-        .activate(clone!(
-            #[weak(rename_to=ui)]
-            window.imp(),
-            move |_, _, tag| {
-                let tag = tag.unwrap().get::<String>().unwrap();
-                ui.playing.push_by_tag(&tag);
-            }
-        ))
+        .activate(move |_, _, tag| {
+            let tag = tag.unwrap().get::<String>().unwrap();
+            playing_navigation_view.push_by_tag(&tag);
+        })
         .build()
 }
 #[inline]
-pub fn playing_nav_pop(window: &Window) -> gio::ActionEntry<gio::SimpleActionGroup> {
+pub fn playing_nav_pop(
+    playing_navigation_view: adw::NavigationView,
+) -> gio::ActionEntry<gio::SimpleActionGroup> {
     gio::ActionEntry::builder("playing_nav_pop")
-        .activate(clone!(
-            #[weak(rename_to=ui)]
-            window.imp(),
-            move |_, _, _| {
-                ui.playing.pop();
-            }
-        ))
+        .activate(move |_, _, _| {
+            playing_navigation_view.pop();
+        })
         .build()
 }
 #[inline]
-pub fn library_nav_pop(window: &Window) -> gio::ActionEntry<gio::SimpleActionGroup> {
+pub fn library_nav_pop(
+    library_navigation_view: adw::NavigationView,
+) -> gio::ActionEntry<gio::SimpleActionGroup> {
     gio::ActionEntry::builder("library_nav_pop")
-        .activate(clone!(
-            #[weak(rename_to=ui)]
-            window.imp(),
-            move |_, _, _| {
-                ui.library.pop();
-            }
-        ))
+        .activate(move |_, _, _| {
+            library_navigation_view.pop();
+        })
         .build()
 }
 
@@ -117,7 +110,7 @@ pub fn library_search(window: &Window) -> gio::ActionEntry<gio::SimpleActionGrou
     gio::ActionEntry::builder("library_search")
         .activate(clone!(
             #[weak(rename_to=ui)]
-            window.imp(),
+            window,
             move |_, _, _| if ui.artists_page.is_mapped() {
                 ui.artists_page.focus_search()
             } else if ui.songs_page.is_mapped() {

@@ -13,7 +13,7 @@ use crate::shortcuts::show_shortcuts_dialog;
 use crate::ui::{Application, UpdateUI, actions, ui_tx};
 use crate::util::serialize_list;
 
-mod imp;
+pub mod imp;
 
 glib::wrapper! {
     pub struct Window(ObjectSubclass<imp::Window>)
@@ -49,40 +49,38 @@ impl Window {
 
     fn setup_actions(&self, songs_sort: &GString, albums_sort: &GString, artists_sort: &GString) {
         let player_actions = gio::SimpleActionGroup::new();
-        player_actions.add_action_entries([
-            actions::player::skip_prev(self),
-            actions::player::play_pause(self),
-            actions::player::skip_next(self),
-            actions::player::play_all_songs(self),
-            actions::player::play_all_albums(self),
-            actions::player::play_all_artists(self),
-            actions::player::queue_visible_album(self),
-            actions::player::queue_visible_artist(self),
-        ]);
+        let window = self.imp();
+
+        player_actions.add_action_entries({
+            let player = window.main_player.imp();
+            [
+                actions::player::skip_prev(player),
+                actions::player::play_pause(player),
+                actions::player::skip_next(player),
+                actions::player::play_all_songs(&window.songs_page),
+                actions::player::play_all_albums(&window.albums_page),
+                actions::player::play_all_artists(&window.artists_page),
+                actions::player::queue_visible_album(Rc::clone(&window.album_pages)),
+                actions::player::queue_visible_artist(Rc::clone(&window.artist_pages)),
+            ]
+        });
         self.insert_action_group("player", Some(&player_actions));
 
         let ui_actions = gio::SimpleActionGroup::new();
         ui_actions.add_action_entries([
-            actions::ui::open_sheet(self),
-            actions::ui::close_sheet(self),
-            actions::ui::toggle_sheet(self),
-            actions::ui::open_library(self),
-            actions::ui::open_playing(self),
-            actions::ui::open_settings(self),
-            actions::ui::playing_nav_push(self),
-            actions::ui::playing_nav_pop(self),
-            actions::ui::library_nav_pop(self),
-            actions::ui::library_search(self),
+            actions::ui::open_sheet(window),
+            actions::ui::close_sheet(window),
+            actions::ui::toggle_sheet(window),
+            actions::ui::open_library(window),
+            actions::ui::open_playing(window),
+            actions::ui::open_settings(window),
+            actions::ui::playing_nav_push(window.playing.get()),
+            actions::ui::playing_nav_pop(window.playing.get()),
+            actions::ui::library_nav_pop(window.library.get()),
+            actions::ui::library_search(window),
         ]);
         self.insert_action_group("ui", Some(&ui_actions));
 
-        // IDEA: Song/album/artist pages could be constructed anew every time they are
-        // pushed onto the view stack, and an `Rc<RefCell<Vec>>` variable would keep
-        // track of their order. For example, to change the button shuffle behavior on
-        // a subpage, simply grab the top-most one in the `Vec`, and call the function.
-        // This might work for implementing the go-to-album/artist functionality
-
-        let window = self.imp();
         let menu_actions = gio::SimpleActionGroup::new();
         menu_actions.add_action_entries([
             actions::menu::songs_sort_mode(window.songs_page.get(), songs_sort),
