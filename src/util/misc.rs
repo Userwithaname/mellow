@@ -55,18 +55,16 @@ pub fn unescaped_split(input: &str, character: char) -> Vec<String> {
 /// <https://doc.rust-lang.org/std/fs/fn.read_dir.html#examples>
 ///
 /// # Errors
-/// The function errors if a file or directory cannot be read
+/// - If `dir` is not a directory
+/// - If a nested directory could not be read
 #[inline]
 pub fn visit_dirs<F: FnMut(&DirEntry)>(dir: &Path, f: &mut F) -> io::Result<()> {
-    if dir.is_dir() {
-        for entry in fs::read_dir(dir)? {
-            let entry = entry?;
-            let path = entry.path();
-            if path.is_dir() {
-                visit_dirs(&path, f)?;
-            } else {
-                f(&entry);
-            }
+    for entry in fs::read_dir(dir)? {
+        let entry = entry?;
+        let path = entry.path();
+        match path.is_dir() {
+            false => f(&entry),
+            true => visit_dirs(&path, f)?,
         }
     }
     Ok(())
