@@ -40,10 +40,7 @@ Music Library:
 - [x] The 'Artists' page and its subpages work as expected
 - [x] Library building works in the background and doesn't affect functionality
 - [ ] Searching is quick and works as expected
-  - FIX: Items sometimes don't show up until scrolling after searching
-  - FIX: Cannot select text because it drags the header bar (except with `no-meson`)
-  - TODO: The escape key should empty the search query when focused
-  - TODO: Focus the search bar using `control+F`
+  - FIX: Items sometimes don't show up until scrolling after searching (Flatpak is unaffected)
 - [x] Sort modes work as expected
 - [ ] Filtering works as expected
   - TODO: **Implement filters**

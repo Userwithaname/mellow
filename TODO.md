@@ -14,10 +14,6 @@ UI issues:
 
 Song queue:
 
-- [x] Add an indicator at the top and bottom of the list to show when there
-      are more items in that direction
-  - IDEA: The indicators could be buttons which offset the visible list by one
-    in that direction (and a button to reset and jump back to the playing song)
 - [x] Reorder using drag-&-drop
   - TODO: Improvement: Scroll when reaching top/bottom edges
     - IDEA: Also pan if dragging onto the pan button, once panning is implemented
@@ -43,7 +39,6 @@ Music library:
   - IDEA: Remember if sort order was reversed(?)
 - [ ] Allow initiating a full library rebuild
 - [x] Search/filtering for songs/albums/artists pages
-  - TODO: Improvement: Escape key should empty and unfocus the search field
 - [x] Songs/albums/artists sort modes
 - [ ] **Songs/albums/artists filtering**
   - TODO: Create a submenu in the sort dropdown for selecting filters
