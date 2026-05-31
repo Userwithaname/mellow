@@ -568,7 +568,7 @@ impl QueuePage {
         let model = gio::ListStore::new::<QueueItemObject>();
         let selections = Rc::clone(&self.selections);
         let fallback_image = fallback_song_image();
-        let queue_page = self.obj().clone();
+        let queue_page = self.to_owned();
         self.list_box.bind_model(Some(&model), move |object| {
             let queue_item_object = object.downcast_ref::<QueueItemObject>().unwrap();
             let queue_row = ListRow::default();
@@ -629,7 +629,7 @@ impl QueuePage {
             let queue_index = queue_index as usize;
             queue_row.connect_activated(glib::clone!(
                 #[weak(rename_to=queue_page)]
-                queue_page.imp(),
+                queue_page,
                 #[weak]
                 queue_item_object,
                 move |_| match &mut *selections.borrow_mut() {
