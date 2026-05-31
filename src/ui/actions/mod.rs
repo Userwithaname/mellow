@@ -40,49 +40,49 @@ impl WindowActions for Window {
                 .build(),
         ]);
 
-        let player_actions = gio::SimpleActionGroup::new();
-        let window_imp = self.imp();
+        let window = self.imp();
 
+        let player_actions = gio::SimpleActionGroup::new();
         player_actions.add_action_entries({
-            let player = window_imp.main_player.imp();
+            let player = window.main_player.imp();
             [
                 actions::player::skip_prev(player),
                 actions::player::play_pause(player),
                 actions::player::skip_next(player),
-                actions::player::play_all_songs(&window_imp.songs_page),
-                actions::player::play_all_albums(&window_imp.albums_page),
-                actions::player::play_all_artists(&window_imp.artists_page),
-                actions::player::queue_visible_album(Rc::clone(&window_imp.album_pages)),
-                actions::player::queue_visible_artist(Rc::clone(&window_imp.artist_pages)),
+                actions::player::play_all_songs(&window.songs_page),
+                actions::player::play_all_albums(&window.albums_page),
+                actions::player::play_all_artists(&window.artists_page),
+                actions::player::queue_visible_album(Rc::clone(&window.album_pages)),
+                actions::player::queue_visible_artist(Rc::clone(&window.artist_pages)),
             ]
         });
         self.insert_action_group("player", Some(&player_actions));
 
         let ui_actions = gio::SimpleActionGroup::new();
         ui_actions.add_action_entries([
-            actions::ui::open_sheet(window_imp),
-            actions::ui::close_sheet(window_imp),
-            actions::ui::toggle_sheet(window_imp),
-            actions::ui::open_library(window_imp),
-            actions::ui::open_playing(window_imp),
-            actions::ui::open_settings(window_imp),
-            actions::ui::playing_nav_push(window_imp.playing.get()),
-            actions::ui::playing_nav_pop(window_imp.playing.get()),
-            actions::ui::library_nav_pop(window_imp.library.get()),
-            actions::ui::library_search(window_imp),
+            actions::ui::open_sheet(window),
+            actions::ui::close_sheet(window),
+            actions::ui::toggle_sheet(window),
+            actions::ui::open_library(window),
+            actions::ui::open_playing(window),
+            actions::ui::open_settings(window),
+            actions::ui::playing_nav_push(window.playing.get()),
+            actions::ui::playing_nav_pop(window.playing.get()),
+            actions::ui::library_nav_pop(window.library.get()),
+            actions::ui::library_search(window),
         ]);
         self.insert_action_group("ui", Some(&ui_actions));
 
         let menu_actions = gio::SimpleActionGroup::new();
         menu_actions.add_action_entries([
-            actions::menu::songs_sort_mode(window_imp.songs_page.get(), songs_sort),
-            actions::menu::albums_sort_mode(window_imp.albums_page.get(), albums_sort),
-            actions::menu::artists_sort_mode(window_imp.artists_page.get(), artists_sort),
-            actions::menu::songs_play_mode(window_imp.songs_page.get()),
-            actions::menu::albums_play_mode(window_imp.albums_page.get()),
-            actions::menu::artists_play_mode(window_imp.artists_page.get()),
-            actions::menu::album_page_play_mode(Rc::clone(&window_imp.album_pages)),
-            actions::menu::artist_page_play_mode(Rc::clone(&window_imp.artist_pages)),
+            actions::menu::songs_sort_mode(window.songs_page.get(), songs_sort),
+            actions::menu::albums_sort_mode(window.albums_page.get(), albums_sort),
+            actions::menu::artists_sort_mode(window.artists_page.get(), artists_sort),
+            actions::menu::songs_play_mode(window.songs_page.get()),
+            actions::menu::albums_play_mode(window.albums_page.get()),
+            actions::menu::artists_play_mode(window.artists_page.get()),
+            actions::menu::album_page_play_mode(Rc::clone(&window.album_pages)),
+            actions::menu::artist_page_play_mode(Rc::clone(&window.artist_pages)),
         ]);
         self.insert_action_group("menu", Some(&menu_actions));
     }
