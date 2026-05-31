@@ -54,7 +54,13 @@ impl SongsPage {
             filter.borrow().changed(gtk::FilterChange::Different);
             sorter.borrow().changed(gtk::SorterChange::Different);
         });
-        // TODO: Empty the query when pressing escape
+        self.search_entry.connect_stop_search(glib::clone!(
+            #[weak(rename_to=songs_page)]
+            self,
+            move |_| {
+                songs_page.songs_grid.grab_focus();
+            }
+        ));
     }
 
     #[template_callback]
