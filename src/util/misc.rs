@@ -56,7 +56,7 @@ pub fn unescaped_split(input: &str, character: char) -> Vec<String> {
 ///
 /// # Errors
 /// - If `dir` is not a directory
-/// - If a nested directory could not be read
+/// - If a contained file or directory could not be read
 #[inline]
 pub fn visit_dirs<F: FnMut(&DirEntry)>(dir: &Path, f: &mut F) -> io::Result<()> {
     for entry in fs::read_dir(dir)? {
