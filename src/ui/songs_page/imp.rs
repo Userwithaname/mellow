@@ -44,23 +44,16 @@ pub struct SongsPage {
 
 #[gtk::template_callbacks]
 impl SongsPage {
-    #[inline]
-    pub fn init_search(&self) {
-        let filter = Rc::clone(&self.filter);
-        let sorter = Rc::clone(&self.sorter);
-        let search_query = Rc::clone(&self.search_query);
-        self.search_entry.connect_search_changed(move |entry| {
-            search_query.replace(entry.text().to_string());
-            filter.borrow().changed(gtk::FilterChange::Different);
-            sorter.borrow().changed(gtk::SorterChange::Different);
-        });
-        self.search_entry.connect_stop_search(glib::clone!(
-            #[weak(rename_to=songs_page)]
-            self,
-            move |_| {
-                songs_page.songs_grid.grab_focus();
-            }
-        ));
+    #[template_callback]
+    pub fn handle_search_changed(&self) {
+        self.search_query
+            .replace(self.search_entry.text().to_string());
+        self.filter.borrow().changed(gtk::FilterChange::Different);
+        self.sorter.borrow().changed(gtk::SorterChange::Different);
+    }
+    #[template_callback]
+    pub fn handle_stop_search(&self) {
+        self.songs_grid.grab_focus();
     }
 
     #[template_callback]
@@ -291,7 +284,6 @@ impl ObjectImpl for SongsPage {
         let _ = self
             .sort_mode
             .set(SortConfig::new(SongOrdering::Default, false));
-        self.init_search();
 
         self.songs_grid.connect_activate(|grid, index| {
             let index = (grid.model().unwrap().item(index).unwrap())

@@ -43,23 +43,16 @@ pub struct ArtistsPage {
 
 #[gtk::template_callbacks]
 impl ArtistsPage {
-    #[inline]
-    pub fn init_search(&self) {
-        let filter = Rc::clone(&self.filter);
-        let sorter = Rc::clone(&self.sorter);
-        let search_query = Rc::clone(&self.search_query);
-        self.search_entry.connect_search_changed(move |entry| {
-            search_query.replace(entry.text().to_string());
-            filter.borrow().changed(gtk::FilterChange::Different);
-            sorter.borrow().changed(gtk::SorterChange::Different);
-        });
-        self.search_entry.connect_stop_search(glib::clone!(
-            #[weak(rename_to=artists_page)]
-            self,
-            move |_| {
-                artists_page.artists_grid.grab_focus();
-            }
-        ));
+    #[template_callback]
+    pub fn handle_search_changed(&self) {
+        self.search_query
+            .replace(self.search_entry.text().to_string());
+        self.filter.borrow().changed(gtk::FilterChange::Different);
+        self.sorter.borrow().changed(gtk::SorterChange::Different);
+    }
+    #[template_callback]
+    pub fn handle_stop_search(&self) {
+        self.artists_grid.grab_focus();
     }
 
     #[template_callback]
@@ -302,7 +295,6 @@ impl ObjectImpl for ArtistsPage {
         let _ = self
             .sort_mode
             .set(SortConfig::new(ArtistOrdering::Default, false));
-        self.init_search();
 
         self.artists_grid.connect_activate(|grid, index| {
             let artist = Arc::clone(
