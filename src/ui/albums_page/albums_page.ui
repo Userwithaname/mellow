@@ -67,6 +67,7 @@
               <object class="AdwClamp">
                 <child>
                   <object class="GtkSearchEntry" id="search_entry">
+                    <signal name="activate" handler="handle_activate" swapped="true"/>
                     <signal name="stop_search" handler="handle_stop_search" swapped="true"/>
                     <signal name="search_changed" handler="handle_search_changed" swapped="true"/>
                     <property name="hexpand">true</property>

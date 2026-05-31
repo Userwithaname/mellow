@@ -52,7 +52,13 @@ impl AlbumsPage {
         self.sorter.borrow().changed(gtk::SorterChange::Different);
     }
     #[template_callback]
+    pub fn handle_activate(&self) {
+        self.albums_grid.grab_focus();
+    }
+    #[template_callback]
     pub fn handle_stop_search(&self) {
+        self.search_entry.set_text("");
+        self.search_query.take();
         self.albums_grid.grab_focus();
     }
 
