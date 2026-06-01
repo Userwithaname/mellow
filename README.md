@@ -18,10 +18,10 @@ letting music be the central point of focus.
   <img width=512 src="https://github.com/user-attachments/assets/90f9a4f1-c55c-4fd6-8400-4576032d0895">
 </p>
 
-> [!CAUTION]
-> This software is in active development. Certain features may be missing, buggy, or
-> incomplete. See the [Roadmap](#roadmap), [QA.md](QA.md), and [TODO.md](TODO.md) for
-> more details.
+> [!NOTE]
+> This software is in active development; features and design may still be subject
+> to change. Please report any issues you may encounter while using it. Suggestions
+> and requests are all welcome as well.
 
 # Philosophy
 
