@@ -8,201 +8,77 @@
     <child>
       <object class="AdwToastOverlay" id="toast_overlay">
         <property name="child">
-          <object class="AdwBottomSheet" id="sheet">
-            <style>
-              <class name="view"/>
-            </style>
-            <property name="content">
-              <object class="AdwToolbarView">
+          <object class="GtkOverlay">
 
-                <child type="top">
-                  <object class="AdwHeaderBar">
-                    <property name="show-title">false</property>
-                  </object>
-                </child>
+            <child type="overlay">
+              <object class="AdwStatusPage" id="drag_overlay">
+                <property name="visible">false</property>
+                <property name="sensitive">false</property>
+                <property name="icon-name">audio-x-generic-symbolic</property>
+                <property name="title" translatable="yes">Drop files here to play them</property>
+                <style>
+                  <class name="osd"/>
+                  <class name="compact"/>
+                </style>
+              </object>
+            </child>
 
-                Main player view
+            <child>
+              <object class="AdwBottomSheet" id="sheet">
+                <style>
+                  <class name="view"/>
+                </style>
                 <property name="content">
-                  <object class="GtkWindowHandle">
-                    <child>
-                      <object class="MellowMainPlayer" id="main_player">
-                        <property name="margin-top">0</property>
-                        <property name="margin-bottom">46</property>
-                        <property name="margin-start">26</property>
-                        <property name="margin-end">26</property>
+                  <object class="AdwToolbarView">
+
+                    <child type="top">
+                      <object class="AdwHeaderBar">
+                        <property name="show-title">false</property>
                       </object>
                     </child>
+
+                    Main player view
+                    <property name="content">
+                      <object class="GtkWindowHandle">
+                        <child>
+                          <object class="MellowMainPlayer" id="main_player">
+                            <property name="margin-top">0</property>
+                            <property name="margin-bottom">46</property>
+                            <property name="margin-start">26</property>
+                            <property name="margin-end">26</property>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+
                   </object>
                 </property>
 
-              </object>
-            </property>
-
-            Bottom bar / drag handle
-            <property name="bottom-bar">
-              <object class="GtkBox" id="bottom_bar">
-                <style>
-                  <class name="view"/>
-                  <class name="flat"/>
-                </style>
-                <property name="height-request">32</property>
-                <property name="hexpand">true</property>
-                <property name="valign">center</property>
-                <property name="orientation">vertical</property>
-                <child>
-                  <object class="GtkImage">
-                    <property name="icon-name">view-more-horizontal-symbolic</property>
-                    <property name="margin_top">7</property>
+                Bottom bar / drag handle
+                <property name="bottom-bar">
+                  <object class="GtkBox" id="bottom_bar">
+                    <style>
+                      <class name="view"/>
+                      <class name="flat"/>
+                    </style>
+                    <property name="height-request">32</property>
+                    <property name="hexpand">true</property>
                     <property name="valign">center</property>
-                    <style>
-                      <class name="dimmed"/>
-                    </style>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkProgressBar" id="progress_bar">
-                    <property name="visible">false</property>
-                    <property name="margin-top">6</property>
-                    <style>
-                      <class name="osd"/>
-                    </style>
-                  </object>
-                </child>
-              </object>
-            </property>
-
-            Bottom sheet overlay
-            <property name="show-drag-handle">false</property>
-            <property name="sheet">
-              <object class="AdwToolbarView" id="sheet_content">
-                <style>
-                  <class name="osd"/>
-                </style>
-                <property name="content">
-                  <object class="GtkBox">
                     <property name="orientation">vertical</property>
                     <child>
-                      <object class="AdwViewStack" id="view_stack">
-                        <property name="enable-transitions">true</property>
-
-                        Library
-                        <child>
-                          <object class="AdwViewStackPage">
-                            <property name="name">library</property>
-                            <property name="title" translatable="yes">Library</property>
-                            <property name="icon-name">applications-multimedia-symbolic</property>
-                            <property name="use-underline">true</property>
-
-                            <property name="child">
-                              <object class="AdwNavigationView" id="library">
-
-                                Library home page
-                                <child>
-                                  <object class="MellowLibraryPage" id="library_page">
-                                    <property name="title" translatable="yes">Library</property>
-                                    <property name="tag">library</property>
-                                  </object>
-                                </child>
-
-                                Songs
-                                <child>
-                                  <object class="MellowSongsPage" id="songs_page">
-                                    <property name="title" translatable="yes">Songs</property>
-                                    <property name="tag">library_songs</property>
-                                  </object>
-                                </child>
-
-                                Albums
-                                <child>
-                                  <object class="MellowAlbumsPage" id="albums_page">
-                                    <property name="title" translatable="yes">Albums</property>
-                                    <property name="tag">library_albums</property>
-                                  </object>
-                                </child>
-
-                                Artists
-                                <child>
-                                  <object class="MellowArtistsPage" id="artists_page">
-                                    <property name="title" translatable="yes">Artists</property>
-                                    <property name="tag">library_artists</property>
-                                  </object>
-                                </child>
-
-                              </object>
-                            </property>
-                          </object>
-                        </child>
-
-                        Playing
-                        <child>
-                          <object class="AdwViewStackPage">
-                            <property name="name">playing</property>
-                            <property name="title" translatable="yes">Playing</property>
-                            <property name="icon-name">media-playback-start-symbolic</property>
-                            <property name="use-underline">true</property>
-                            <property name="child">
-                              <object class="AdwNavigationView" id="playing">
-
-                                Queue page
-                                <child>
-                                  <object class="MellowQueuePage" id="queue_page">
-                                    <property name="title" translatable="yes">Song Queue</property>
-                                    <property name="tag">song_queue</property>
-                                  </object>
-                                </child>
-
-                                Song info page
-                                <child>
-                                  <object class="MellowQueueSubpage" id="queue_subpage">
-                                    <property name="title" translatable="yes">Song Info</property>
-                                    <property name="tag">info</property>
-                                  </object>
-                                </child>
-
-                                Lyrics page
-                                <child>
-                                  <object class="MellowLyricsPage" id="lyrics_page">
-                                    <property name="title" translatable="yes">Lyrics</property>
-                                    <property name="tag">lyrics</property>
-                                  </object>
-                                </child>
-
-                              </object>
-                            </property>
-                          </object>
-                        </child>
-
-                        Settings
-                        <child>
-                          <object class="AdwViewStackPage">
-                            <property name="name">settings</property>
-                            <property name="title" translatable="yes">Settings</property>
-                            <property name="icon-name">preferences-system-symbolic</property>
-                            <property name="use-underline">true</property>
-                            <property name="child">
-                              <object class="AdwToolbarView">
-                                <child type="top">
-                                  <object class="AdwHeaderBar">
-                                    <property name="show-title">false</property>
-                                  </object>
-                                </child>
-                                <property name="content">
-                                  <object class="MellowSettingsPage" id="settings_page"/>
-                                </property>
-                              </object>
-                            </property>
-                          </object>
-                        </child>
-
-                        <property name="visible-child-name">playing</property>
+                      <object class="GtkImage">
+                        <property name="icon-name">view-more-horizontal-symbolic</property>
+                        <property name="margin_top">7</property>
+                        <property name="valign">center</property>
+                        <style>
+                          <class name="dimmed"/>
+                        </style>
                       </object>
                     </child>
                     <child>
-                      <object class="GtkProgressBar">
+                      <object class="GtkProgressBar" id="progress_bar">
                         <property name="visible">false</property>
                         <property name="margin-top">6</property>
-                        <property name="fraction" bind-source="progress_bar" bind-property="fraction" bind-flags="sync-create"/>
-                        <property name="visible" bind-source="progress_bar" bind-property="visible" bind-flags="sync-create"/>
                         <style>
                           <class name="osd"/>
                         </style>
@@ -211,16 +87,158 @@
                   </object>
                 </property>
 
-                Tab icons
-                <child type="bottom">
-                  <object class="AdwViewSwitcherBar">
-                    <property name="stack">view_stack</property>
-                    <property name="reveal">true</property>
-                  </object>
-                </child>
-              </object>
-            </property>
+                Bottom sheet overlay
+                <property name="show-drag-handle">false</property>
+                <property name="sheet">
+                  <object class="AdwToolbarView" id="sheet_content">
+                    <style>
+                      <class name="osd"/>
+                    </style>
+                    <property name="content">
+                      <object class="GtkBox">
+                        <property name="orientation">vertical</property>
+                        <child>
+                          <object class="AdwViewStack" id="view_stack">
+                            <property name="enable-transitions">true</property>
 
+                            Library
+                            <child>
+                              <object class="AdwViewStackPage">
+                                <property name="name">library</property>
+                                <property name="title" translatable="yes">Library</property>
+                                <property name="icon-name">applications-multimedia-symbolic</property>
+                                <property name="use-underline">true</property>
+
+                                <property name="child">
+                                  <object class="AdwNavigationView" id="library">
+
+                                    Library home page
+                                    <child>
+                                      <object class="MellowLibraryPage" id="library_page">
+                                        <property name="title" translatable="yes">Library</property>
+                                        <property name="tag">library</property>
+                                      </object>
+                                    </child>
+
+                                    Songs
+                                    <child>
+                                      <object class="MellowSongsPage" id="songs_page">
+                                        <property name="title" translatable="yes">Songs</property>
+                                        <property name="tag">library_songs</property>
+                                      </object>
+                                    </child>
+
+                                    Albums
+                                    <child>
+                                      <object class="MellowAlbumsPage" id="albums_page">
+                                        <property name="title" translatable="yes">Albums</property>
+                                        <property name="tag">library_albums</property>
+                                      </object>
+                                    </child>
+
+                                    Artists
+                                    <child>
+                                      <object class="MellowArtistsPage" id="artists_page">
+                                        <property name="title" translatable="yes">Artists</property>
+                                        <property name="tag">library_artists</property>
+                                      </object>
+                                    </child>
+
+                                  </object>
+                                </property>
+                              </object>
+                            </child>
+
+                            Playing
+                            <child>
+                              <object class="AdwViewStackPage">
+                                <property name="name">playing</property>
+                                <property name="title" translatable="yes">Playing</property>
+                                <property name="icon-name">media-playback-start-symbolic</property>
+                                <property name="use-underline">true</property>
+                                <property name="child">
+                                  <object class="AdwNavigationView" id="playing">
+
+                                    Queue page
+                                    <child>
+                                      <object class="MellowQueuePage" id="queue_page">
+                                        <property name="title" translatable="yes">Song Queue</property>
+                                        <property name="tag">song_queue</property>
+                                      </object>
+                                    </child>
+
+                                    Song info page
+                                    <child>
+                                      <object class="MellowQueueSubpage" id="queue_subpage">
+                                        <property name="title" translatable="yes">Song Info</property>
+                                        <property name="tag">info</property>
+                                      </object>
+                                    </child>
+
+                                    Lyrics page
+                                    <child>
+                                      <object class="MellowLyricsPage" id="lyrics_page">
+                                        <property name="title" translatable="yes">Lyrics</property>
+                                        <property name="tag">lyrics</property>
+                                      </object>
+                                    </child>
+
+                                  </object>
+                                </property>
+                              </object>
+                            </child>
+
+                            Settings
+                            <child>
+                              <object class="AdwViewStackPage">
+                                <property name="name">settings</property>
+                                <property name="title" translatable="yes">Settings</property>
+                                <property name="icon-name">preferences-system-symbolic</property>
+                                <property name="use-underline">true</property>
+                                <property name="child">
+                                  <object class="AdwToolbarView">
+                                    <child type="top">
+                                      <object class="AdwHeaderBar">
+                                        <property name="show-title">false</property>
+                                      </object>
+                                    </child>
+                                    <property name="content">
+                                      <object class="MellowSettingsPage" id="settings_page"/>
+                                    </property>
+                                  </object>
+                                </property>
+                              </object>
+                            </child>
+
+                            <property name="visible-child-name">playing</property>
+                          </object>
+                        </child>
+                        <child>
+                          <object class="GtkProgressBar">
+                            <property name="visible">false</property>
+                            <property name="margin-top">6</property>
+                            <property name="fraction" bind-source="progress_bar" bind-property="fraction" bind-flags="sync-create"/>
+                            <property name="visible" bind-source="progress_bar" bind-property="visible" bind-flags="sync-create"/>
+                            <style>
+                              <class name="osd"/>
+                            </style>
+                          </object>
+                        </child>
+                      </object>
+                    </property>
+
+                    Tab icons
+                    <child type="bottom">
+                      <object class="AdwViewSwitcherBar">
+                        <property name="stack">view_stack</property>
+                        <property name="reveal">true</property>
+                      </object>
+                    </child>
+                  </object>
+                </property>
+
+              </object>
+            </child>
           </object>
         </property>
       </object>

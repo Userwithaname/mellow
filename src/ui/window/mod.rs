@@ -52,7 +52,18 @@ impl Window {
     fn setup_drag_and_drop(&self) {
         let drop_target =
             gtk::DropTarget::new(FileList::static_type(), DragAction::COPY | DragAction::MOVE);
-        // TODO: Add visual feedback when the file is over the window
+        let window = self.imp();
+        drop_target.connect_accept({
+            let window = window.to_owned();
+            move |_, _| {
+                window.drag_overlay.set_visible(true);
+                true
+            }
+        });
+        drop_target.connect_leave({
+            let window = window.to_owned();
+            move |_| window.drag_overlay.set_visible(false)
+        });
         drop_target.connect_drop(|_, value, _, _| {
             let files = (value.get::<FileList>().unwrap())
                 .files()

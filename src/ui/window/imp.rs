@@ -29,6 +29,8 @@ pub struct Window {
     pub main_player: TemplateChild<MainPlayer>,
 
     #[template_child]
+    pub drag_overlay: TemplateChild<adw::StatusPage>,
+    #[template_child]
     bottom_bar: TemplateChild<gtk::Box>,
     #[template_child]
     sheet: TemplateChild<adw::BottomSheet>,

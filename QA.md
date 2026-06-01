@@ -51,8 +51,7 @@ User Experience:
   - [x] With existing library
   - [x] On fresh launch
 - [x] All actions respond to user input without delay
-- [ ] All actions provide visual feedback
-  - TODO: Visual feedback for dragging files onto the player
+- [x] All actions provide visual feedback
 - [x] Lengthy tasks display a progress bar without blocking the interface
 - [x] All settings load properly (test with non-default values)
 - [ ] Does not leak memory
