@@ -1,4 +1,4 @@
-project('mellow', 'rust', version: '0.1.6', meson_version: '>= 1.4')
+project('mellow', 'rust', version: '0.2.0', meson_version: '>= 1.4')
 
 dependency('gtk4', version: '>= 4.22', required: get_option('flatpak'))
 dependency('libadwaita-1', version: '>= 1.9', required: get_option('flatpak'))
