@@ -67,13 +67,7 @@ impl SortedSongs for Songs {
     #[inline]
     fn find_song(&self, uri: &str, trim_start: usize) -> Result<usize, usize> {
         let trimmed_uri = &uri[trim_start..];
-        self.binary_search_by(|song| {
-            assert!(song.uri.len() > trim_start);
-            // SAFETY: Assert above ensures `trim_start` is within bounds,
-            // `song.uri` cannot contain large UTF-8 characters because it
-            // is a URI, assigned from `gio::File::uri`
-            unsafe { song.uri.get_unchecked(trim_start..) }.cmp(trimmed_uri)
-        })
+        self.binary_search_by(|song| song.uri[trim_start..].cmp(trimmed_uri))
     }
 }
 impl ToQueue for Songs {
