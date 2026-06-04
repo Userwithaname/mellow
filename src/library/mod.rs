@@ -1138,13 +1138,20 @@ impl Library {
     /// Serializes `songs` and writes the data to disk,
     /// so the library can be loaded faster next time
     ///
-    /// Writes to a file called `songs` in `self.config.dir`
+    /// File path is determined by `songs_file()`
     #[inline]
     fn serialize_songs(songs: &Songs) {
         let serialized = (songs.iter())
             .map(|song| song.serlialize() + "\n")
             .collect::<String>();
-        match fs::write(songs_file(), serialized.trim()) {
+        match fs::write(
+            songs_file(),
+            [
+                "! Editing this file may cause issues with the application !\n\n",
+                serialized.trim(),
+            ]
+            .concat(),
+        ) {
             Ok(()) => println!("Library song info has been successfully written to disk"),
             Err(e) => eprintln!("Problems writing the library state to disk: \n{e}"),
         }
@@ -1153,7 +1160,7 @@ impl Library {
     /// Reads the serialized song info from disk and returns them,
     /// so they can be assigned directly to `self.songs`
     ///
-    /// Reads from a file called `songs` in `self.config.dir`
+    /// File path is determined by `songs_file()`
     #[inline]
     #[must_use]
     fn deserialize_songs() -> Songs {
