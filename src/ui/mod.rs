@@ -187,6 +187,9 @@ pub enum UpdateUI {
 
     /// Causes the channel to ignore any further requests (but does not close it)
     Uninit,
+
+    /// Displays an error message informing the user that a component has crashed
+    CrashNotice(String),
 }
 
 /// Shows the 'Playing' tab in the UI

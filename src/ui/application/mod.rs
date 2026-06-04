@@ -1,6 +1,7 @@
 use adw::{prelude::*, subclass::prelude::*};
 use gtk::{gio, glib};
 use std::cell::RefCell;
+use std::panic::{self, PanicHookInfo};
 use std::sync::mpsc;
 use std::thread;
 use tokio::sync::mpsc as tokio_mpsc;
@@ -11,7 +12,7 @@ use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::{Library, LibraryConfig, LibraryRequest, library_tx};
 use crate::player::{Player, PlayerRequest, SongQueue};
 use crate::shortcuts::Shortcuts;
-use crate::ui::{UpdateUI, Window, actions::Actions};
+use crate::ui::{UpdateUI, Window, actions::Actions, ui_tx};
 use crate::{about, music_dir, util::unescaped_split};
 use crate::{init_channels, mpris};
 
@@ -32,6 +33,30 @@ impl Application {
 
         // Only runs once, because `init_channels` returns an error if already initialized
         if let Ok((player_rx, library_rx, ui_rx, mpris_rx)) = init_channels() {
+            // Close the app entirely if a component thread panics
+            panic::set_hook(Box::new(|info: &PanicHookInfo| {
+                let location = match info.location() {
+                    Some(location) => format!(
+                        "{}@{}:{}",
+                        location.file(),
+                        location.line(),
+                        location.column()
+                    ),
+                    None => "(unknown)".to_owned(),
+                };
+                let info = format!(
+                    "Thread `{}` panicked at {location}:\n{}",
+                    thread::current().name().unwrap_or_default(),
+                    info.payload_as_str().unwrap_or_default()
+                );
+                eprintln!("{info}\n");
+                let _ = ui_tx().send(UpdateUI::CrashNotice(info));
+
+                // IDEA: Create a crash file on disk and attempt to correct the issue
+                // on next launch (for example, if the `library` thread crashed, it
+                // could perform a lengthy check to ensure the `songs` file is valid)
+            }));
+
             // Starting the components in parallel with GTK (inside `init_componets`)
             // results in faster launch times, but this requires moving them into
             // `connect_startup` which takes a reusable `Fn` closure. One way of
