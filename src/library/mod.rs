@@ -328,12 +328,12 @@ impl Library {
                     paths.iter().map(|path| &**path), //
                 )?,
 
-                // NOTE: Blocking until cancellation completes, because repeated cancellations and
-                // rebuilds would otherwise deadlock in some cases. It would be a better solution
-                // to track the library state and react accordingly, without blocking (for example,
-                // `Rebuild` could cancel the current rebuild and wait until `build_stopped()`, and
-                // duplicate requests could be ignored until the pending one is processed)
-                LibraryRequest::CancelRebuild => self.cancel_library_build_blocking(),
+                // IDEA: Track the library state to avoid the need to manually cancel
+                // before `Rebuild` (for example, if already building, cancel and requeue
+                // on `on_build_stopped`. Duplicate requests sould be ignored until the
+                // pending one is processed)
+                // `CancelRebuild` could also do nothing if not currently building.
+                LibraryRequest::CancelRebuild => self.cancel_library_build(),
                 LibraryRequest::Rebuild => self.discover_files(),
                 LibraryRequest::OnBuildSucceeded(f) => self.on_build_succeeded.push(f),
                 LibraryRequest::OnBuildStopped(f) => self.on_build_stopped.push(f),
