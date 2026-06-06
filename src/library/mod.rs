@@ -777,7 +777,6 @@ impl Library {
                 timer = Instant::now();
                 if cancel.load(atomic::Ordering::Relaxed) {
                     check_moved.extend(mem::take(&mut *cancelled.lock().unwrap()));
-                    drop(check_moved);
                     return;
                 }
                 let _ = ui_tx.send(UpdateUI::Progress(Some(progress)));
