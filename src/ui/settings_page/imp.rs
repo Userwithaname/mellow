@@ -463,8 +463,13 @@ impl SettingsPage {
                 .tooltip_text("Remove") // TODO: Support translations
                 .css_classes(["flat", "circular"])
                 .build();
-            remove_button.connect_clicked(move |_| {
-                (library_tx().send(LibraryRequest::RemoveLibrary(i))).expect(EXP_RX);
+            remove_button.connect_clicked({
+                let directory_row = directory_row.clone();
+                let directory_list = self.directory_list.clone();
+                move |_| {
+                    directory_list.remove(&directory_row);
+                    (library_tx().send(LibraryRequest::RemoveLibrary(i))).expect(EXP_RX);
+                }
             });
             directory_row.add_suffix(&remove_button);
             self.directory_list.append(&directory_row);

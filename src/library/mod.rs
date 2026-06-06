@@ -328,7 +328,12 @@ impl Library {
                     paths.iter().map(|path| &**path), //
                 )?,
 
-                LibraryRequest::CancelRebuild => self.cancel_library_build(),
+                // NOTE: Blocking until cancellation completes, because repeated cancellations and
+                // rebuilds would otherwise deadlock in some cases. It would be a better solution
+                // to track the library state and react accordingly, without blocking (for example,
+                // `Rebuild` could cancel the current rebuild and wait until `build_stopped()`, and
+                // duplicate requests could be ignored until the pending one is processed)
+                LibraryRequest::CancelRebuild => self.cancel_library_build_blocking(),
                 LibraryRequest::Rebuild => self.discover_files(),
                 LibraryRequest::OnBuildSucceeded(f) => self.on_build_succeeded.push(f),
                 LibraryRequest::OnBuildStopped(f) => self.on_build_stopped.push(f),
@@ -599,6 +604,7 @@ impl Library {
 
         if let Ok(check_moved) = check_moved.lock()
             && !check_moved.is_empty()
+            && !cancel.load(atomic::Ordering::Relaxed)
         {
             Library::merge_moved_entries(&artists, check_moved, cancel);
         }
