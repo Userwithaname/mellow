@@ -137,8 +137,7 @@ pub trait SortedArtists {
     /// was found within the library or not
     ///
     /// # Panics
-    /// Panics if the item candidate's associated artist or album `Mutex`
-    /// is in a poisoned state
+    /// Panics if the artist or album candidate `Mutex` is in a poisoned state
     fn locate_song_by_info(&self, info: &SongInfo) -> Option<SharedSong>;
 }
 impl SortedArtists for Artists {
