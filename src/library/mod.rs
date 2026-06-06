@@ -239,10 +239,7 @@ pub fn init_library_tx(
 type LibraryTask = Box<dyn FnOnce(&mut Library) + Send + 'static>;
 
 pub enum LibraryRequest {
-    /// Rebuilds the library
-    ///
-    /// # Note:
-    /// In most cases, `CancelRebuild` should be called first
+    /// Rebuilds the library, cancelling any rebuild that might be currently running
     Rebuild,
     /// Cancels the current library build and pauses the thread pool requests
     /// until all current tasks finish running
@@ -615,6 +612,7 @@ impl Library {
         #[cfg(feature = "startup-logs")]
         println!("Merged moved file entries");
 
+        let state = STATE.load(atomic::Ordering::Relaxed);
         library_tx.send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
             library.set_artists(artists);
             library.set_albums(albums);
@@ -625,9 +623,10 @@ impl Library {
             // Wait for the file modification times to be fully checked
             drop(file_times.lock().unwrap());
 
-            if STATE.swap(STATE_READY, atomic::Ordering::Relaxed) != STATE_CANCEL {
+            if STATE.swap(STATE_READY, atomic::Ordering::Release) != STATE_CANCEL {
                 // Cancel any background tasks which might still be running
-                library.cancel_library_build();
+                library.cancel_library_build_blocking();
+
                 library.build_succeeded();
                 let _ = player_tx().send(PlayerRequest::ValidateFilePaths);
             }
@@ -635,8 +634,8 @@ impl Library {
             library.build_stopped();
         })))?;
 
-        match STATE.load(atomic::Ordering::Relaxed) {
-            0 | 1 => Ok(()),
+        match state {
+            1 => Ok(()),
             -1 => Err("Cancelled")?,
             state => Err(format!("Invalid `STATE`: {state}"))?,
         }
@@ -818,9 +817,7 @@ impl Library {
 
     /// Cancels any currently running library build operation
     pub fn cancel_library_build(&self) {
-        if STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_BUSY {
-            return;
-        };
+        STATE.store(STATE_CANCEL, atomic::Ordering::Release);
         self.tasks.await_all_tasks();
         self.tasks.run(move || {
             STATE.store(STATE_READY, atomic::Ordering::Release);
@@ -830,9 +827,7 @@ impl Library {
     /// Cancels any currently running library build operation
     /// and blocks the current thread until fully cancelled
     pub fn cancel_library_build_blocking(&self) {
-        if STATE.swap(STATE_CANCEL, atomic::Ordering::Release) == STATE_READY {
-            return;
-        };
+        STATE.store(STATE_CANCEL, atomic::Ordering::Release);
         self.tasks.await_all_tasks();
         let library_thread = thread::current();
         self.tasks.run(move || {
