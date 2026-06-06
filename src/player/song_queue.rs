@@ -6,7 +6,7 @@ use std::fs;
 use std::sync::Arc;
 
 use crate::excuses::EXP_RX;
-use crate::library::{Library, LibraryRequest, SharedSongExt, library_tx};
+use crate::library::{Library, LibraryRequest, SharedSongExt, SortedArtists, library_tx};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{StartupQueueChoice, UpdateUI, ui_tx};
 use crate::util::ReorderVecExt;
@@ -530,7 +530,7 @@ impl SongQueue {
                                 .as_song_unchecked()
                         };
                         let new_song = song.info().load_basic_and(|new_song_info| {
-                            library.locate_song_by_info(new_song_info)
+                            library.artists().locate_song_by_info(new_song_info)
                         })?;
 
                         if index == playing_index {

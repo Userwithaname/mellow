@@ -133,11 +133,44 @@ pub trait SortedArtists {
     /// If the item was not found, the returned `Err(index)`
     /// can be used to insert the item to the proper position
     fn find_artist(&self, info: &SongInfo) -> Result<usize, usize>;
+    /// Returns an `Option<SharedSong>` depending on whether the song
+    /// was found within the library or not
+    ///
+    /// # Panics
+    /// Panics if the item candidate's associated artist or album `Mutex`
+    /// is in a poisoned state
+    fn locate_song_by_info(&self, info: &SongInfo) -> Option<SharedSong>;
 }
 impl SortedArtists for Artists {
     #[inline]
     fn find_artist(&self, info: &SongInfo) -> Result<usize, usize> {
         self.binary_search_by(|artist| artist.lock().unwrap().name.cmp(&info.album_artist))
+    }
+
+    #[inline]
+    fn locate_song_by_info(&self, info: &SongInfo) -> Option<SharedSong> {
+        if info.title.is_empty() {
+            return None;
+        }
+
+        let artist = match self.find_artist(info) {
+            // SAFETY: `Ok` variant returned by `find_artist` is always within bounds
+            Ok(artist_index) => unsafe { self.get_unchecked(artist_index).lock().unwrap() },
+            Err(_) => return None,
+        };
+
+        let albums = artist.albums();
+        let album = match albums.find_artist_album(info) {
+            // SAFETY: `Ok` variant returned by `find_artist_album` is always within bounds
+            Ok(album_index) => unsafe { albums.get_unchecked(album_index).lock().unwrap() },
+            Err(_) => return None,
+        };
+
+        let songs = album.songs();
+        songs.find_album_song(info).ok().map(|song_index| {
+            // SAFETY: `Ok` variant returned by `find_album_song` is always within bounds
+            unsafe { Arc::clone(songs.get_unchecked(song_index)) }
+        })
     }
 }
 impl ToQueue for Artists {
@@ -268,6 +301,13 @@ impl Library {
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.songs.is_empty()
+    }
+
+    /// Returns all artists known to the library
+    #[inline]
+    #[must_use]
+    pub const fn artists(&self) -> &Artists {
+        &self.artists
     }
 
     /// Main loop for handling library requests
@@ -822,39 +862,6 @@ impl Library {
         while self.cancel_pending.load(atomic::Ordering::Acquire) {
             thread::park();
         }
-    }
-
-    /// Returns an `Option<SharedSong>` depending on whether the song
-    /// was found within the library or not
-    ///
-    /// # Panics
-    /// Panics if the found item's associated album or ortist `Mutex`
-    /// is in a poisoned state
-    #[inline]
-    #[must_use]
-    pub fn locate_song_by_info(&self, info: &SongInfo) -> Option<SharedSong> {
-        if info.title.is_empty() {
-            return None;
-        }
-
-        let artist = match self.artists.find_artist(info) {
-            // SAFETY: `Ok` variant returned by `find_artist` is always within bounds
-            Ok(artist_index) => unsafe { self.artists.get_unchecked(artist_index).lock().unwrap() },
-            Err(_) => return None,
-        };
-
-        let albums = artist.albums();
-        let album = match albums.find_artist_album(info) {
-            // SAFETY: `Ok` variant returned by `find_artist_album` is always within bounds
-            Ok(album_index) => unsafe { albums.get_unchecked(album_index).lock().unwrap() },
-            Err(_) => return None,
-        };
-
-        let songs = album.songs();
-        songs.find_album_song(info).ok().map(|song_index| {
-            // SAFETY: `Ok` variant returned by `find_album_song` is always within bounds
-            unsafe { Arc::clone(songs.get_unchecked(song_index)) }
-        })
     }
 
     /// Uses `library_tx` to send the `task` to run on the thread pool.
