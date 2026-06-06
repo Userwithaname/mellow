@@ -105,10 +105,7 @@ impl LibraryConfig {
     /// Requests a library rebuild and updates the directory list in the UI
     fn update_library(&self) {
         let _ = ui_tx().send(UpdateUI::SetLibraryDirs(self.directories.clone()));
-
-        let library_tx = library_tx();
-        let _ = library_tx.send(LibraryRequest::CancelRebuild);
-        let _ = library_tx.send(LibraryRequest::Rebuild);
+        let _ = library_tx().send(LibraryRequest::Rebuild);
     }
 
     /// Updates `self.directory_uris` using `self.directories`

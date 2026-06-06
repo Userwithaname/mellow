@@ -1,4 +1,4 @@
-use core::sync::atomic::{self, AtomicBool};
+use core::sync::atomic::{self, AtomicI8};
 use core::{cmp::Ordering, error::Error, mem};
 use gio::prelude::FileExt;
 use gtk::gio;
@@ -27,6 +27,16 @@ use crate::ui::{UpdateUI, ui_tx};
 use crate::util::tasks::{BoxedTask, Runner};
 use crate::{songs_file, util::visit_dirs};
 
+/// Controls and reflects the current library state,
+/// using the following constants:
+/// - `STATE_CANCEL`: -1
+/// - `STATE_READY`: 0
+/// - `STATE_BUSY`: 1
+pub static STATE: AtomicI8 = AtomicI8::new(1);
+pub const STATE_CANCEL: i8 = -1;
+pub const STATE_READY: i8 = 0;
+pub const STATE_BUSY: i8 = 1;
+
 pub struct Library {
     songs: Songs,
     albums: Albums,
@@ -36,7 +46,7 @@ pub struct Library {
     undo_songs: Songs,
 
     queue_initialized: bool,
-    cancel_pending: Arc<AtomicBool>,
+    rebuild_pending: bool,
 
     on_build_succeeded: Vec<LibraryTask>,
     on_build_stopped: Vec<LibraryTask>,
@@ -278,7 +288,7 @@ impl Library {
             undo_songs: Vec::new(),
 
             queue_initialized: false,
-            cancel_pending: Arc::new(AtomicBool::new(false)),
+            rebuild_pending: false,
 
             on_build_succeeded: Vec::new(),
             on_build_stopped: Vec::new(),
@@ -328,13 +338,8 @@ impl Library {
                     paths.iter().map(|path| &**path), //
                 )?,
 
-                // IDEA: Track the library state to avoid the need to manually cancel
-                // before `Rebuild` (for example, if already building, cancel and requeue
-                // on `on_build_stopped`. Duplicate requests sould be ignored until the
-                // pending one is processed)
-                // `CancelRebuild` could also do nothing if not currently building.
                 LibraryRequest::CancelRebuild => self.cancel_library_build(),
-                LibraryRequest::Rebuild => self.discover_files(),
+                LibraryRequest::Rebuild => self.start_library_build(),
                 LibraryRequest::OnBuildSucceeded(f) => self.on_build_succeeded.push(f),
                 LibraryRequest::OnBuildStopped(f) => self.on_build_stopped.push(f),
                 LibraryRequest::RunLibraryTask(f) => f(&mut self),
@@ -357,6 +362,9 @@ impl Library {
     /// uninitialized, the data from disk is used first. Song entries
     /// already present in `self.songs` are preserved, and only new
     /// songs are added.
+    ///
+    /// Either `STATE` should be set to `STATE_BUSY` before calling,
+    /// or `start_library_build()` should be called instead
     ///
     /// # Panics
     /// The function panics if the library channel is closed
@@ -388,11 +396,8 @@ impl Library {
             let missing = mem::take(&mut self.missing_songs);
             let check = Arc::clone(&self.check_moved);
             let config = self.config.clone();
-            let cancel = Arc::clone(&self.cancel_pending);
             let n_workers = self.tasks.num_workers();
-            move || match Library::create_connections(
-                songs, missing, &check, &config, &cancel, n_workers,
-            ) {
+            move || match Library::create_connections(songs, missing, &check, &config, n_workers) {
                 Ok(()) => (),
                 Err(e) => eprintln!("`Library::create_connections`: {e}"),
             }
@@ -415,7 +420,6 @@ impl Library {
         mut missing: Songs,
         check_moved: &Arc<Mutex<Songs>>,
         config: &LibraryConfig,
-        cancel: &Arc<AtomicBool>,
         num_workers: usize,
     ) -> Result<(), Box<dyn Error>> {
         let num_tasks = num_workers - 2;
@@ -429,7 +433,6 @@ impl Library {
 
         let file_times = Arc::new(Mutex::new(()));
         Library::run_task(library_tx, {
-            let cancel = Arc::clone(cancel);
             let songs = songs.clone();
             let busy = Arc::clone(&file_times);
             move || {
@@ -441,7 +444,7 @@ impl Library {
                 let file_times_guard = busy.lock().unwrap();
                 let mut needs_rebuild = false;
                 for song in &songs {
-                    if cancel.load(atomic::Ordering::Relaxed) {
+                    if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
                         return;
                     }
                     let mut info = song.info();
@@ -461,7 +464,9 @@ impl Library {
                     info.invalidate_thumbnail();
                 }
                 // If files were modified, queue another rebuild so the new info gets loaded
-                if needs_rebuild && !cancel.swap(true, atomic::Ordering::Release) {
+                if needs_rebuild
+                    && STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_CANCEL
+                {
                     let _ = library_tx.send(LibraryRequest::CancelRebuild);
                     let _ = library_tx.send(LibraryRequest::OnBuildStopped(Box::new(|_| {
                         ui_tx.send(UpdateUI::Progress(Some(0.0))).expect(EXP_RX);
@@ -481,12 +486,11 @@ impl Library {
         });
 
         Library::run_task(library_tx, {
-            let cancel = Arc::clone(cancel);
             let songs = songs.clone();
             move || {
                 // Wait before starting background tasks in case they aren't needed
                 thread::sleep(Duration::from_millis(100));
-                if cancel.load(atomic::Ordering::Relaxed) {
+                if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
                     return;
                 }
 
@@ -505,10 +509,9 @@ impl Library {
 
                 println!("Starting {num_tasks} background tasks to load the song info");
                 for songs in worker_songs {
-                    let cancel = Arc::clone(&cancel);
                     Library::run_task(library_tx, move || {
                         for song in songs {
-                            if cancel.load(atomic::Ordering::Relaxed) {
+                            if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
                                 #[cfg(debug_assertions)]
                                 println!("Song info task was cancelled");
                                 return;
@@ -591,7 +594,7 @@ impl Library {
             progress += progress_step;
             if timer.elapsed() > UI_TIMEOUT {
                 timer = Instant::now();
-                if cancel.load(atomic::Ordering::Relaxed) {
+                if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
                     let _ = ui_tx.send(UpdateUI::Progress(None));
                     break;
                 }
@@ -604,40 +607,38 @@ impl Library {
 
         if let Ok(check_moved) = check_moved.lock()
             && !check_moved.is_empty()
-            && !cancel.load(atomic::Ordering::Relaxed)
+            && STATE.load(atomic::Ordering::Relaxed) != STATE_CANCEL
         {
-            Library::merge_moved_entries(&artists, check_moved, cancel);
+            Library::merge_moved_entries(&artists, check_moved);
         }
 
         #[cfg(feature = "startup-logs")]
         println!("Merged moved file entries");
 
-        library_tx.send(LibraryRequest::RunLibraryTask(Box::new({
-            let cancel = cancel.clone();
-            move |library| {
-                library.set_artists(artists);
-                library.set_albums(albums);
-                library.set_songs(songs);
+        library_tx.send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
+            library.set_artists(artists);
+            library.set_albums(albums);
+            library.set_songs(songs);
 
-                ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
+            ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
 
-                // Wait for the file modification times to be fully checked
-                drop(file_times.lock().unwrap());
+            // Wait for the file modification times to be fully checked
+            drop(file_times.lock().unwrap());
 
-                library.build_stopped();
-
-                if !cancel.load(atomic::Ordering::Relaxed) {
-                    // Cancel any background tasks which might still be running
-                    library.cancel_library_build();
-                    library.build_succeeded();
-                    let _ = player_tx().send(PlayerRequest::ValidateFilePaths);
-                }
+            if STATE.swap(STATE_READY, atomic::Ordering::Relaxed) != STATE_CANCEL {
+                // Cancel any background tasks which might still be running
+                library.cancel_library_build();
+                library.build_succeeded();
+                let _ = player_tx().send(PlayerRequest::ValidateFilePaths);
             }
+
+            library.build_stopped();
         })))?;
 
-        match cancel.load(atomic::Ordering::Relaxed) {
-            false => Ok(()),
-            true => Err("Cancelled")?,
+        match STATE.load(atomic::Ordering::Relaxed) {
+            0 | 1 => Ok(()),
+            -1 => Err("Cancelled")?,
+            state => Err(format!("Invalid `STATE`: {state}"))?,
         }
     }
 
@@ -740,11 +741,7 @@ impl Library {
     /// # Panics
     /// The function panics if the UI channel receiver is unititialized
     /// or closed, or if the `check_moved` mutex is in a poisoned state
-    fn merge_moved_entries(
-        artists: &Artists,
-        mut check_moved: MutexGuard<'_, Songs>,
-        cancel: &Arc<AtomicBool>,
-    ) {
+    fn merge_moved_entries(artists: &Artists, mut check_moved: MutexGuard<'_, Songs>) {
         let cancelled = Arc::new(Mutex::new(Vec::new()));
         let ui_tx = ui_tx();
         let progress_step = 1.0 / check_moved.len() as f64;
@@ -780,7 +777,7 @@ impl Library {
             progress += progress_step;
             if timer.elapsed() > UI_TIMEOUT {
                 timer = Instant::now();
-                if cancel.load(atomic::Ordering::Relaxed) {
+                if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
                     check_moved.extend(mem::take(&mut *cancelled.lock().unwrap()));
                     return;
                 }
@@ -789,30 +786,62 @@ impl Library {
         }
     }
 
+    /// Starts a new library build
+    ///
+    /// If already building, the current operation is cancelled
+    /// before starting a new one
+    pub fn start_library_build(&mut self) {
+        match STATE.compare_exchange(
+            STATE_READY,
+            STATE_BUSY,
+            atomic::Ordering::Release,
+            atomic::Ordering::Relaxed,
+        ) {
+            Ok(_) => self.discover_files(),
+            Err(state) => {
+                if state == STATE_BUSY {
+                    self.cancel_library_build();
+                }
+                if self.rebuild_pending {
+                    return; // Skip duplicate pending rebuild requests
+                }
+                self.rebuild_pending = true;
+                self.on_build_stopped.push(Box::new(|library| {
+                    library.rebuild_pending = false;
+
+                    STATE.store(STATE_BUSY, atomic::Ordering::Release);
+                    library.discover_files();
+                }));
+            }
+        }
+    }
+
     /// Cancels any currently running library build operation
     pub fn cancel_library_build(&self) {
-        self.cancel_pending.store(true, atomic::Ordering::Release);
+        if STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_BUSY {
+            return;
+        };
         self.tasks.await_all_tasks();
-        let cancel_pending = Arc::clone(&self.cancel_pending);
         self.tasks.run(move || {
-            cancel_pending.store(false, atomic::Ordering::Release);
+            STATE.store(STATE_READY, atomic::Ordering::Release);
         });
     }
 
     /// Cancels any currently running library build operation
     /// and blocks the current thread until fully cancelled
     pub fn cancel_library_build_blocking(&self) {
-        self.cancel_pending.store(true, atomic::Ordering::Release);
+        if STATE.swap(STATE_CANCEL, atomic::Ordering::Release) == STATE_READY {
+            return;
+        };
         self.tasks.await_all_tasks();
-        let cancel_pending = Arc::clone(&self.cancel_pending);
         let library_thread = thread::current();
         self.tasks.run(move || {
-            cancel_pending.store(false, atomic::Ordering::Release);
+            STATE.store(STATE_READY, atomic::Ordering::Release);
             library_thread.unpark();
         });
         // Parking the thread in a loop until cancellation, because
         // threads can supposedly unpark themselves in some cases
-        while self.cancel_pending.load(atomic::Ordering::Acquire) {
+        while STATE.load(atomic::Ordering::Acquire) == STATE_CANCEL {
             thread::park();
         }
     }
@@ -1135,7 +1164,7 @@ impl Library {
     /// # Panics
     /// The function panics if it encounters a poisoned `Mutex`
     fn shutdown(mut self) {
-        self.cancel_pending.store(true, atomic::Ordering::Release);
+        STATE.store(STATE_CANCEL, atomic::Ordering::Release);
         (self.missing_songs).extend(mem::take(&mut *self.check_moved.lock().unwrap()));
         for missing in self.missing_songs {
             // Re-insert missing songs so their info is kept
