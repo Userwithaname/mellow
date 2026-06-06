@@ -476,15 +476,6 @@ impl Library {
             }
         });
 
-        if let Ok(check_moved) = check_moved.lock()
-            && !check_moved.is_empty()
-        {
-            Library::merge_moved_entries(&songs, check_moved, config, cancel, num_tasks);
-        }
-
-        #[cfg(feature = "startup-logs")]
-        println!("Merged moved file entries");
-
         Library::run_task(library_tx, {
             let cancel = Arc::clone(cancel);
             let songs = songs.clone();
@@ -606,6 +597,15 @@ impl Library {
 
         #[cfg(feature = "startup-logs")]
         println!("Library connections have finished building");
+
+        if let Ok(check_moved) = check_moved.lock()
+            && !check_moved.is_empty()
+        {
+            Library::merge_moved_entries(&artists, check_moved, cancel);
+        }
+
+        #[cfg(feature = "startup-logs")]
+        println!("Merged moved file entries");
 
         library_tx.send(LibraryRequest::RunLibraryTask(Box::new({
             let cancel = cancel.clone();
@@ -736,100 +736,49 @@ impl Library {
     /// The function panics if the UI channel receiver is unititialized
     /// or closed, or if the `check_moved` mutex is in a poisoned state
     fn merge_moved_entries(
-        songs: &Songs,
+        artists: &Artists,
         mut check_moved: MutexGuard<'_, Songs>,
-        config: &LibraryConfig,
         cancel: &Arc<AtomicBool>,
-        num_tasks: usize,
     ) {
-        #[inline]
-        #[must_use]
-        fn merge_if_matching(info: &mut SongInfoLoader, cmp_info: &SongInfoLoader) -> bool {
-            info.load_basic(); // Load info for more accurate matching
-            if cmp_info.matches(info) {
-                // Copy the user-assigned song info to the new entry
-                #[cfg(debug_assertions)]
-                println!(
-                    "Found moved file:\n{} -> {}",
-                    cmp_info.file_path(),
-                    info.file_path()
-                );
-                info.user().merge_with(&cmp_info.user());
-                let _ = fs::rename(cmp_info.thumbnail_file_path(), info.thumbnail_file_path());
-                return true;
-            }
-            let _ = fs::remove_file(cmp_info.thumbnail_file_path());
-            false
-        }
-
-        let (missing_tx, missing_rx) = mpsc::sync_channel::<Option<(usize, Arc<Song>)>>(0);
-        let missing_rx = Arc::new(Mutex::new(missing_rx));
-        let uri_opt = Arc::new(config.uri_opt());
-        let songs = Arc::new(songs.clone());
-        let moved_count = check_moved.len() as f64;
         let cancelled = Arc::new(Mutex::new(Vec::new()));
-        let library_tx = library_tx();
-
-        for _ in 0..num_tasks {
-            let songs = Arc::clone(&songs);
-            let uri_opt = Arc::clone(&uri_opt);
-            let missing_rx = Arc::clone(&missing_rx);
-            let cancelled = Arc::clone(&cancelled);
-            let cancel = Arc::clone(cancel);
-
-            Library::run_task(library_tx, move || {
-                let mut timer = Instant::now();
-                let cancellation_interval = Duration::from_millis(100);
-                while let Some((i, missing)) = missing_rx.lock().unwrap().recv().unwrap() {
-                    // Optimization: start with an initial guess and expand outwards
-                    let mut guess = match songs.find_song(&missing.uri, *uri_opt) {
-                        Err(index) | Ok(index) => index,
-                    };
-                    if guess == 0 || guess >= songs.len() {
-                        guess = (1.max(i) as f64 / moved_count * songs.len() as f64) as usize;
-                    }
-
-                    let old_info = missing.info();
-                    let (mut left, mut right) = (songs[..guess].iter(), songs[guess..].iter());
-                    while match (left.next_back(), right.next()) {
-                        (_, Some(song)) if merge_if_matching(&mut song.info(), &old_info) => false,
-                        (Some(song), _) if merge_if_matching(&mut song.info(), &old_info) => false,
-                        (None, None) => false,
-                        _ => true, // Loop until either the song is found or all songs were checked
-                    } {
-                        if timer.elapsed() > cancellation_interval {
-                            timer = Instant::now();
-                            if cancel.load(atomic::Ordering::Relaxed) {
-                                cancelled.lock().unwrap().push(missing);
-                                return;
-                            }
-                        }
-                    }
-                }
-            });
-        }
-        drop(missing_rx);
-
         let ui_tx = ui_tx();
         let progress_step = 1.0 / check_moved.len() as f64;
         let mut progress = 0.0;
         let mut timer = Instant::now();
 
-        // Show the progress bar and block until done
-        while missing_tx
-            .send(check_moved.pop().map(|song| (check_moved.len(), song)))
-            .is_ok()
-        {
+        while let Some(missing) = check_moved.pop() {
+            let mut old_info = missing.info();
+            match old_info.load_basic_and(|info| artists.locate_song_by_info(info)) {
+                Some(found_entry) => {
+                    // Copy the user-assigned song info to the new entry
+                    let found_entry_info = found_entry.info();
+                    found_entry_info.user().merge_with(&old_info.user());
+
+                    // Rename the thumbnail file
+                    let _ = fs::rename(
+                        old_info.thumbnail_file_path(),
+                        found_entry_info.thumbnail_file_path(),
+                    );
+
+                    #[cfg(debug_assertions)]
+                    println!(
+                        "Found moved file:\n{} -> {}",
+                        old_info.file_path(),
+                        found_entry_info.file_path()
+                    );
+                }
+                None => {
+                    let _ = fs::remove_file(old_info.thumbnail_file_path());
+                }
+            }
+
             progress += progress_step;
             if timer.elapsed() > UI_TIMEOUT {
                 timer = Instant::now();
                 if cancel.load(atomic::Ordering::Relaxed) {
-                    while missing_tx.send(None).is_ok() {
-                        // Sending `None` until all workers stop
-                    }
                     check_moved.extend(mem::take(&mut *cancelled.lock().unwrap()));
                     drop(check_moved);
-                    break;
+                    return;
                 }
                 let _ = ui_tx.send(UpdateUI::Progress(Some(progress)));
             }
