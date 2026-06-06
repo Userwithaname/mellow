@@ -1,3 +1,4 @@
+use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::{self, JoinHandle};
 
@@ -13,6 +14,7 @@ pub type BoxedTask = Box<dyn FnOnce() + Send + 'static>;
 pub struct Runner {
     request: mpsc::Sender<BoxedTask>,
     threads: Vec<JoinHandle<()>>,
+    waiting: Arc<AtomicBool>,
 }
 
 impl Runner {
@@ -46,6 +48,7 @@ impl Runner {
         Self {
             request: tx,
             threads: threads.collect(),
+            waiting: Arc::new(AtomicBool::new(false)),
         }
     }
 
@@ -63,8 +66,14 @@ impl Runner {
 
     /// Any tasks requested after this function call will wait
     /// in a queue until all current ones have finished running
+    ///
+    /// Calling this function when already waiting does nothing
     #[inline]
     pub fn await_all_tasks(&self) {
+        if self.waiting.swap(true, Ordering::Release) {
+            return;
+        };
+
         let (unblock_tx, unblock_rx) = mpsc::channel();
         let unblock_rx = Arc::new(Mutex::new(unblock_rx));
         let num_tasks = self.threads.len();
@@ -80,12 +89,18 @@ impl Runner {
         }
 
         // When this task gets its turn in the queue, all tasks
-        // started prior to this function have finished processing
+        // started prior to this function have finished running
+        let waiting = Arc::clone(&self.waiting);
         self.run(move || {
             // Notify the other workers to stop waiting
             for _ in 1..num_tasks {
                 let _ = unblock_tx.send(());
             }
+
+            waiting.store(false, Ordering::Release);
+
+            #[cfg(debug_assertions)]
+            println!("All background tasks have finished running");
         });
     }
 
