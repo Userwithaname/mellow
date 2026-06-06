@@ -12,11 +12,6 @@ glib::wrapper! {
 
 impl LibraryPage {
     #[inline]
-    pub fn update_progress(&self, progress: f64) {
-        self.imp().progress_bar.set_fraction(progress);
-    }
-
-    #[inline]
     pub fn switch_view(&self, name: &str) {
         let view_stack = &self.imp().view_stack;
         view_stack.set_visible_child_name(name);

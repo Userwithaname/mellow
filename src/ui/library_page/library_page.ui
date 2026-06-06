@@ -19,16 +19,7 @@
                     <property name="icon-name">applications-multimedia-symbolic</property>
                     <property name="title" translatable="yes">Loading...</property>
                     <child>
-                      <object class="AdwClamp">
-                        <child>
-                          <object class="GtkBox">
-                            <property name="orientation">vertical</property>
-                            <child>
-                              <object class="GtkProgressBar" id="progress_bar"/>
-                            </child>
-                          </object>
-                        </child>
-                      </object>
+                      <object class="AdwSpinner"/>
                     </child>
                   </object>
                 </property>

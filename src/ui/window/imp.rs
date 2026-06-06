@@ -317,7 +317,6 @@ impl Window {
     fn update_progress(&self, progress: Option<f64>) {
         if let Some(progress) = progress {
             self.progress_bar.set_fraction(progress);
-            self.library_page.update_progress(progress);
             if !self.progress_bar_visible.get() {
                 self.progress_bar_visible.set(true);
                 self.progress_bar.set_visible(true);
