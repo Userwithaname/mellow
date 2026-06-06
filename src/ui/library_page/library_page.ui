@@ -116,6 +116,15 @@
                             <property name="icon-name">applications-multimedia-symbolic</property>
                             <property name="title" translatable="yes">Library</property>
                             <property name="description" translatable="yes">No files were found in the configured directories</property>
+                            <child>
+                              <object class="GtkButton">
+                                <signal name="clicked" handler="handle_open_settings" swapped="true"/>
+                                <property name="label">Open Settings</property>
+                                <style>
+                                  <class name="pill"/>
+                                </style>
+                              </object>
+                            </child>
                           </object>
                         </property>
                       </object>

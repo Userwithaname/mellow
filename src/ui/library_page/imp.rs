@@ -3,6 +3,8 @@ use core::cell::Cell;
 use gtk::CompositeTemplate;
 use gtk::glib;
 
+use crate::ui::{UpdateUI, ui_tx};
+
 #[derive(Default, CompositeTemplate)]
 #[template(file = "library_page.ui")]
 pub struct LibraryPage {
@@ -14,6 +16,14 @@ pub struct LibraryPage {
     pub is_empty: Cell<bool>,
 }
 
+#[gtk::template_callbacks]
+impl LibraryPage {
+    #[template_callback]
+    pub fn handle_open_settings(&self) {
+        let _ = ui_tx().send(UpdateUI::FocusSettings);
+    }
+}
+
 #[glib::object_subclass]
 impl ObjectSubclass for LibraryPage {
     const NAME: &str = "MellowLibraryPage";
@@ -22,6 +32,7 @@ impl ObjectSubclass for LibraryPage {
 
     fn class_init(class: &mut Self::Class) {
         class.bind_template();
+        class.bind_template_callbacks();
     }
 
     fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
