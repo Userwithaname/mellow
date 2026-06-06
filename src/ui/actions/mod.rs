@@ -54,6 +54,7 @@ impl WindowActions for Window {
                 actions::player::play_all_artists(&window.artists_page),
                 actions::player::queue_visible_album(Rc::clone(&window.album_pages)),
                 actions::player::queue_visible_artist(Rc::clone(&window.artist_pages)),
+                actions::player::refresh_library(),
             ]
         });
         self.insert_action_group("player", Some(&player_actions));

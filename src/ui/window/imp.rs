@@ -324,6 +324,8 @@ impl Window {
                 self.settings_page.allow_library_refresh(false);
             }
         } else {
+            // IDEA: Refresh all open library subpages when setting progress to `None`
+
             self.progress_bar_visible.set(false);
             self.progress_bar.set_visible(false);
             self.library_page.switch_view("ready");
