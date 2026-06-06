@@ -487,7 +487,7 @@ impl Library {
             move || {
                 // Wait before starting background tasks in case they aren't needed
                 thread::sleep(Duration::from_millis(100));
-                if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
+                if STATE.load(atomic::Ordering::Relaxed) != STATE_BUSY {
                     return;
                 }
 
@@ -508,7 +508,7 @@ impl Library {
                 for songs in worker_songs {
                     Library::run_task(library_tx, move || {
                         for song in songs {
-                            if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
+                            if STATE.load(atomic::Ordering::Relaxed) != STATE_BUSY {
                                 #[cfg(debug_assertions)]
                                 println!("Song info task was cancelled");
                                 return;
@@ -612,7 +612,7 @@ impl Library {
         #[cfg(feature = "startup-logs")]
         println!("Merged moved file entries");
 
-        let state = STATE.load(atomic::Ordering::Relaxed);
+        let state = STATE.swap(STATE_READY, atomic::Ordering::Release);
         library_tx.send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
             library.set_artists(artists);
             library.set_albums(albums);
@@ -623,10 +623,7 @@ impl Library {
             // Wait for the file modification times to be fully checked
             drop(file_times.lock().unwrap());
 
-            if STATE.swap(STATE_READY, atomic::Ordering::Release) != STATE_CANCEL {
-                // Cancel any background tasks which might still be running
-                library.cancel_library_build_blocking();
-
+            if state != STATE_CANCEL {
                 library.build_succeeded();
                 let _ = player_tx().send(PlayerRequest::ValidateFilePaths);
             }
