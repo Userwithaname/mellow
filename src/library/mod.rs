@@ -32,10 +32,10 @@ use crate::{songs_file, util::visit_dirs};
 /// - `STATE_CANCEL`: -1
 /// - `STATE_READY`: 0
 /// - `STATE_BUSY`: 1
-pub static STATE: AtomicI8 = AtomicI8::new(1);
-pub const STATE_CANCEL: i8 = -1;
-pub const STATE_READY: i8 = 0;
-pub const STATE_BUSY: i8 = 1;
+static STATE: AtomicI8 = AtomicI8::new(1);
+const STATE_CANCEL: i8 = -1;
+const STATE_READY: i8 = 0;
+const STATE_BUSY: i8 = 1;
 
 pub struct Library {
     songs: Songs,
