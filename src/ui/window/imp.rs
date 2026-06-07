@@ -329,7 +329,7 @@ impl Window {
             self.library_page.switch_view("ready");
             self.settings_page.allow_library_refresh(true);
 
-            // Update all open library subpages so they display up-to-date information
+            // Update all open subpages so they display up-to-date information
             let song_pages = self.song_pages.borrow();
             let mut song_pages = song_pages.iter();
             let album_pages = self.album_pages.borrow();
@@ -360,7 +360,9 @@ impl Window {
                     }
                 };
             }
-            // IDEA: Update the queue subpage as well
+            if self.queue_subpage_visible.get() {
+                self.queue_subpage.refresh_ui();
+            }
         }
     }
 

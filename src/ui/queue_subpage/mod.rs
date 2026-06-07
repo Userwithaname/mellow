@@ -39,11 +39,7 @@ impl QueueSubpage {
             song_page.artist_name.set_label(&song_info.artist);
         });
 
-        let user_info = info.user();
-        song_page.rating.set_rating_silent(user_info.rating);
-        drop(user_info);
-        drop(info);
-
+        song_page.rating.set_rating_silent(info.user().rating);
         song_page.rating.connect_rating_set(move |rating| {
             song.info().set_rating(rating);
         });
@@ -68,6 +64,16 @@ impl QueueSubpage {
             .set_label(SharedStopper::display_name_from_bool(closes_player));
 
         self.show_song_elements(false);
+    }
+
+    /// Refreshes the subpage UI using the same item as currently shown
+    pub fn refresh_ui(&self) {
+        let ui = self.imp();
+        let index = ui.index.get();
+        match ui.queue_item.take() {
+            QueueItem::Song(song) => self.show_song_info(index, song),
+            QueueItem::Stopper(stopper) => self.show_stopper_info(index, &stopper),
+        }
     }
 
     /// Returns the current queue subpage item index
