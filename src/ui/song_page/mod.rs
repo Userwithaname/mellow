@@ -40,11 +40,7 @@ impl SongPage {
     pub fn init_page(&self, index: usize, song: SharedSong, to_queue: Box<dyn ToQueue + Send>) {
         let ui = self.imp();
 
-        // FIX: The index could be incorrect after adding or removing songs
-        // from the library while the song page is still open
         ui.index.set(index);
-        // FIX: What should be done if the song was removed from the library
-        // while its page is still open?
         ui.shared_song.replace(Some(Arc::clone(&song)));
 
         let mut info = song.info();
@@ -65,8 +61,12 @@ impl SongPage {
     /// Refreshes the song page by reinitializing it
     pub fn refresh_ui(&self) {
         let ui = self.imp();
+        // FIX: The `context` and `index` might no longer be correct if the relevant
+        // context has changed due to songs being added to or removed from the library
         self.init_page(
             ui.index.get(),
+            // FIX: What should be done if the song was removed from the library
+            // while its page is still open?
             ui.shared_song.take().unwrap(),
             ui.context.take().unwrap(),
         );

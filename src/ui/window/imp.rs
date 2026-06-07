@@ -341,6 +341,9 @@ impl Window {
                 match page_type {
                     SubpageType::Song => {
                         if let Some(song_page) = song_pages.next() {
+                            // FIX: It might be necessary to fully reinitialize the song
+                            // page if the library context has changed, to avoid the play
+                            // button playing the wrong item or crashing with OOB
                             song_page.refresh_ui();
                         }
                     }

@@ -44,8 +44,6 @@ impl AlbumPage {
     pub fn init_page(&self, album: &SharedAlbum, page_index: usize) {
         let ui = self.imp();
 
-        // FIX: What should be done if the album was removed from the library
-        // while its page is still open?
         ui.album.replace(Some(Arc::clone(album)));
 
         let album_locked = album.lock().unwrap();
@@ -182,6 +180,8 @@ impl AlbumPage {
 
     /// Refreshes the artist page by reinitializing it
     pub fn refresh_ui(&self, page_index: usize) {
+        // FIX: What should be done if the album was removed from the library
+        // while its page is still open?
         // NOTE: Borrowing `album` directly would panic on re-borrow
         self.init_page(&self.imp().album.take().unwrap(), page_index);
     }

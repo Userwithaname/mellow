@@ -44,8 +44,6 @@ impl ArtistPage {
     pub fn init_page(&self, artist: &SharedArtist) {
         let ui = self.imp();
 
-        // FIX: What should be done if the artist was removed from the library
-        // while its page is still open?
         ui.artist.replace(Some(Arc::clone(artist)));
 
         let artist = artist.lock().unwrap();
@@ -87,6 +85,8 @@ impl ArtistPage {
 
     /// Refreshes the artist page by reinitializing it
     pub fn refresh_ui(&self) {
+        // FIX: What should be done if the artist was removed from the library
+        // while its page is still open?
         // NOTE: Borrowing `artist` directly would panic on re-borrow
         self.init_page(&self.imp().artist.take().unwrap());
     }
