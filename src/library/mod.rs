@@ -366,6 +366,11 @@ impl Library {
     /// # Panics
     /// The function panics if the library channel is closed
     pub fn discover_files(&mut self) {
+        debug_assert!(
+            STATE.load(atomic::Ordering::Acquire) == STATE_BUSY,
+            "`STATE` should be set to `STATE_BUSY` ({STATE_BUSY}) before calling `discover_files`"
+        );
+
         let mut songs = match self.songs.is_empty() {
             true => Library::deserialize_songs(),
             false => mem::take(&mut self.songs),
