@@ -70,7 +70,7 @@ impl Runner {
     /// Calling this function when already waiting does nothing
     #[inline]
     pub fn await_all_tasks(&self) {
-        if self.waiting.swap(true, Ordering::Release) {
+        if self.waiting.swap(true, Ordering::Acquire) {
             return;
         }
 
