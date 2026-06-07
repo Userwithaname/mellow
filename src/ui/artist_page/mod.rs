@@ -37,7 +37,10 @@ impl ArtistPage {
         let artist_page = Self::default();
         let ui = artist_page.imp();
 
+        // FIX: What should be done if the album was removed from the library
+        // while its page is still open?
         ui.artist.replace(Some(Arc::clone(artist)));
+
         let artist = artist.lock().unwrap();
         let albums = artist.albums();
         artist_page.set_title(&["Artist: ", artist.name()].concat());

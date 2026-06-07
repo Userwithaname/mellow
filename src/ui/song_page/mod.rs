@@ -33,9 +33,14 @@ impl SongPage {
         let song_page = Self::default();
         let ui = song_page.imp();
 
+        // FIX: The index could be incorrect after adding or removing songs
+        // from the library while the song page is still open
         ui.index.set(index);
-        let mut info = song.info();
+        // FIX: What should be done if the song was removed from the library
+        // while its page is still open?
+        ui.shared_song.replace(Some(Arc::clone(&song)));
 
+        let mut info = song.info();
         info.load_basic_and(|song_info| {
             song_page.set_title(&["Song: ", &song_info.title].concat());
             ui.song_title.set_label(&song_info.title);
@@ -44,12 +49,7 @@ impl SongPage {
             ui.context.replace(Some(to_queue));
         });
 
-        let user_info = info.user();
-        ui.rating.set_rating_silent(user_info.rating);
-        drop(user_info);
-        drop(info);
-
-        ui.shared_song.replace(Some(Arc::clone(&song)));
+        ui.rating.set_rating_silent(info.user().rating);
         ui.rating.connect_rating_set(move |rating| {
             song.info().set_rating(rating);
         });

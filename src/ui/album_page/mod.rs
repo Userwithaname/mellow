@@ -35,12 +35,14 @@ impl AlbumPage {
     #[must_use]
     pub fn new(album: &SharedAlbum, page_index: usize) -> AlbumPage {
         let album_page = Self::default();
-
         let ui = album_page.imp();
-        let album_locked = album.lock().unwrap();
 
-        album_page.set_title(&["Album: ", album_locked.title()].concat());
+        // FIX: What should be done if the album was removed from the library
+        // while its page is still open?
         ui.album.replace(Some(Arc::clone(album)));
+
+        let album_locked = album.lock().unwrap();
+        album_page.set_title(&["Album: ", album_locked.title()].concat());
         ui.album_title.set_label(album_locked.title());
         ui.artist_name
             .set_label(album_locked.artist().lock().unwrap().name());
@@ -85,7 +87,7 @@ impl AlbumPage {
                         .send(UpdateUI::SongPage(Box::new((
                             i,
                             Arc::clone(&song),
-                            Box::new(album.clone() as SharedAlbum),
+                            Box::new(Arc::clone(&album)),
                         ))))
                         .expect(EXP_RX);
                 });
