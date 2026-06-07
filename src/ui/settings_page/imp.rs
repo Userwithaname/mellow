@@ -443,6 +443,7 @@ impl SettingsPage {
 
     #[inline]
     pub fn set_directories(&self, directories: &[String]) {
+        self.directory_list.set_sensitive(true);
         self.directory_list.remove_all();
         for (i, directory) in directories.iter().enumerate() {
             let prefix_icon = gtk::Image::builder()
@@ -467,7 +468,11 @@ impl SettingsPage {
                 let directory_row = directory_row.clone();
                 let directory_list = self.directory_list.clone();
                 move |_| {
-                    directory_list.remove(&directory_row);
+                    // Prevent removing any other directories until the list updates,
+                    // because the row index may no longer be consistent with the library
+                    directory_list.set_sensitive(false);
+                    directory_list.remove(&directory_row); // This may seem more responsive
+
                     (library_tx().send(LibraryRequest::RemoveLibrary(i))).expect(EXP_RX);
                 }
             });
