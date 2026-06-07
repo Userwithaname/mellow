@@ -26,24 +26,31 @@ impl Default for ArtistPage {
 
 impl ArtistPage {
     /// Creates a new `ArtistPage` instance using the information from `artist`
+    #[inline]
+    #[must_use]
+    pub fn new(artist: &SharedArtist) -> ArtistPage {
+        let artist_page = Self::default();
+        artist_page.init_page(artist);
+        artist_page
+    }
+
+    /// Initializes the artist page using the information from `artist`
     ///
     /// # Panics
     /// The function panics if any of the artist albums' `Mutex`es or songs'
     /// `RwLock`s are in a poisoned state. It may also panic at runtime upon
     /// interaction if the UI channel is closed.
     #[inline]
-    #[must_use]
-    pub fn new(artist: &SharedArtist) -> ArtistPage {
-        let artist_page = Self::default();
-        let ui = artist_page.imp();
+    pub fn init_page(&self, artist: &SharedArtist) {
+        let ui = self.imp();
 
-        // FIX: What should be done if the album was removed from the library
+        // FIX: What should be done if the artist was removed from the library
         // while its page is still open?
         ui.artist.replace(Some(Arc::clone(artist)));
 
         let artist = artist.lock().unwrap();
         let albums = artist.albums();
-        artist_page.set_title(&["Artist: ", artist.name()].concat());
+        self.set_title(&["Artist: ", artist.name()].concat());
         ui.artist_name.set_label(artist.name());
         ui.album_count.set_label(
             &format!("{} Albums", albums.len()), //TODO: Translations & grammar
@@ -76,9 +83,14 @@ impl ArtistPage {
 
             ui.albums_list.append(&album_row);
         }
-
-        artist_page
     }
+
+    /// Refreshes the artist page by reinitializing it
+    pub fn refresh_ui(&self) {
+        // NOTE: Borrowing `artist` directly would panic on re-borrow
+        self.init_page(&self.imp().artist.take().unwrap());
+    }
+
     /// Sets the shuffle mode for the play button
     #[inline]
     pub fn set_shuffle(&self, shuffle: bool) {

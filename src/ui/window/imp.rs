@@ -324,12 +324,40 @@ impl Window {
                 self.settings_page.allow_library_refresh(false);
             }
         } else {
-            // IDEA: Refresh all open library subpages when setting progress to `None`
-
             self.progress_bar_visible.set(false);
             self.progress_bar.set_visible(false);
             self.library_page.switch_view("ready");
             self.settings_page.allow_library_refresh(true);
+
+            // Update all open library subpages so they display up-to-date information
+            let song_pages = self.song_pages.borrow();
+            let mut song_pages = song_pages.iter();
+            let album_pages = self.album_pages.borrow();
+            let mut album_pages = album_pages.iter();
+            let mut album_page_index = 0; // Album pages need to know their index
+            let artist_pages = self.artist_pages.borrow();
+            let mut artist_pages = artist_pages.iter();
+            for page_type in self.library_subpages.borrow().iter() {
+                match page_type {
+                    SubpageType::Song => {
+                        if let Some(song_page) = song_pages.next() {
+                            song_page.refresh_ui();
+                        }
+                    }
+                    SubpageType::Album => {
+                        if let Some(album_page) = album_pages.next() {
+                            album_page.refresh_ui(album_page_index);
+                        }
+                        album_page_index += 1;
+                    }
+                    SubpageType::Artist => {
+                        if let Some(artist_page) = artist_pages.next() {
+                            artist_page.refresh_ui();
+                        }
+                    }
+                };
+            }
+            // IDEA: Update the queue subpage as well
         }
     }
 

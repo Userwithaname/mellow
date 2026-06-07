@@ -26,23 +26,30 @@ impl Default for AlbumPage {
 
 impl AlbumPage {
     /// Creates a new `AlbumPage` instance using the information from `album`
+    #[inline]
+    #[must_use]
+    pub fn new(album: &SharedAlbum, page_index: usize) -> AlbumPage {
+        let album_page = Self::default();
+        album_page.init_page(album, page_index);
+        album_page
+    }
+
+    /// Initializes the album page using the information from `album`
     ///
     /// # Panics
     /// The function panics if any of the `album`'s `Mutex` or the `album.songs`'
     /// `RwLock`s are in a poisoned state. It may also panic at runtime upon
     /// interaction if the UI channel is closed.
     #[inline]
-    #[must_use]
-    pub fn new(album: &SharedAlbum, page_index: usize) -> AlbumPage {
-        let album_page = Self::default();
-        let ui = album_page.imp();
+    pub fn init_page(&self, album: &SharedAlbum, page_index: usize) {
+        let ui = self.imp();
 
         // FIX: What should be done if the album was removed from the library
         // while its page is still open?
         ui.album.replace(Some(Arc::clone(album)));
 
         let album_locked = album.lock().unwrap();
-        album_page.set_title(&["Album: ", album_locked.title()].concat());
+        self.set_title(&["Album: ", album_locked.title()].concat());
         ui.album_title.set_label(album_locked.title());
         ui.artist_name
             .set_label(album_locked.artist().lock().unwrap().name());
@@ -164,15 +171,19 @@ impl AlbumPage {
                 });
             });
 
-            return album_page;
+            return;
         };
 
         match detailed_info.artwork.as_ref() {
             None => ui.album_cover.set_paintable(Some(&fallback_album_image())),
             artwork => ui.album_cover.set_paintable(artwork),
         }
+    }
 
-        album_page
+    /// Refreshes the artist page by reinitializing it
+    pub fn refresh_ui(&self, page_index: usize) {
+        // NOTE: Borrowing `album` directly would panic on re-borrow
+        self.init_page(&self.imp().album.take().unwrap(), page_index);
     }
 
     /// Assigns the album artwork to be shown on the page
