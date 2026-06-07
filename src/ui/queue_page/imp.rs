@@ -907,16 +907,25 @@ impl QueuePage {
                 let Some(to) = list_box.row_at_y(end_y as i32).map(|row| row.index()) else {
                     return;
                 };
-                let to_index = queue_page.model_index_to_queue(to as usize);
 
-                (player_tx().send(PlayerRequest::Reorder {
+                let queue_length = queue_page.queue_length.get();
+                let short_queue = queue_length <= NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
+                let offset = match short_queue {
+                    false => to - from,
+                    true => {
+                        // Short queue reordering is handled differently to fix an
+                        // off-by-one issue when reordering repeat-mode wrapped items
+                        let to_index = queue_page.model_index_to_queue(to as usize);
+                        to_index as i32 - from_index as i32
+                    }
+                };
+                let _ = player_tx().send(PlayerRequest::Shift {
                     from: from_index,
-                    to: to_index,
-                }))
-                .expect(EXP_RX);
+                    by: offset as isize,
+                });
 
                 // Short queues don't need to be offset, even if wrapped items are shown
-                if queue_page.queue_length.get() <= NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD {
+                if short_queue {
                     return;
                 }
 
@@ -929,7 +938,7 @@ impl QueuePage {
                         false if from < playing && to > playing => 1,
                         true if from > playing && to <= playing => -1,
                         true if from < playing && to >= playing => 1,
-                        true if from == playing => from_index as i32 - to_index as i32,
+                        true if from == playing => offset,
                         _ => 0,
                     },
                 ));
