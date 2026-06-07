@@ -67,6 +67,9 @@ impl QueueSubpage {
     }
 
     /// Refreshes the subpage UI using the same item as currently shown
+    ///
+    /// # Panics
+    /// Panics if the page was not initialized
     pub fn refresh_ui(&self) {
         let ui = self.imp();
         let index = ui.index.get();

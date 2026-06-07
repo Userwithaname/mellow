@@ -84,6 +84,9 @@ impl ArtistPage {
     }
 
     /// Refreshes the artist page by reinitializing it
+    ///
+    /// # Panics
+    /// Panics if the page was not initialized
     pub fn refresh_ui(&self) {
         // FIX: What should be done if the artist was removed from the library
         // while its page is still open?

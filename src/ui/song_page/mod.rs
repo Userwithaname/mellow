@@ -59,6 +59,9 @@ impl SongPage {
     }
 
     /// Refreshes the song page by reinitializing it
+    ///
+    /// # Panics
+    /// Panics if the page was not initialized
     pub fn refresh_ui(&self) {
         let ui = self.imp();
         // FIX: The `context` and `index` might no longer be correct if the relevant

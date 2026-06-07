@@ -358,7 +358,7 @@ impl Window {
                             artist_page.refresh_ui();
                         }
                     }
-                };
+                }
             }
             if self.queue_subpage_visible.get() {
                 self.queue_subpage.refresh_ui();

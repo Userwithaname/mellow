@@ -157,6 +157,9 @@ impl Application {
     }
 
     /// Returns the window associated with the `Application`
+    ///
+    /// # Panics
+    /// Panics if the application `window` is uninitialized
     #[inline]
     #[must_use]
     pub fn window(&self) -> &Window {

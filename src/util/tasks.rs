@@ -72,7 +72,7 @@ impl Runner {
     pub fn await_all_tasks(&self) {
         if self.waiting.swap(true, Ordering::Release) {
             return;
-        };
+        }
 
         let (unblock_tx, unblock_rx) = mpsc::channel();
         let unblock_rx = Arc::new(Mutex::new(unblock_rx));
