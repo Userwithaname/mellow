@@ -795,7 +795,7 @@ impl Library {
         match STATE.compare_exchange(
             STATE_READY,
             STATE_BUSY,
-            atomic::Ordering::Release,
+            atomic::Ordering::Acquire,
             atomic::Ordering::Relaxed,
         ) {
             Ok(_) => self.discover_files(),
