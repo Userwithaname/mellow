@@ -4,7 +4,7 @@ use gtk::gdk_pixbuf::Pixbuf;
 use gtk::{CompositeTemplate, InterfaceColorScheme};
 use gtk::{gdk, glib};
 
-use crate::excuses::{EXP_INIT, EXP_RX};
+use crate::excuses::{ACTION_ERR, EXP_INIT, EXP_RX};
 use crate::library::{LibraryRequest, library_tx};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::StartupQueueChoice;
@@ -32,6 +32,8 @@ pub struct SettingsPage {
     pub directory_list: TemplateChild<gtk::ListBox>,
     #[template_child]
     pub refresh_library_button: TemplateChild<gtk::Button>,
+    #[template_child]
+    add_directory_button: TemplateChild<gtk::Button>,
 
     // Startup Settings
     pub startup_choice: RefCell<StartupQueueChoice>,
@@ -92,6 +94,19 @@ impl SettingsPage {
     pub fn handle_refresh_library(&self) {
         self.refresh_library_button.set_sensitive(false);
         library_tx().send(LibraryRequest::Rebuild).expect(EXP_RX);
+    }
+    #[template_callback]
+    pub fn handle_add_directory(&self) {
+        self.allow_library_changes(false); // Will be re-activated later
+        self.add_directory_button
+            .activate_action("win.add_library", None)
+            .expect(ACTION_ERR);
+    }
+
+    #[inline]
+    pub fn allow_library_changes(&self, allow: bool) {
+        self.add_directory_button.set_sensitive(allow);
+        self.directory_list.set_sensitive(allow);
     }
 
     #[inline]
@@ -443,7 +458,7 @@ impl SettingsPage {
 
     #[inline]
     pub fn set_directories(&self, directories: &[String]) {
-        self.directory_list.set_sensitive(true);
+        self.allow_library_changes(true);
         self.directory_list.remove_all();
         for (i, directory) in directories.iter().enumerate() {
             let prefix_icon = gtk::Image::builder()
@@ -465,12 +480,13 @@ impl SettingsPage {
                 .css_classes(["flat", "circular"])
                 .build();
             remove_button.connect_clicked({
+                let settings_page = self.to_owned();
                 let directory_row = directory_row.clone();
                 let directory_list = self.directory_list.clone();
                 move |_| {
                     // Prevent removing any other directories until the list updates,
                     // because the row index may no longer be consistent with the library
-                    directory_list.set_sensitive(false);
+                    settings_page.allow_library_changes(false);
                     directory_list.remove(&directory_row); // This may seem more responsive
 
                     (library_tx().send(LibraryRequest::RemoveLibrary(i))).expect(EXP_RX);
@@ -483,8 +499,11 @@ impl SettingsPage {
             let add_directory_button = adw::ButtonRow::builder()
                 .title("Add Directory")
                 .start_icon_name("folder-new-symbolic")
-                .action_name("win.add_library")
                 .build();
+            add_directory_button.connect_activated({
+                let settings_page = self.to_owned();
+                move |_| settings_page.handle_add_directory()
+            });
             add_directory_button.add_css_class("suggested-action");
             self.directory_list.append(&add_directory_button);
         }

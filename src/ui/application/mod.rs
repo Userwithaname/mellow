@@ -118,6 +118,8 @@ impl Application {
                     #[cfg(feature = "startup-logs")]
                     println!("Library initialized");
 
+                    // `STATE` does not need to be set here,
+                    // because it defaults to `STATE_BUSY`
                     library.discover_files();
                     #[cfg(feature = "startup-logs")]
                     println!("Files were checked");

@@ -32,10 +32,10 @@ use crate::{songs_file, util::visit_dirs};
 /// - `STATE_CANCEL`: -1
 /// - `STATE_READY`: 0
 /// - `STATE_BUSY`: 1
-static STATE: AtomicI8 = AtomicI8::new(1);
-const STATE_CANCEL: i8 = -1;
-const STATE_READY: i8 = 0;
-const STATE_BUSY: i8 = 1;
+pub(super) static STATE: AtomicI8 = AtomicI8::new(STATE_BUSY);
+pub(super) const STATE_CANCEL: i8 = -1;
+pub(super) const STATE_READY: i8 = 0;
+pub(super) const STATE_BUSY: i8 = 1;
 
 pub struct Library {
     songs: Songs,
@@ -617,16 +617,19 @@ impl Library {
         #[cfg(feature = "startup-logs")]
         println!("Merged moved file entries");
 
-        let state = STATE.swap(STATE_READY, atomic::Ordering::Release);
+        let state = STATE.swap(STATE_CANCEL, atomic::Ordering::Acquire);
         library_tx.send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
             library.set_artists(artists);
             library.set_albums(albums);
             library.set_songs(songs);
 
-            ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
-
             // Wait for the file modification times to be fully checked
             drop(file_times.lock().unwrap());
+
+            ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
+
+            // Cancel any remaining background tasks and wait for them to stop
+            library.cancel_library_build_blocking();
 
             if state != STATE_CANCEL {
                 library.build_succeeded();
@@ -637,9 +640,9 @@ impl Library {
         })))?;
 
         match state {
-            1 => Ok(()),
-            -1 => Err("Cancelled")?,
-            state => Err(format!("Invalid `STATE`: {state}"))?,
+            STATE_BUSY => Ok(()),
+            STATE_CANCEL => Err("Cancelled")?,
+            _ => Err(format!("Invalid `STATE`: {state}"))?,
         }
     }
 
@@ -800,17 +803,18 @@ impl Library {
         ) {
             Ok(_) => self.discover_files(),
             Err(state) => {
-                if state == STATE_BUSY {
-                    self.cancel_library_build();
-                }
                 if self.rebuild_pending {
                     return; // Skip duplicate pending rebuild requests
                 }
                 self.rebuild_pending = true;
-                self.on_build_stopped.push(Box::new(|library| {
-                    library.rebuild_pending = false;
 
+                if state != STATE_READY {
+                    self.cancel_library_build();
+                }
+
+                self.on_build_stopped.push(Box::new(|library| {
                     STATE.store(STATE_BUSY, atomic::Ordering::Release);
+                    library.rebuild_pending = false;
                     library.discover_files();
                 }));
             }
@@ -821,9 +825,6 @@ impl Library {
     pub fn cancel_library_build(&self) {
         STATE.store(STATE_CANCEL, atomic::Ordering::Release);
         self.tasks.await_all_tasks();
-        self.tasks.run(move || {
-            STATE.store(STATE_READY, atomic::Ordering::Release);
-        });
     }
 
     /// Cancels any currently running library build operation
@@ -832,10 +833,7 @@ impl Library {
         STATE.store(STATE_CANCEL, atomic::Ordering::Release);
         self.tasks.await_all_tasks();
         let library_thread = thread::current();
-        self.tasks.run(move || {
-            STATE.store(STATE_READY, atomic::Ordering::Release);
-            library_thread.unpark();
-        });
+        self.tasks.run(move || library_thread.unpark());
         // Parking the thread in a loop until cancellation, because
         // threads can supposedly unpark themselves in some cases
         while STATE.load(atomic::Ordering::Acquire) == STATE_CANCEL {

@@ -563,6 +563,10 @@ impl ObjectSubclass for Window {
                     dir.path().unwrap().to_str().unwrap().into(),
                 )))
                 .expect(EXP_RX);
+            } else {
+                // Allow changing the library through the UI again if canceled,
+                // otherwise it will re-activate when the directory list is updated
+                window.imp().settings_page.allow_library_changes(true);
             }
         });
 

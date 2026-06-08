@@ -3,6 +3,7 @@ use std::sync::{Arc, Mutex, mpsc};
 use std::thread::{self, JoinHandle};
 
 use crate::excuses::INIT_ERR;
+use crate::library;
 
 pub type BoxedTask = Box<dyn FnOnce() + Send + 'static>;
 
@@ -67,6 +68,9 @@ impl Runner {
     /// Any tasks requested after this function call will wait
     /// in a queue until all current ones have finished running
     ///
+    /// Once all tasks have finished, `library::STATE` will be
+    /// set to `STATE_READY`
+    ///
     /// Calling this function when already waiting does nothing
     #[inline]
     pub fn await_all_tasks(&self) {
@@ -98,6 +102,7 @@ impl Runner {
             }
 
             waiting.store(false, Ordering::Release);
+            library::STATE.store(library::STATE_READY, Ordering::Release);
 
             #[cfg(debug_assertions)]
             println!("All background tasks have finished running");

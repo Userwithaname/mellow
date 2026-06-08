@@ -219,6 +219,12 @@ impl SettingsPage {
         self.imp().refresh_library_button.set_sensitive(allow);
     }
 
+    /// Whether to allow adding or removing directories through the UI
+    #[inline]
+    pub fn allow_library_changes(&self, allow: bool) {
+        self.imp().allow_library_changes(allow);
+    }
+
     /// Resets the adaptive background color and show the default
     /// background instead; useful when an album cover is missing
     #[inline]

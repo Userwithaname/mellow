@@ -81,9 +81,9 @@
               </object>
             </child>
             <child>
-              <object class="GtkButton">
+              <object class="GtkButton" id="add_directory_button">
+                <signal name="clicked" handler="handle_add_directory" swapped="true"/>
                 <property name="icon-name">folder-new-symbolic</property>
-                <property name="action-name">win.add_library</property>
                 <property name="tooltip-text" translatable="yes">Add Directory</property>
                 <style>
                   <class name="flat"/>

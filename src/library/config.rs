@@ -65,8 +65,11 @@ impl LibraryConfig {
     /// Adds `dir` to the configured directories
     pub fn add_library(&mut self, dir: String) {
         if self.directories.contains(&dir) || dir.is_empty() {
+            // Needed to re-activate the directory settings UI
+            let _ = ui_tx().send(UpdateUI::SetLibraryDirs(self.directories.clone()));
             return;
         }
+        let _ = ui_tx().send(UpdateUI::Progress(Some(0.0)));
         self.directories.push(dir);
         self.directories.sort();
         self.update_uris();
@@ -76,19 +79,20 @@ impl LibraryConfig {
 
     /// Removes the configured directory at `index`
     pub fn remove_library(&mut self, index: usize) {
-        let library_tx = library_tx();
-        let _ = library_tx.send(LibraryRequest::CancelRebuild);
+        let ui_tx = ui_tx();
+        let _ = ui_tx.send(UpdateUI::Progress(Some(0.0)));
 
         let removed_dir = self.directories.remove(index);
         self.directory_uris.remove(index);
         self.update_trim_uri();
 
-        println!("Removed a library\nLibraries: {:?}", self.directories);
-
+        let library_tx = library_tx();
         let _ = library_tx.send(LibraryRequest::RegisterUndoDirectory(removed_dir.clone()));
         let _ = library_tx.send(LibraryRequest::Rebuild);
 
-        let _ = ui_tx().send(UpdateUI::Notification(
+        println!("Removed a library\nLibraries: {:?}", self.directories);
+
+        let _ = ui_tx.send(UpdateUI::Notification(
             format!("Removed a library directory: {removed_dir}"),
             Some(Box::new((
                 "Undo",
@@ -99,7 +103,7 @@ impl LibraryConfig {
                 }),
             ))),
         ));
-        let _ = ui_tx().send(UpdateUI::SetLibraryDirs(self.directories.clone()));
+        let _ = ui_tx.send(UpdateUI::SetLibraryDirs(self.directories.clone()));
     }
 
     /// Requests a library rebuild and updates the directory list in the UI
