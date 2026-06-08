@@ -910,7 +910,7 @@ impl QueuePage {
 
                 let queue_length = queue_page.queue_length.get();
                 let short_queue = queue_length <= NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
-                let offset = match short_queue {
+                let shift_by = match short_queue {
                     false => to - from,
                     true => {
                         // Short queue reordering is handled differently to fix an
@@ -921,7 +921,7 @@ impl QueuePage {
                 };
                 let _ = player_tx().send(PlayerRequest::Shift {
                     from: from_index,
-                    by: offset as isize,
+                    by: shift_by as isize,
                 });
 
                 // Short queues don't need to be offset, even if wrapped items are shown
@@ -938,7 +938,7 @@ impl QueuePage {
                         false if from < playing && to > playing => 1,
                         true if from > playing && to <= playing => -1,
                         true if from < playing && to >= playing => 1,
-                        true if from == playing => offset,
+                        true if from == playing => -shift_by,
                         _ => 0,
                     },
                 ));
