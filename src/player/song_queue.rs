@@ -735,8 +735,8 @@ impl SongQueue {
 
     /// Loads the queue based on `queue_startup_choice`
     ///
-    /// # Panic
-    /// The function panics if either the player or UI channel receiver is closed
+    /// # Errors
+    /// Returns an error if either the player or UI channel is closed
     fn init_by_startup_choice(
         library: &Library,
         queue_startup_choice: StartupQueueChoice,
