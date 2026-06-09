@@ -22,7 +22,7 @@ letting music be the central point of focus.
 > This software is in active development; features and design may still be subject
 > to change. If you encounter any problems while using it, please post about them
 > on the [issues page](https://github.com/Userwithaname/mellow/issues). Suggestions
-> and feature requests welcome as well.
+> and feature requests are welcome as well.
 
 # Philosophy
 
