@@ -20,8 +20,9 @@ letting music be the central point of focus.
 
 > [!NOTE]
 > This software is in active development; features and design may still be subject
-> to change. Please report any issues you may encounter while using it. Suggestions
-> and requests are all welcome as well.
+> to change. If you encounter any problems while using it, please post about them
+> on the [issues page](https://github.com/Userwithaname/mellow/issues). Suggestions
+> and feature requests welcome as well.
 
 # Philosophy
 
@@ -42,32 +43,23 @@ When the overlay is closed, it is time to enjoy the music.
 
 # Features
 
-- ✨ Sleek and minimal interface - less for the eyes, more for the ears
-- 🌈 Adaptive colors - interface colors adapt to match the album cover
-- 🌊 Gapless playback - enjoy stutter-free transitions between songs
-- 📋 Song queue - view and edit the list of playing songs, or schedule a pause
-- 📀 Music library - browse and play your local music collection
-- 📂 File discovery - detects changed, moved, removed, or added song files
-- 💾 Removable drives - ratings can be accessed once the library is available again
-- 🪽 Fast & lightweight - responsive and quick to start, even with large libraries
+- **Sleek and minimal interface**: Less for the eyes, more for the ears
+- **Adaptive colors**: Interface colors adapt to match the current artwork
+- **Gapless playback**: Enjoy stutter-free transitions between songs
+- **Song queue**: View and edit the list of playing songs, or schedule a pause
+- **Music library**: Browse and play your local music collection
+- **File discovery**: Detects changed, moved, removed, or added song files
+- **Removable drives**: Ratings can be accessed once the library is available again
+- **Fast and lightweight**: Responsive and quick to start, even with large libraries
 
 # Roadmap
 
-|  #  | Feature                                   | Status  |
-| :-: | ----------------------------------------- | :-----: |
-|  1  | Playback & controls: play/pause/skip/seek | ✅ Done |
-|  2  | Playback modes: normal/shuffle/repeat     | ✅ Done |
-|  3  | Open files/folders to create a queue      | ✅ Done |
-|  4  | Song queue interface & management         | ⚠️ Possible UI element scaling issues |
-|  5  | Music library                             | ⚠️ Mostly done, but see below |
-| 5.1 | Artists page                              | ⚠️ Possible UI element scaling issues in subpages |
-| 5.2 | Albums page                               | ⚠️ Possible UI element scaling issues |
-| 5.3 | Songs page                                | ⚠️ Possible UI element scaling issues |
-| 5.4 | Search/filter/sort                        | ⚠️ No conditional filtering yet |
-| 5.5 | Play counts and ratings                   | ⚠️ Play counts are not shown anywhere yet |
-| 5.6 | User-assigned tags                        | ❌ TODO |
-|  6  | D-Bus media integration (MPRIS)           | ⚠️ Clicking the notification does not focus the player window if it is already open |
-|  7  | Adaptive background/colors                | ✅ Done |
+- **Library filtering**: Allow filtering library views to only display the items which
+  match the selected restrictions (for example, only those with 4 stars and more, only
+  those released before a certain year, only unplayed, etc)
+- **User-assigned custom tags**: Allow users to assign custom tags to library songs for
+  easier browsing (for example, songs could be marked as "calm" or "energic", which would
+  make it easier to find the right music for the current mood using library filters)
 
 # Installing Mellow
 
