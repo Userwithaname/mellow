@@ -64,13 +64,17 @@ impl SongPage {
     /// Panics if the page was not initialized
     pub fn refresh_ui(&self) {
         let ui = self.imp();
-        // FIX: The `context` and `index` might no longer be correct if the relevant
-        // context has changed due to songs being added to or removed from the library
+        // NOTE: Removing the song from the library while its page is open will
+        // still allow it to be played, which will cause a playback error if the
+        // actual files were removed (should this be handled?)
         self.init_page(
+            // FIX: When accessed through an album page, `index` might be incorrect if
+            // songs before it were added to or removed from the library (could cause OOB)
             ui.index.get(),
-            // FIX: What should be done if the song was removed from the library
-            // while its page is still open?
             ui.shared_song.take().unwrap(),
+            // NOTE: When accessed through the songs page `context`, might be outdated
+            // if library songs were added or removed (if this is to be handled, `index`
+            // must be updated as well)
             ui.context.take().unwrap(),
         );
     }

@@ -192,8 +192,9 @@ impl AlbumPage {
     /// # Panics
     /// Panics if the page was not initialized
     pub fn refresh_ui(&self, page_index: usize) {
-        // FIX: What should be done if the album was removed from the library
-        // while its page is still open?
+        // NOTE: Removing the album from the library while its page is open will
+        // still allow it to be played, which will cause a playback error if the
+        // actual files were removed (should this be handled?)
         // NOTE: Borrowing `album` directly would panic on re-borrow
         self.init_page(&self.imp().album.take().unwrap(), page_index);
     }
