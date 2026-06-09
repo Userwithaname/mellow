@@ -706,9 +706,14 @@ impl SongQueue {
         {
             let shuffled = if shuffle.parse().unwrap_or_default() {
                 match fs::read_to_string(shuffled_queue_file()) {
-                    Ok(shuffled) if shuffled.len() > track => Some(
-                        (shuffled.lines().filter_map(|line| line.trim().parse().ok())).collect(),
-                    ),
+                    Ok(shuffled)
+                        if let shuffled_queue = (shuffled.lines())
+                            .filter_map(|line| line.trim().parse().ok())
+                            .collect::<Vec<usize>>()
+                            && shuffled_queue.len() > track =>
+                    {
+                        Some(shuffled_queue)
+                    }
                     Ok(_) | Err(_) => None,
                 }
             } else {
