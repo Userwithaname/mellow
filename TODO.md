@@ -1,17 +1,3 @@
-UI issues:
-
-- `ListRow` (song queue):
-  - FIX: Rows should have a fixed height, and not resize to fit the available space
-  - FIX: The prefix image width should be the same regardless of the image aspect ratio
-- `ItemTile` (albums page (artists page unaffected because it does not have images)):
-  - FIX: In some cases, tile sizes can be inconsistent due to image sizing issues
-  - FIX: Images with non-square aspect ratios look wrong and take up too much space
-- `ItemRow` (songs page):
-  - FIX: The prefix image width should be the same regardless of the image aspect ratio
-- Song page:
-  - FIX: Images can in some cases take up too much or too little space
-  - FIX: Images with non-square aspect ratios look wrong
-
 Song queue:
 
 - [x] Reorder using drag-&-drop
@@ -19,18 +5,12 @@ Song queue:
     - IDEA: Also pan if dragging onto the pan button, once panning is implemented
 - [-] Multi-selection mode
   - IDEA: Shift+click to select everything between the last selected item and the clicked item
+  - IDEA: Click+drag to select multiple items
   - [x] Removing multiple items at once
   - [ ] Rating multiple items at once
-- [x] Offset the visible items by pressing the buttons at the top and bottom of the queue
-  - [x] Holding the button should repeatedly increment the panning offset
-  - [x] Show a scroll-to-playing button whenever the playing item is out of view
 - [x] Display a landing page
 > The "Open from Disk" picker could be improved to accept directories as well
 - [x] Drag file/folder onto player to start a queue with them
-  - TODO: Add visual feedback when the file is over the window
-  > The bottom sheet could open automatically and focus the song
-  queue, then show a "Drop here to start playing" message, or the
-  window could show an overlay (like Amberol does)
 
 Music library:
 
@@ -45,46 +25,23 @@ Music library:
   - [ ] Filter by tags, ratings, year, etc
   - IDEA: Conditional filters: year < 2000, rating > 3, play-count = 0, etc
   > Note: may not work with the dropdown-submenu design
-- [ ] Artists page
-  - [x] Buttons to play all artists (shuffled/sequential)
-  - [x] Show all artists
-  - [-] Artist subpage, accessed from each item
-    - [-] Display artist info (name/number of albums/average rating)
-    - [x] Display all albums by the artist, each opening an Album subpage
-    - [x] Play/Shuffle buttons
-    - [x] Add to Queue button
-- [ ] Albums page
-  - [x] Buttons to play all albums (shuffled/sequential)
-  - [x] Show all albums
+- [x] Artists page
+  - [x] Artist subpage, accessed from each item
+    - IDEA: Display average ratnig
+- [x] Albums page
   - [-] Album subpage, accessed from each item
-    - [x] Display album info (album cover/title/artist/year/average rating)
-    - [x] Play/Shuffle buttons
-    - [x] Add to Queue button
-    - [x] Display a track list, each opening a Song subpage
-    - [x] Visually separate songs from different disks
-    - [ ] Tag management (user-specified album tags (inferred from songs?))
-    - [x] Go to artist button
-- [ ] Songs page
-  - [x] Buttons to play all songs (shuffled/sequential)
-  - [x] Show all songs
+    - TODO: Tag management (user-specified album tags (inferred from songs?))
+- [x] Songs page
   - [-] Song subpage, accessed from each item
-    - [-] Display song info (title/album/artist, maybe album cover)
-      - TODO: Needs design improvements
-    - [x] Interactive rating widget
-    - [x] Play Now: Start a new queue and skip to the selected track
-    - [x] Play Next: Insert the song to the next position in the queue
-    - [x] Add to Queue button
-    - [ ] Tag management (user-specified song tags)
-    - [x] Go to album button
-    - [x] Go to artist button
+    - TODO: Tag management (user-specified song tags)
 - [x] Play counting
 > Works, but the counting logic could be improved
 
 Other:
 
 - [x] Toast notifications
-  - TODO: Notification for an upcoming "Pause & Close Player"
-    (something like: "The player is scheduled to close shortly")
+  - IDEA: Notification for an upcoming "Pause & Close Player"
+    (something like: "The player will close after this song")
   > This could maybe show a 'Cancel' button to turn it into a regular stopper without closing
 
 Meta:

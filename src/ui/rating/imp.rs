@@ -20,6 +20,10 @@ pub struct Rating {
     pub on_rating_set: RateFn,
 }
 
+// TODO: Allow keyboard navigation for changing ratings
+// - Allow the entire widget to be focused using the tab key
+// - Capture the left/right arrow keys to increase or decrease the rating
+
 impl Rating {
     /// Initializes the widget controllers
     #[inline]
