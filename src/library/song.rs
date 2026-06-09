@@ -14,6 +14,7 @@ use lofty::probe::Probe;
 
 use crate::cache_dir;
 use crate::library::SharedAlbum;
+use crate::util::hint::{cold, unlikely};
 use crate::util::{deserialize, serialize, serialize_list, unescaped_split};
 
 pub struct Song {
@@ -182,7 +183,7 @@ impl<'s> Song {
             }
         }
 
-        if uri.is_empty() {
+        if unlikely(uri.is_empty()) {
             return Err(MissingUriError);
         }
 
@@ -190,9 +191,9 @@ impl<'s> Song {
             album: Mutex::new(None),
             file: gio::File::for_uri(uri),
             uri: uri.to_owned(),
-            info: RwLock::new(match user_info.modified == 0 {
-                false => Some(info),
-                true => None,
+            info: RwLock::new(match user_info.modified {
+                0 => cold(None),
+                _ => Some(info),
             }),
             user_info: Mutex::new(user_info),
             detailed_info: RwLock::new(None),
