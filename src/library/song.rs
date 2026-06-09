@@ -190,9 +190,9 @@ impl<'s> Song {
             album: Mutex::new(None),
             file: gio::File::for_uri(uri),
             uri: uri.to_owned(),
-            info: RwLock::new(match user_info.modified {
-                0 => None,
-                _ => Some(info),
+            info: RwLock::new(match user_info.modified == 0 {
+                false => Some(info),
+                true => None,
             }),
             user_info: Mutex::new(user_info),
             detailed_info: RwLock::new(None),
@@ -831,43 +831,37 @@ impl SongInfoLoader<'_> {
         let thumbnail_file_path = self.thumbnail_file_path();
         fs::create_dir_all(thumbnail_file_path.rsplit_once('/').unwrap().0).unwrap();
 
-        let artwork = self.load_detailed_and(|detailed| detailed.artwork.clone());
-        let thumbnail = 'thumbnail: {
-            let Some(artwork) = artwork else {
-                break 'thumbnail None;
-            };
-            let mut tex_dl = gdk::TextureDownloader::new(&artwork);
-            tex_dl.set_format(gdk::MemoryFormat::R8g8b8a8Premultiplied);
-            let (bytes, row_stride) = tex_dl.download_bytes();
-            let pixbuf = Pixbuf::from_bytes(
-                &bytes,
-                gtk::gdk_pixbuf::Colorspace::Rgb,
-                true,
-                8,
-                artwork.width(),
-                artwork.height(),
-                row_stride as i32,
-            )
-            .scale_simple(
-                256,
-                (256.0 / artwork.intrinsic_aspect_ratio()) as i32,
-                gtk::gdk_pixbuf::InterpType::Bilinear,
-            )
-            .unwrap();
-
-            // FIX: `gdk::Texture::for_pixbuf` is deprecated
-            Some(gdk::Texture::for_pixbuf(&pixbuf))
-            // gdk::Texture::from_bytes(&pixbuf.read_pixel_bytes())
-            //     .inspect_err(|e| eprintln!("{e}"))
-            //     .ok()
+        let Some(artwork) = self.load_detailed_and(|detailed| detailed.artwork.clone()) else {
+            fs::write(thumbnail_file_path, "").unwrap();
+            return None;
         };
 
-        match &thumbnail {
-            Some(thumbnail) => thumbnail.save_to_png(thumbnail_file_path).unwrap(),
-            None => fs::write(thumbnail_file_path, "").unwrap(),
-        }
+        let mut tex_dl = gdk::TextureDownloader::new(&artwork);
+        tex_dl.set_format(gdk::MemoryFormat::R8g8b8a8Premultiplied);
+        let (bytes, row_stride) = tex_dl.download_bytes();
+        let pixbuf = Pixbuf::from_bytes(
+            &bytes,
+            gtk::gdk_pixbuf::Colorspace::Rgb,
+            true,
+            8,
+            artwork.width(),
+            artwork.height(),
+            row_stride as i32,
+        )
+        .scale_simple(
+            256,
+            (256.0 / artwork.intrinsic_aspect_ratio()) as i32,
+            gtk::gdk_pixbuf::InterpType::Bilinear,
+        )
+        .unwrap();
 
-        thumbnail
+        // FIX: `gdk::Texture::for_pixbuf` is deprecated
+        // The documentation suggests using `glycin`, however
+        // using it might not be feasible for other platforms
+        let thumbnail = gdk::Texture::for_pixbuf(&pixbuf);
+        thumbnail.save_to_png(thumbnail_file_path).unwrap();
+
+        Some(thumbnail)
     }
 }
 

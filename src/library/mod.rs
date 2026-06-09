@@ -802,15 +802,12 @@ impl Library {
             atomic::Ordering::Relaxed,
         ) {
             Ok(_) => self.discover_files(),
-            Err(state) => {
+            Err(_) => {
                 if self.rebuild_pending {
                     return; // Skip duplicate pending rebuild requests
                 }
                 self.rebuild_pending = true;
-
-                if state != STATE_READY {
-                    self.cancel_library_build();
-                }
+                self.cancel_library_build();
 
                 self.on_build_stopped.push(Box::new(|library| {
                     STATE.store(STATE_BUSY, atomic::Ordering::Release);
@@ -822,6 +819,7 @@ impl Library {
     }
 
     /// Cancels any currently running library build operation
+    #[inline]
     pub fn cancel_library_build(&self) {
         STATE.store(STATE_CANCEL, atomic::Ordering::Release);
         self.tasks.await_all_tasks();
@@ -829,6 +827,7 @@ impl Library {
 
     /// Cancels any currently running library build operation
     /// and blocks the current thread until fully cancelled
+    #[inline]
     pub fn cancel_library_build_blocking(&self) {
         STATE.store(STATE_CANCEL, atomic::Ordering::Release);
         self.tasks.await_all_tasks();
@@ -1149,7 +1148,11 @@ impl Library {
     #[must_use]
     fn deserialize_songs() -> Songs {
         match fs::read_to_string(songs_file()) {
-            Ok(data) => (data.split("\n\n").filter_map(SharedSong::deserialize)).collect(),
+            Ok(data) => data
+                .split("\n\n")
+                .skip(1) // Skip the warning at the top of the file
+                .filter_map(SharedSong::deserialize)
+                .collect(),
             Err(_) => Vec::with_capacity(512), // Estimate to reduce reallocations
         }
     }
