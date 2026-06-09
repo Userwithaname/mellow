@@ -687,9 +687,6 @@ impl SongQueue {
     ///
     /// # Errors
     /// Function may error if the player or UI channel receiver is closed
-    ///
-    /// # Panics
-    /// The function may panic if a required channel is closed
     #[inline]
     pub fn init_queue(
         library: &Library,
@@ -728,6 +725,7 @@ impl SongQueue {
             if repeat.parse().unwrap_or_default() {
                 let _ = player_tx.send(PlayerRequest::SetRepeat(true));
             }
+
             return Ok(());
         }
 
