@@ -674,15 +674,16 @@ impl Library {
         }
 
         let mut possibly_moved = Vec::new();
+        let mut unchecked = unchecked.lock().unwrap();
         let mut old_songs = [
             mem::replace(songs, Vec::with_capacity(songs.len())),
-            mem::take(&mut *unchecked.lock().unwrap()),
+            mem::take(&mut *unchecked),
             mem::take(missing),
         ]
         .concat()
         .into_iter();
 
-        'iter: while let Some(song) = old_songs.next() {
+        while let Some(song) = old_songs.next() {
             let opt_uri = &song.uri[config.uri_opt()..];
             match songs.find_song(&song.uri, config.uri_opt()) {
                 // Valid song entry
@@ -693,7 +694,7 @@ impl Library {
                     // Filter songs outside of `config.directories`
                     if libraries.iter().any(|dir| opt_uri.starts_with(dir)) {
                         songs.insert(index, song);
-                        continue 'iter;
+                        continue;
                     }
                     // IDEA: To disable libraries, move `songs` into `disabled_songs`
 
@@ -715,7 +716,7 @@ impl Library {
                                 //     info.filename()
                                 // );
                                 missing.insert(index, song);
-                                continue 'iter;
+                                continue;
                             }
 
                             possibly_moved.push(song);
@@ -739,14 +740,13 @@ impl Library {
             }
 
             if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
-                let mut unchecked = unchecked.lock().unwrap();
-                unchecked.extend_from_slice(&possibly_moved);
+                mem::swap(&mut *unchecked, &mut possibly_moved);
                 unchecked.extend(&mut old_songs);
                 return;
             }
         }
 
-        mem::swap(&mut *unchecked.lock().unwrap(), &mut possibly_moved);
+        mem::swap(&mut *unchecked, &mut possibly_moved);
     }
 
     /// Attempts to locate missing files if they were moved and merges
