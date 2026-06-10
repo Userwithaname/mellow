@@ -4,6 +4,7 @@ use std::cell::RefCell;
 use std::panic::{self, PanicHookInfo};
 use std::sync::mpsc;
 use std::thread;
+use std::time::Duration;
 use tokio::sync::mpsc as tokio_mpsc;
 
 mod imp;
@@ -215,7 +216,21 @@ impl Application {
     fn shutdown(&self) {
         let imp = self.imp();
         imp.window.get().unwrap().save_and_uninit().unwrap();
-        imp.library_handle.take().unwrap().join().unwrap();
-        imp.player_handle.take().unwrap().join().unwrap();
+
+        // Wait for all components to stop, except if timeout was exceeded
+        let timeout = Duration::from_millis(500);
+        let (notify_done, rx) = mpsc::channel::<()>();
+        let (library_handle, player_handle) = (
+            imp.library_handle.take().unwrap(),
+            imp.player_handle.take().unwrap(),
+        );
+        thread::spawn(move || {
+            library_handle.join().unwrap();
+            player_handle.join().unwrap();
+            let _ = notify_done.send(());
+        });
+        if rx.recv_timeout(timeout).is_err() {
+            eprintln!("Exiting - component timeout was reached");
+        };
     }
 }
