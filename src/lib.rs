@@ -57,16 +57,14 @@ pub struct AlreadyInitializedError;
 #[inline]
 #[must_use = "Caution: Channel receivers must be used, otherwise the channels will close"]
 pub fn init_channels() -> Result<ChannelReceivers, AlreadyInitializedError> {
-    let (ui_tx, ui_rx) = tokio_mpsc::unbounded_channel::<UpdateUI>();
     let (player_tx, player_rx) = mpsc::channel::<PlayerRequest>();
     let (library_tx, library_rx) = mpsc::channel::<LibraryRequest>();
+    let (ui_tx, ui_rx) = tokio_mpsc::unbounded_channel::<UpdateUI>();
     let (mpris_tx, mpris_rx) = tokio_mpsc::unbounded_channel::<UpdateMPRIS>();
 
-    if init_ui_tx(ui_tx).is_err() {
-        return Err(AlreadyInitializedError);
-    }
-    let _ = init_player_tx(player_tx);
+    init_player_tx(player_tx).map_err(|_| AlreadyInitializedError)?;
     let _ = init_library_tx(library_tx);
+    let _ = init_ui_tx(ui_tx);
     let _ = init_mpris_tx(mpris_tx);
 
     Ok((player_rx, library_rx, ui_rx, mpris_rx))
