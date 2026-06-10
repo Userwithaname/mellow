@@ -660,7 +660,7 @@ impl Library {
     fn validate_songs(
         songs: &mut Songs,
         missing: &mut Songs,
-        unchecked: &Arc<Mutex<Songs>>,
+        check_moved: &Arc<Mutex<Songs>>,
         config: &LibraryConfig,
     ) {
         let mut libraries = Vec::with_capacity(config.directories().len());
@@ -673,11 +673,10 @@ impl Library {
             }
         }
 
-        let mut possibly_moved = Vec::new();
-        let mut unchecked = unchecked.lock().unwrap();
+        let mut check_moved = check_moved.lock().unwrap();
         let mut old_songs = [
             mem::replace(songs, Vec::with_capacity(songs.len())),
-            mem::take(&mut *unchecked),
+            mem::take(&mut *check_moved),
             mem::take(missing),
         ]
         .concat()
@@ -699,7 +698,7 @@ impl Library {
                     // IDEA: To disable libraries, move `songs` into `disabled_songs`
 
                     // The file may have been copied to an active library
-                    possibly_moved.push(song);
+                    check_moved.push(song);
                 }
                 // Missing file
                 Err(_) => {
@@ -719,7 +718,7 @@ impl Library {
                                 continue;
                             }
 
-                            possibly_moved.push(song);
+                            check_moved.push(song);
                         }
                         // Duplicate missing song entry
                         Ok(index) => {
@@ -740,13 +739,10 @@ impl Library {
             }
 
             if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
-                mem::swap(&mut *unchecked, &mut possibly_moved);
-                unchecked.extend(&mut old_songs);
+                check_moved.extend(&mut old_songs);
                 return;
             }
         }
-
-        mem::swap(&mut *unchecked, &mut possibly_moved);
     }
 
     /// Attempts to locate missing files if they were moved and merges
