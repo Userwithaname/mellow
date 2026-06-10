@@ -663,13 +663,6 @@ impl Library {
         unchecked: &Arc<Mutex<Songs>>,
         config: &LibraryConfig,
     ) {
-        let old_songs = [
-            mem::replace(songs, Vec::with_capacity(songs.len())),
-            mem::take(&mut *unchecked.lock().unwrap()),
-            mem::take(missing),
-        ]
-        .concat();
-        let mut possibly_moved = Vec::new();
         let mut libraries = Vec::with_capacity(config.directories().len());
         let mut missing_libraries = Vec::new();
         for (index, dir) in config.directory_uris().iter().enumerate() {
@@ -679,7 +672,17 @@ impl Library {
                 _ => missing_libraries.push(opt_dir),
             }
         }
-        'iter: for song in old_songs {
+
+        let mut possibly_moved = Vec::new();
+        let mut old_songs = [
+            mem::replace(songs, Vec::with_capacity(songs.len())),
+            mem::take(&mut *unchecked.lock().unwrap()),
+            mem::take(missing),
+        ]
+        .concat()
+        .into_iter();
+
+        'iter: while let Some(song) = old_songs.next() {
             let opt_uri = &song.uri[config.uri_opt()..];
             match songs.find_song(&song.uri, config.uri_opt()) {
                 // Valid song entry
@@ -734,6 +737,13 @@ impl Library {
                     drop(song);
                 }
             }
+
+            if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
+                let mut unchecked = unchecked.lock().unwrap();
+                unchecked.extend_from_slice(&possibly_moved);
+                unchecked.extend(&mut old_songs);
+                return;
+            }
         }
 
         mem::swap(&mut *unchecked.lock().unwrap(), &mut possibly_moved);
@@ -746,7 +756,6 @@ impl Library {
     /// The function panics if the UI channel receiver is unititialized
     /// or closed, or if the `check_moved` mutex is in a poisoned state
     fn merge_moved_entries(artists: &Artists, mut check_moved: MutexGuard<'_, Songs>) {
-        let cancelled = Arc::new(Mutex::new(Vec::new()));
         let ui_tx = ui_tx();
         let progress_step = 1.0 / check_moved.len() as f64;
         let mut progress = 0.0;
@@ -782,7 +791,6 @@ impl Library {
             if timer.elapsed() > UI_TIMEOUT {
                 timer = Instant::now();
                 if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
-                    check_moved.extend(mem::take(&mut *cancelled.lock().unwrap()));
                     return;
                 }
                 let _ = ui_tx.send(UpdateUI::Progress(Some(progress)));
