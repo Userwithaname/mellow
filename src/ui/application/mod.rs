@@ -231,6 +231,6 @@ impl Application {
         });
         if rx.recv_timeout(timeout).is_err() {
             eprintln!("Exiting - component timeout was reached");
-        };
+        }
     }
 }

@@ -15,6 +15,7 @@ pub const fn cold<T>(value: T) -> T {
 ///
 /// Same as `core::hint::likely`, however that function is
 /// not currently available in stable Rust
+#[must_use]
 #[inline(always)]
 pub const fn likely(value: bool) -> bool {
     if value {
@@ -30,6 +31,7 @@ pub const fn likely(value: bool) -> bool {
 ///
 /// Same as `core::hint::unlikely`, however that function is
 /// not currently available in stable Rust
+#[must_use]
 #[inline(always)]
 pub const fn unlikely(value: bool) -> bool {
     if value {
