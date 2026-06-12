@@ -6,6 +6,7 @@ use std::sync::{OnceLock, mpsc};
 use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_RX, INIT_ERR};
 use crate::ui::{UpdateUI, ui_tx};
+use crate::util::hint::unlikely;
 use crate::util::wrap_index;
 
 pub mod queue_item;
@@ -411,14 +412,15 @@ impl Player {
     /// a new one is created.
     ///
     /// # Panics
-    /// The function panics if `index` is out of bounds of `queue`,
-    /// except when the `queue` is empty. May also panic if a song
-    /// item in `queue` is missing from disk, and its info in a
-    /// poisoned state.
+    /// Panics if the UI channel is closed
     #[inline]
     fn load_queue(&mut self, queue: Vec<QueueItem>, shuffled: Option<Vec<usize>>, index: usize) {
-        // Funky way of checking if the queue is empty to also hint a bounds check to the compiler
-        if index >= queue.len() {
+        if unlikely(index >= queue.len()) {
+            if !queue.is_empty() {
+                // Fallback to 0 if `index` is out of bounds
+                return self.load_queue(queue, shuffled, 0);
+            }
+
             let _ = self.backend.set_state(State::Null);
             self.queue.load_new(queue, shuffled);
             self.queue.ui_update_queue();
