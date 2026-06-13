@@ -458,7 +458,7 @@ impl Library {
                         info.known_modification_time()
                     });
                     if modification_time == info.known_modification_time()
-                        || modification_time == -1
+                        || modification_time == !0
                     {
                         continue;
                     }

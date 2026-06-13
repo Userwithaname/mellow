@@ -20,7 +20,7 @@ pub struct SongObject {
     #[property(name = "rank", get, set, type = f64, member = rank)]
     #[property(name = "rating", get, set, type = u8, member = rating)]
     #[property(name = "played", get, set, type = u64, member = played)]
-    #[property(name = "modified", get, set, type = i64, member = modified)]
+    #[property(name = "modified", get, set, type = u64, member = modified)]
     #[property(name = "added", get, set, type = u64, member = added)]
     pub data: RefCell<SongData>,
 

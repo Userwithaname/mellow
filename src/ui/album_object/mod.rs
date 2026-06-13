@@ -174,7 +174,7 @@ pub struct AlbumData {
     rank: f64,
     rating: f64,
     played: f64,
-    modified: i64,
+    modified: u64,
     added: u64,
 }
 

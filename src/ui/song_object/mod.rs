@@ -167,7 +167,7 @@ pub struct SongData {
     rank: f64,
     rating: u8,
     played: u64,
-    modified: i64,
+    modified: u64,
     added: u64,
 }
 

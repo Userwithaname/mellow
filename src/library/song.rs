@@ -307,21 +307,24 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the user info `Mutex` is poisoned
     #[must_use]
-    pub fn known_modification_time(&self) -> i64 {
+    pub fn known_modification_time(&self) -> u64 {
         self.user_info.lock().unwrap().modified
     }
-    /// Returns the song file modification time, or runs the `fallback` closure
-    /// and returns its value if the time could not be determined from the file
+    /// Returns the song file modification time, or returns the value
+    /// from `fallback` if the modification time is unavailable
+    ///
+    /// # Panics
+    /// Panics if the file modification time is earlier than `UNIX_EPOCH`
     #[inline]
     #[must_use]
-    pub fn file_modification_time<F: FnOnce(&Self) -> i64>(&self, fallback: F) -> i64 {
-        match self.file().query_info(
-            gio::FILE_ATTRIBUTE_TIME_MODIFIED,
-            gio::FileQueryInfoFlags::empty(),
-            gio::Cancellable::NONE,
-        ) {
-            Ok(file_info) if let Some(time) = file_info.modification_date_time() => time.to_unix(),
-            Err(_) | Ok(_) => fallback(self),
+    pub fn file_modification_time<F: FnOnce(&Self) -> u64>(&self, fallback: F) -> u64 {
+        if let Some(path) = self.file().path()
+            && let Ok(info) = path.metadata()
+            && let Ok(time) = info.modified()
+        {
+            time.duration_since(UNIX_EPOCH).unwrap().as_secs()
+        } else {
+            fallback(self)
         }
     }
     /// Updates the modification time to the current one from the file
@@ -331,18 +334,18 @@ impl SongInfoLoader<'_> {
     ///
     /// # Panics
     /// The function panics if the user info `Mutex` is poisoned. May
-    /// also painc if system time is earlier than `UNIX_EPOCH` and the
-    /// file modification time could not be determined.
+    /// also panic if either the file modification time or system time
+    /// is earlier than `UNIX_EPOCH`
     pub fn update_modification_time(&self) {
         self.user_info.lock().unwrap().modified = self.file_modification_time(|_| {
-            (SystemTime::now().duration_since(UNIX_EPOCH).unwrap()).as_secs() as i64
+            (SystemTime::now().duration_since(UNIX_EPOCH).unwrap()).as_secs()
         });
     }
     /// Sets the known modification time to the provided value
     ///
     /// # Panics
     /// The function panics if the user info `Mutex` is poisoned
-    pub fn set_modification_time(&self, time: i64) {
+    pub fn set_modification_time(&self, time: u64) {
         self.user_info.lock().unwrap().modified = time;
     }
 
@@ -377,7 +380,7 @@ impl SongInfoLoader<'_> {
     /// Sets the song rating
     ///
     /// # Panics
-    /// The function panics if the user info `RwLock` is poisoned
+    /// The function panics if the user info `Mutex` is poisoned
     pub fn set_rating(&self, rating: u8) {
         self.user_info.lock().unwrap().rating = rating;
     }
@@ -880,8 +883,9 @@ pub struct SongInfo {
 pub struct UserSongInfo {
     /// Time (in Unix format) when this file was first discovered by the library
     pub added: u64,
-    /// Last known modification time (Unix format). The value -1 is reserved for new files.
-    pub modified: i64,
+    /// Last known modification time (in Unix format).
+    /// The maximum value (`!0`) is reserved for new files.
+    pub modified: u64,
     /// How many times this song was played
     pub play_count: usize,
     /// User-assigned song rating
@@ -947,7 +951,7 @@ impl UserSongInfo {
         Self {
             added: (SystemTime::now().duration_since(UNIX_EPOCH))
                 .map_or_else(|_| 0, |time| time.as_secs()),
-            modified: -1,
+            modified: !0,
             ..Self::default()
         }
     }

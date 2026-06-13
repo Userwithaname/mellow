@@ -108,7 +108,7 @@ pub struct ArtistData {
     albums: u64,
     artwork: Option<gdk::Paintable>,
     rank: f64,
-    modified: i64,
+    modified: u64,
     added: u64,
 }
 
