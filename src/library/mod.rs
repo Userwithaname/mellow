@@ -246,14 +246,14 @@ pub enum LibraryRequest {
     QueueFromPaths(Box<[String]>),
 
     /// Adds a new library directory to the configuration
-    AddLibrary(Box<str>),
+    AddLibrary(PathBuf),
     /// Removes the library directory at the given index from the configuration
     RemoveLibrary(usize),
 
     /// Remembers the removed directory for undo
-    RegisterUndoDirectory(String),
+    RegisterUndoDirectory(PathBuf),
     /// Re-adds the removed directory and restores its library data
-    UndoRemovedDirectory(String),
+    UndoRemovedDirectory(PathBuf),
 
     /// Runs the given task on the thread pool, in the background
     RunTask(BoxedTask),
@@ -338,7 +338,7 @@ impl Library {
                 LibraryRequest::OnBuildStopped(f) => self.on_build_stopped.push(f),
                 LibraryRequest::RunLibraryTask(f) => f(&mut self),
 
-                LibraryRequest::AddLibrary(dir) => self.config.add_library(dir.to_string()),
+                LibraryRequest::AddLibrary(dir) => self.config.add_library(dir),
                 LibraryRequest::RemoveLibrary(index) => self.config.remove_library(index),
 
                 LibraryRequest::RegisterUndoDirectory(dir) => {
@@ -377,7 +377,7 @@ impl Library {
         };
 
         for library_path in self.config.directories() {
-            let _ = visit_dirs(Path::new(library_path), &mut |path| {
+            let _ = visit_dirs(library_path, &mut |path| {
                 if !path.extension().is_some_and(extension_supported) {
                     return;
                 }
@@ -387,7 +387,7 @@ impl Library {
                     songs.insert(index, SharedSong::from_path(path));
                 }
             })
-            .inspect_err(|e| eprintln!("Error reading '{library_path}': {e}"));
+            .inspect_err(|e| eprintln!("Error reading '{library_path:?}': {e}"));
         }
         self.songs.clone_from(&songs);
 
@@ -918,7 +918,7 @@ impl Library {
     }
     /// Adds all songs from directory `dir` to `self.undo_songs`, so their
     /// info can be recovered using `LibraryRequest::UndoRemovedDirectory`
-    fn undo_removed_directory(&mut self, dir: String) {
+    fn undo_removed_directory(&mut self, dir: PathBuf) {
         self.cancel_library_build_blocking();
         self.missing_songs.extend(mem::take(&mut self.undo_songs));
         self.config.add_library(dir);

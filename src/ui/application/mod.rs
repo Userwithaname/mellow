@@ -2,6 +2,7 @@ use adw::{prelude::*, subclass::prelude::*};
 use gtk::{gio, glib};
 use std::cell::RefCell;
 use std::panic::{self, PanicHookInfo};
+use std::path::PathBuf;
 use std::sync::mpsc;
 use std::thread;
 use std::time::Duration;
@@ -111,8 +112,11 @@ impl Application {
                     let mut library = Library::init(
                         LibraryConfig::new(match directories.as_str() {
                             // The value ":" means "first launch"
-                            ":" => vec![music_dir().clone()],
-                            dirs => unescaped_split(dirs, ','),
+                            ":" => vec![PathBuf::from(music_dir().clone())],
+                            dirs => unescaped_split(dirs, ',')
+                                .iter()
+                                .map(PathBuf::from)
+                                .collect(),
                         }),
                         library_rx,
                     );

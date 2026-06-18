@@ -1,4 +1,5 @@
 use std::fs;
+use std::path::PathBuf;
 
 use crate::config_dir;
 use crate::library::{LibraryRequest, library_tx};
@@ -13,29 +14,41 @@ pub const FILE_SUPPORT: &[&str] = &[
 
 #[derive(Clone)]
 pub struct LibraryConfig {
-    directories: Vec<String>,
+    directories: Vec<PathBuf>,
 }
 
 impl LibraryConfig {
     /// Creates a new instance of `LibraryConfig` and assigns the provided `directories`
     #[inline]
     #[must_use]
-    pub fn new(directories: Vec<String>) -> Self {
+    pub fn new(directories: Vec<PathBuf>) -> Self {
         let config = LibraryConfig { directories };
-        let _ = ui_tx().send(UpdateUI::SetLibraryDirs(config.directories.clone()));
+        let _ = ui_tx().send(UpdateUI::SetLibraryDirs(config.directories_string()));
         config
     }
 
     /// Returns the list of library directories
     #[inline]
     #[must_use]
-    pub const fn directories(&self) -> &Vec<String> {
+    pub const fn directories(&self) -> &Vec<PathBuf> {
         &self.directories
     }
 
+    /// Returns the list of library directories as `Vec<String>`
+    ///
+    /// # Panics
+    /// Panics if `Path::to_str` conversion fails
+    #[inline]
+    #[must_use]
+    pub fn directories_string(&self) -> Vec<String> {
+        (self.directories.iter())
+            .map(|dir| dir.to_str().unwrap().to_owned())
+            .collect()
+    }
+
     /// Replaces the configured directories with `dirs`
-    pub fn set_libraries(&mut self, dirs: &[String]) {
-        self.directories = dirs.into();
+    pub fn set_libraries(&mut self, dirs: &[PathBuf]) {
+        self.directories = dirs.to_vec();
         self.directories.sort();
         println!(
             "Library directories updated\nLibraries: {:?}",
@@ -45,10 +58,11 @@ impl LibraryConfig {
     }
 
     /// Adds `dir` to the configured directories
-    pub fn add_library(&mut self, dir: String) {
-        if self.directories.contains(&dir) || dir.is_empty() {
+    pub fn add_library(&mut self, dir: PathBuf) {
+        // Using `!dir.iter().any(|_| true)` because `Path::is_empty` is unstable
+        if self.directories.contains(&dir) || !dir.iter().any(|_| true) {
             // Needed to re-activate the directory settings UI
-            let _ = ui_tx().send(UpdateUI::SetLibraryDirs(self.directories.clone()));
+            let _ = ui_tx().send(UpdateUI::SetLibraryDirs(self.directories_string()));
             return;
         }
         let _ = ui_tx().send(UpdateUI::Progress(Some(0.0)));
@@ -72,7 +86,7 @@ impl LibraryConfig {
         println!("Removed a library\nLibraries: {:?}", self.directories);
 
         let _ = ui_tx.send(UpdateUI::Notification(
-            format!("Removed a library directory: {removed_dir}"),
+            format!("Removed a library directory: {removed_dir:?}"),
             Some(Box::new((
                 "Undo",
                 Box::new(move || {
@@ -82,12 +96,12 @@ impl LibraryConfig {
                 }),
             ))),
         ));
-        let _ = ui_tx.send(UpdateUI::SetLibraryDirs(self.directories.clone()));
+        let _ = ui_tx.send(UpdateUI::SetLibraryDirs(self.directories_string()));
     }
 
     /// Requests a library rebuild and updates the directory list in the UI
     fn update_library(&self) {
-        let _ = ui_tx().send(UpdateUI::SetLibraryDirs(self.directories.clone()));
+        let _ = ui_tx().send(UpdateUI::SetLibraryDirs(self.directories_string()));
         let _ = library_tx().send(LibraryRequest::Rebuild);
     }
 

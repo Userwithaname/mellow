@@ -28,13 +28,13 @@ mod tests {
 
     impl ConfigTester {
         fn test_empty_by_default(&self) {
-            assert!(&self.config.directories().is_empty());
+            assert!(&self.config.directories_string().is_empty());
         }
 
         fn test_add_library(&mut self) {
-            self.config.add_library("/test".to_string());
+            self.config.add_library("/test".into());
             assert_eq!(
-                self.config.directories(),
+                self.config.directories_string(),
                 &["/test"],
                 "`test_add_library()`"
             );
@@ -42,12 +42,12 @@ mod tests {
 
         fn test_set_libraries(&mut self) {
             self.config.set_libraries(&[
-                "/some/directory".to_string(),
-                "/some/folder".to_string(),
-                "/some/other/directory".to_string(),
+                "/some/directory".into(),
+                "/some/folder".into(),
+                "/some/other/directory".into(),
             ]);
             assert_eq!(
-                self.config.directories(),
+                self.config.directories_string(),
                 &["/some/directory", "/some/folder", "/some/other/directory",],
                 "`test_set_libraries()`"
             );
@@ -56,34 +56,34 @@ mod tests {
         fn test_remove_library(&mut self) {
             self.config.remove_library(1);
             assert_eq!(
-                self.config.directories(),
+                self.config.directories_string(),
                 &["/some/directory", "/some/other/directory"],
                 "`test_remove_library()`"
             );
         }
 
         fn test_sort_alphabetically(&mut self) {
-            self.config.add_library("/audio".to_string());
+            self.config.add_library("/audio".into());
             assert_eq!(
-                self.config.directories(),
+                self.config.directories_string(),
                 &["/audio", "/some/directory", "/some/other/directory",],
                 "`test_sort_alphabetically()`"
             );
         }
 
         fn test_reject_duplicates(&mut self) {
-            self.config.add_library("/some/directory".to_string());
+            self.config.add_library("/some/directory".into());
             assert_eq!(
-                self.config.directories(),
+                self.config.directories_string(),
                 &["/audio", "/some/directory", "/some/other/directory",],
                 "`test_reject_duplicates()`"
             );
         }
 
         fn test_reject_empty(&mut self) {
-            self.config.add_library("".to_string());
+            self.config.add_library("".into());
             assert_eq!(
-                self.config.directories(),
+                self.config.directories_string(),
                 &["/audio", "/some/directory", "/some/other/directory",],
                 "`test_reject_empty()`"
             );
