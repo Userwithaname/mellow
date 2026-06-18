@@ -140,16 +140,14 @@ impl<'s> Song {
     /// - If the `uri` field is missing from the `data`
     #[inline]
     fn deserialize(data: &str) -> Result<Song, DeserializeSongError> {
-        let mut uri = ""; // COMPAT: Backwards compatibility with <= 0.2.2 files
-        let compat_path; // COMPAT: Backwards compatibility with <= 0.2.2 files
         let mut path = "";
         let mut info = SongInfo::default();
         let mut user_info = UserSongInfo::default();
 
         deserialize! {
             data => {
-                "uri"<str> => uri,
                 "path"<str> => path,
+                "uri"<str> => path, // COMPAT: Backwards compatibility with <= 0.2.2 files
                 "added"<?> => user_info.added,
                 "modified"<?> => user_info.modified,
                 "title"<String> => info.title,
@@ -167,15 +165,7 @@ impl<'s> Song {
         }
 
         if unlikely(path.is_empty()) {
-            if !uri.is_empty() {
-                compat_path = (gio::File::for_uri(uri).path().unwrap().to_str())
-                    .unwrap()
-                    .to_owned();
-                path = &compat_path;
-                user_info.modified = 0;
-            } else {
-                return Err(DeserializeSongError);
-            }
+            return Err(DeserializeSongError);
         }
 
         Ok(Song {
