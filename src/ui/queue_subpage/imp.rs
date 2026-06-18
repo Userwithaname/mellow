@@ -108,30 +108,23 @@ impl QueueSubpage {
     }
     #[template_callback]
     pub fn handle_go_to_album(&self) {
-        let Some(album) = self.album.borrow().as_ref().map(Arc::clone) else {
-            // The button is greyed-out if the song is not from the library,
-            // but handling the `None` variant anyway, just in case
-            return;
+        let album = match self.album.borrow().as_ref() {
+            Some(album) => Arc::clone(album),
+            None => return, // Early-return for non-library songs
         };
         let ui_tx = ui_tx();
         ui_tx.send(UpdateUI::FocusLibrary).expect(EXP_RX);
         let _ = ui_tx.send(UpdateUI::AlbumPage(album));
-        (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
     }
     #[template_callback]
     pub fn handle_go_to_artist(&self) {
-        let Some(artist) = (self.album.borrow())
-            .as_ref()
-            .map(|album| Arc::clone(album.lock().unwrap().artist()))
-        else {
-            // The button is greyed-out if the song is not from the library,
-            // but handling the `None` variant anyway, just in case
-            return;
+        let artist = match self.album.borrow().as_ref() {
+            Some(album) => Arc::clone(album.lock().unwrap().artist()),
+            None => return, // Early-return for non-library songs
         };
         let ui_tx = ui_tx();
         ui_tx.send(UpdateUI::FocusLibrary).expect(EXP_RX);
         let _ = ui_tx.send(UpdateUI::ArtistPage(artist));
-        (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
     }
     #[template_callback]
     pub fn handle_stopper_closes_player(&self) {
