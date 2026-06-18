@@ -341,9 +341,7 @@ impl Library {
                 LibraryRequest::AddLibrary(dir) => self.config.add_library(dir),
                 LibraryRequest::RemoveLibrary(index) => self.config.remove_library(index),
 
-                LibraryRequest::RegisterUndoDirectory(dir) => {
-                    self.register_undo_directory(&PathBuf::from(dir));
-                }
+                LibraryRequest::RegisterUndoDirectory(dir) => self.register_undo_directory(&dir),
                 LibraryRequest::UndoRemovedDirectory(dir) => self.undo_removed_directory(dir),
 
                 #[allow(clippy::unit_arg)]
