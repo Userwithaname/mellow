@@ -2,18 +2,12 @@
 /// which can be used with `deserialize!()` to retreive the
 /// values afterwards
 ///
-/// Note: When serializing `ClockTime`, use `[…].nseconds()`
-/// on the left side of the expression to convert it to a
-/// format compatible with `deserialize!()`
-///
 /// # Example
 /// ```rust
 /// use mellow::util::{serialize, serialize_list};
-/// use gst::ClockTime;
 ///
 /// let number = 5;
 /// let text = "hello";
-/// let time = ClockTime::from_nseconds(50000);
 /// let list = &[
 ///     "one".to_string(),
 ///     "two".to_string(),
@@ -25,14 +19,12 @@
 ///     serialize! {
 ///         number => "number",
 ///         text => "text",
-///         time.nseconds() => "time",
 ///         serialize_list(list) => "list",
 ///         serialize_list(&numbers.map(|n| n.to_string())) => "numbers",
 ///     },
 ///     "\
 /// number: 5
 /// text: hello
-/// time: 50000
 /// list: one, two, three\\, four, \n\
 /// numbers: 1, 2, 3, 4, \n\
 /// "
@@ -78,13 +70,11 @@ pub fn serialize_list(list: &[String]) -> String {
 /// - `str` for assigning string slices
 /// - `String` for assigning owned strings
 /// - `?` for types implementing the `FromStr` trait
-/// - `ClockTime` for assigning `gst::ClockTime`
 /// - All types (except `str`) can be wrapped in square brackets
 ///   (`[…]`) to parse them as lists (such as `Vec`s)
 ///
 /// # Panics
-/// This macro panics when parsing invalid data for types `?`/`[?]`
-/// or `ClockTime`/`[ClockTime]`
+/// This macro panics when parsing invalid data for types `?` and `[?]`
 ///
 /// # Example
 /// ```rust
@@ -94,19 +84,15 @@ pub fn serialize_list(list: &[String]) -> String {
 /// let mut number = 0;
 /// let mut text = String::new();
 /// let mut text_str = "";
-/// let mut time = ClockTime::default();
 /// let mut numbers: Vec<usize> = Vec::new();
 /// let mut list = Vec::new();
-/// let mut times: Vec<ClockTime> = Vec::new();
 ///
 /// let data = "\
 /// number: 5
 /// text: hello
 /// text_str: hi
-/// time: 50000
 /// numbers: 1, 2, 3, 4
 /// list: one, two, three\\, four,
-/// times: 12, 34
 /// ";
 ///
 /// deserialize! {
@@ -114,23 +100,16 @@ pub fn serialize_list(list: &[String]) -> String {
 ///         "number"<?> => number,
 ///         "text"<String> => text,
 ///         "text_str"<str> => text_str,
-///         "time"<ClockTime> => time,
 ///         "numbers"<[?]> => numbers,
 ///         "list"<[String]> => list,
-///         "times"<[ClockTime]> => times,
 ///     }
 /// }
 ///
 /// assert_eq!(number, 5);
 /// assert_eq!(text, "hello".to_string());
 /// assert_eq!(text_str, "hi");
-/// assert_eq!(time, ClockTime::from_nseconds(50000));
 /// assert_eq!(numbers, [1, 2, 3, 4]);
 /// assert_eq!(list, ["one", "two", "three, four"]);
-/// assert_eq!(
-///     times,
-///     [ClockTime::from_nseconds(12), ClockTime::from_nseconds(34)],
-/// );
 /// ```
 #[macro_export]
 macro_rules! deserialize {
@@ -168,18 +147,6 @@ macro_rules! deserialize {
     };
     (@to_value [String], $value:expr, $field:expr) => {
         unescaped_split($value, ',')
-    };
-    (@to_value ClockTime, $value:expr, $field:expr) => {
-        ClockTime::from_nseconds($value.parse().unwrap_or_else(|e| {
-            panic!("deserialize!: {e} (value was: '{}', field name: {})", $value, $field)
-        }))
-    };
-    (@to_value [ClockTime], $value:expr, $field:expr) => {
-        $value.split(',').into_iter().map(|value| {
-            ClockTime::from_nseconds(value.trim().parse().unwrap_or_else(|e| {
-                panic!("deserialize!: {e} (value was: '{}', field name: {})", value, $field)
-            }))
-        }).collect()
     };
 }
 pub use deserialize;
