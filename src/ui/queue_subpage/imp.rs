@@ -48,14 +48,16 @@ pub struct QueueSubpage {
 
 #[gtk::template_callbacks]
 impl QueueSubpage {
-    // TODO: Test if `index` is incorrect after processing a stopper
-
     #[template_callback]
     pub fn handle_play_now(&self) {
         (self.obj().activate_action("ui.close_sheet", None)).expect(ACTION_ERR);
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
+
+        let index = self.index.get();
+        (ui_tx().send(UpdateUI::RecenterQueue(index as isize))).expect(EXP_RX);
+
         let player_tx = player_tx();
-        (player_tx.send(PlayerRequest::SkipTo(self.index.get()))).expect(EXP_RX);
+        (player_tx.send(PlayerRequest::SkipTo(index))).expect(EXP_RX);
         (player_tx.send(PlayerRequest::TogglePlay(Some(true)))).expect(EXP_RX);
     }
     #[template_callback]

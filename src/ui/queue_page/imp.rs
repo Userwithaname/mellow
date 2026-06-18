@@ -365,6 +365,12 @@ impl QueuePage {
         }
     }
 
+    pub fn recenter_queue(&self, index: isize) {
+        self.next_scroll_pos.set(QueueScrollAction::Offset(
+            (self.playing_index.get() as isize - index) as i32,
+        ))
+    }
+
     #[inline]
     fn items_to_objects<I, 'i>(
         items_iter: I,

@@ -98,6 +98,9 @@ pub enum UpdateUI {
     },
     /// Updates the playing song index and redraws the queue
     SetQueueIndex(usize),
+    /// Recenters the queue interface scroll position to keep the same items in view
+    /// Use before changing the playing song index to the same value as used here
+    RecenterQueue(isize),
     /// Redraws the current queue
     RedrawQueue,
     /// Exits queue selection mode if currently active

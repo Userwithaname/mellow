@@ -133,6 +133,7 @@ impl Window {
                     playing_index,
                 } => self.set_song_queue(queue, playing_index),
                 UpdateUI::SetQueueIndex(index) => self.set_queue_index(index),
+                UpdateUI::RecenterQueue(index) => self.queue_page.recenter(index),
                 UpdateUI::RedrawQueue => self.queue_page.redraw_queue(),
                 UpdateUI::ExitQueueSelection => self.queue_page.exit_selection(),
                 UpdateUI::OpenQueueSubpage(index) => self.open_queue_subpage(index),

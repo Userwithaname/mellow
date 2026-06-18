@@ -84,6 +84,11 @@ impl QueuePage {
         );
         queue_page.draw_queue(queue, playing);
     }
+    /// Recenters the queue UI scroll position using the new playing index
+    #[inline]
+    pub fn recenter(&self, index: isize) {
+        self.imp().recenter_queue(index);
+    }
 
     /// Exits the selection mode if currently active
     #[inline]
