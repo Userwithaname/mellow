@@ -90,9 +90,12 @@ impl<'s> Song {
     /// which can be used with the `deserialize()` method
     /// If the song info is not loaded, only the user info
     /// is serialized
+    ///
+    /// # Panics
+    /// Panics if `Path::to_str` conversion fails
     #[inline]
     #[must_use]
-    pub fn serlialize(&self) -> String {
+    pub fn serialize(&self) -> String {
         let info = self.info();
         let path = self.path.to_str().unwrap();
         let user_info = info.user().clone();

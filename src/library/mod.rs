@@ -1114,7 +1114,7 @@ impl Library {
     #[inline]
     fn serialize_songs(songs: &Songs) {
         let serialized = (songs.iter())
-            .map(|song| song.serlialize() + "\n")
+            .map(|song| song.serialize() + "\n")
             .collect::<String>();
         match fs::write(
             songs_file(),
