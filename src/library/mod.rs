@@ -377,8 +377,7 @@ impl Library {
         };
 
         for library_path in self.config.directories() {
-            let _ = visit_dirs(Path::new(&library_path), &mut |file| {
-                let path = file.path();
+            let _ = visit_dirs(Path::new(library_path), &mut |path| {
                 if !path.extension().is_some_and(extension_supported) {
                     return;
                 }
@@ -1090,8 +1089,7 @@ impl Library {
             return;
         }
         let mut songs = Vec::with_capacity(16);
-        let _ = visit_dirs(path, &mut |file| {
-            let file_path = file.path();
+        let _ = visit_dirs(path, &mut |file_path| {
             if !file_path.extension().is_some_and(extension_supported) {
                 return;
             }
