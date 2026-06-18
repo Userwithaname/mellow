@@ -4,6 +4,7 @@ use gtk::{gdk, gio, glib};
 use std::fs::{self, File};
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::Read;
+use std::path::PathBuf;
 use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::{TryLockError, TryLockResult};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -19,8 +20,7 @@ use crate::util::{deserialize, serialize, serialize_list, unescaped_split};
 
 pub struct Song {
     album: Mutex<Option<SharedAlbum>>,
-    pub file: gio::File,
-    pub uri: String,
+    pub path: PathBuf,
     info: RwLock<Option<SongInfo>>,
     user_info: Mutex<UserSongInfo>,
     detailed_info: RwLock<Option<DetailedSongInfo>>,
@@ -29,22 +29,16 @@ pub struct Song {
 
 pub type SharedSong = Arc<Song>;
 pub trait SharedSongExt {
-    fn from_file(file: gio::File, uri: String) -> SharedSong;
-    fn from_path(path: &str) -> SharedSong;
+    fn from_path(path: PathBuf) -> SharedSong;
     fn deserialize(data: &str) -> Option<SharedSong>;
     fn album(&self) -> MutexGuard<'_, Option<SharedAlbum>>;
     fn get_album(&self) -> Option<SharedAlbum>;
     fn set_album(&self, album: SharedAlbum);
 }
 impl SharedSongExt for SharedSong {
-    /// Constructs a new `SharedSong` from a `gio::File`
-    #[inline]
-    fn from_file(file: gio::File, uri: String) -> SharedSong {
-        Arc::new(Song::from_file(file, uri))
-    }
     /// Constructs a new `SharedSong` from a file path
     #[inline]
-    fn from_path(path: &str) -> SharedSong {
+    fn from_path(path: PathBuf) -> SharedSong {
         Arc::new(Song::from_path(path))
     }
     /// Constructs a new `SharedSong` using serialized data
@@ -75,33 +69,16 @@ impl SharedSongExt for SharedSong {
 }
 
 #[derive(Debug)]
-struct MissingUriError;
+struct DeserializeSongError;
 
 impl<'s> Song {
-    /// Constructs a new `Song` from a `gio::File`
-    #[inline]
-    #[must_use]
-    fn from_file(file: gio::File, uri: String) -> Song {
-        Song {
-            album: Mutex::new(None),
-            file,
-            uri,
-            info: RwLock::new(None),
-            user_info: Mutex::new(UserSongInfo::new()),
-            detailed_info: RwLock::new(None),
-            thumbnail: RwLock::new(None),
-        }
-    }
     /// Constructs a new `Song` from a file path
     #[inline]
     #[must_use]
-    fn from_path(file: &str) -> Song {
-        let file = gio::File::for_path(file);
-        let uri = file.uri().to_string();
+    fn from_path(path: PathBuf) -> Song {
         Song {
             album: Mutex::new(None),
-            file,
-            uri,
+            path,
             info: RwLock::new(None),
             user_info: Mutex::new(UserSongInfo::new()),
             detailed_info: RwLock::new(None),
@@ -117,12 +94,12 @@ impl<'s> Song {
     #[must_use]
     pub fn serlialize(&self) -> String {
         let info = self.info();
-        let uri = info.file_uri();
+        let path = self.path.to_str().unwrap();
         let user_info = info.user().clone();
         (info.inspect_basic().as_ref()).map_or_else(
             || {
                 serialize! {
-                    uri => "uri",
+                    path => "path",
                     user_info.added => "added",
                     0 => "modified",
                     user_info.play_count => "play_count",
@@ -132,7 +109,7 @@ impl<'s> Song {
             },
             |info| {
                 serialize! {
-                    uri => "uri",
+                    path => "path",
                     user_info.added => "added",
                     user_info.modified => "modified",
                     info.title => "title",
@@ -159,14 +136,17 @@ impl<'s> Song {
     /// # Errors
     /// - If the `uri` field is missing from the `data`
     #[inline]
-    fn deserialize(data: &str) -> Result<Song, MissingUriError> {
-        let mut uri = "";
+    fn deserialize(data: &str) -> Result<Song, DeserializeSongError> {
+        let mut uri = ""; // COMPAT: Backwards compatibility with <= 0.2.2 files
+        let compat_path; // COMPAT: Backwards compatibility with <= 0.2.2 files
+        let mut path = "";
         let mut info = SongInfo::default();
         let mut user_info = UserSongInfo::default();
 
         deserialize! {
             data => {
                 "uri"<str> => uri,
+                "path"<str> => path,
                 "added"<?> => user_info.added,
                 "modified"<?> => user_info.modified,
                 "title"<String> => info.title,
@@ -183,14 +163,21 @@ impl<'s> Song {
             }
         }
 
-        if unlikely(uri.is_empty()) {
-            return Err(MissingUriError);
+        if unlikely(path.is_empty()) {
+            if !uri.is_empty() {
+                compat_path = (gio::File::for_uri(uri).path().unwrap().to_str())
+                    .unwrap()
+                    .to_owned();
+                path = &compat_path;
+                user_info.modified = 0;
+            } else {
+                return Err(DeserializeSongError);
+            }
         }
 
         Ok(Song {
             album: Mutex::new(None),
-            file: gio::File::for_uri(uri),
-            uri: uri.to_owned(),
+            path: PathBuf::from(path),
             info: RwLock::new(match user_info.modified {
                 0 => cold(None),
                 _ => Some(info),
@@ -201,15 +188,21 @@ impl<'s> Song {
         })
     }
 
+    /// Returns the song file URI, which can be used by `GStreamer`
+    #[inline]
+    #[must_use]
+    pub fn get_uri(&self) -> glib::GString {
+        gio::File::for_path(&self.path).uri()
+    }
+
     /// Returns a `SongInfoLoader`, which can be used to access information
     /// about the file and song. Tags are loaded on-demand, and remain in
     /// memory until the respective `unload` or `take` method is called.
     #[inline]
     #[must_use]
-    pub fn info(&'s self) -> SongInfoLoader<'s> {
+    pub const fn info(&'s self) -> SongInfoLoader<'s> {
         SongInfoLoader {
-            file: &self.file,
-            uri: &self.uri,
+            path: &self.path,
             info: &self.info,
             user_info: &self.user_info,
             detailed_info: &self.detailed_info,
@@ -220,8 +213,7 @@ impl<'s> Song {
 }
 
 pub struct SongInfoLoader<'i> {
-    file: &'i gio::File,
-    uri: &'i str,
+    path: &'i PathBuf,
     info: &'i RwLock<Option<SongInfo>>,
     user_info: &'i Mutex<UserSongInfo>,
     detailed_info: &'i RwLock<Option<DetailedSongInfo>>,
@@ -243,45 +235,29 @@ impl SongInfoLoader<'_> {
         {
             own_info == other_info
         } else {
-            self.uri == other.uri
+            self.path == other.path
         }
     }
 
-    /// Returns a reference to the `gio::File`
+    /// Returns the hash of `self.path`, used for thumbnail files
     #[inline]
     #[must_use]
-    pub const fn file(&self) -> &gio::File {
-        self.file
-    }
-
-    /// Retruns the song file URI, which can be used by `GStreamer`
-    #[inline]
-    #[must_use]
-    pub const fn file_uri(&self) -> &str {
-        self.uri
-    }
-    /// Returns the hash of the `file_uri`, used for thumbnail files
-    #[inline]
-    #[must_use]
-    pub fn uri_hash(&self) -> u64 {
+    pub fn path_hash(&self) -> u64 {
         let mut hasher = DefaultHasher::new();
-        self.uri.hash(&mut hasher);
+        self.path.hash(&mut hasher);
         hasher.finish()
     }
     /// Returns this song's thumbnail file path
     #[inline]
     #[must_use]
     pub fn thumbnail_file_path(&self) -> String {
-        [cache_dir(), "thumbnails/", &self.uri_hash().to_string()].concat()
+        [cache_dir(), "thumbnails/", &self.path_hash().to_string()].concat()
     }
-    /// Returns the full song file path
-    ///
-    /// # Panics
-    /// The function panics if the path is not valid UTF-8
+    /// Returns the song file path
     #[inline]
     #[must_use]
-    pub fn file_path(&self) -> String {
-        self.file.path().unwrap().to_str().unwrap().to_owned()
+    pub const fn path(&self) -> &PathBuf {
+        self.path
     }
     /// Returns the song filename, including the file extestion
     ///
@@ -290,7 +266,7 @@ impl SongInfoLoader<'_> {
     #[inline]
     #[must_use]
     pub fn filename(&self) -> String {
-        self.file.basename().map_or_else(
+        self.path.file_name().map_or_else(
             || String::from("Unknown"),
             |f| f.to_str().unwrap().to_owned(),
         )
@@ -318,8 +294,7 @@ impl SongInfoLoader<'_> {
     #[inline]
     #[must_use]
     pub fn file_modification_time<F: FnOnce(&Self) -> u64>(&self, fallback: F) -> u64 {
-        if let Some(path) = self.file().path()
-            && let Ok(info) = path.metadata()
+        if let Ok(info) = self.path.metadata()
             && let Ok(time) = info.modified()
         {
             time.duration_since(UNIX_EPOCH).unwrap().as_secs()
@@ -507,10 +482,7 @@ impl SongInfoLoader<'_> {
     #[inline]
     fn basic_or_default(&mut self) -> SongInfo {
         self.load_basic_from_file().unwrap_or_else(|e| {
-            eprintln!(
-                "Problem loading tags (basic): {:?}: {e}",
-                self.file.path().unwrap_or_default()
-            );
+            eprintln!("Problem loading tags (basic): {:?}: {e}", self.path);
             SongInfo {
                 title: self.fallback_title(),
                 ..SongInfo::default()
@@ -529,7 +501,7 @@ impl SongInfoLoader<'_> {
     fn load_basic_from_file(&mut self) -> Result<SongInfo, Box<dyn Error>> {
         self.update_modification_time();
         if self.tagged.is_none() {
-            self.tagged = Some(Probe::read(Probe::open(self.file.path().unwrap())?)?);
+            self.tagged = Some(Probe::read(Probe::open(self.path)?)?);
         }
         // SAFETY: Assigned as `Some` on the previous line
         let tagged = unsafe { self.tagged.as_ref().unwrap_unchecked() };
@@ -649,10 +621,7 @@ impl SongInfoLoader<'_> {
         {
             Ok(Ok(result)) => result,
             Err(e) | Ok(Err(e)) => {
-                eprintln!(
-                    "Problem loading tags (detailed): {:?}: {e}",
-                    self.file.path().unwrap_or_default()
-                );
+                eprintln!("Problem loading tags (detailed): {:?}: {e}", self.path);
                 DetailedSongInfo {
                     lyrics: String::new(),
                     artwork: None,
@@ -687,7 +656,7 @@ impl SongInfoLoader<'_> {
     #[inline]
     fn tagged_file(&mut self) -> Result<&TaggedFile, Box<dyn Error>> {
         if self.tagged.is_none() {
-            self.tagged = Some(Probe::open(self.file.path().unwrap())?.read()?);
+            self.tagged = Some(Probe::open(self.path)?.read()?);
         }
         // SAFETY: Assigned as `Some` on the previous line
         Ok(unsafe { self.tagged.as_ref().unwrap_unchecked() })

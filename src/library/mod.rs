@@ -1,9 +1,7 @@
 use core::sync::atomic::{self, AtomicI8};
 use core::{cmp::Ordering, error::Error, mem};
-use gio::prelude::FileExt;
-use gtk::gio;
 use rand::random_range;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, mpsc};
 use std::time::{Duration, Instant};
 use std::{fs, thread};
@@ -71,13 +69,12 @@ pub trait SortedSongs {
     /// # Errors
     /// If the item was not found, the returned `Err(index)`
     /// can be used to insert the item to the proper position
-    fn find_song(&self, uri: &str, trim_start: usize) -> Result<usize, usize>;
+    fn find_song(&self, path: &Path) -> Result<usize, usize>;
 }
 impl SortedSongs for Songs {
     #[inline]
-    fn find_song(&self, uri: &str, trim_start: usize) -> Result<usize, usize> {
-        let trimmed_uri = &uri[trim_start..];
-        self.binary_search_by(|song| song.uri[trim_start..].cmp(trimmed_uri))
+    fn find_song(&self, path: &Path) -> Result<usize, usize> {
+        self.binary_search_by(|song| (*song.path).cmp(path))
     }
 }
 impl ToQueue for Songs {
@@ -344,7 +341,9 @@ impl Library {
                 LibraryRequest::AddLibrary(dir) => self.config.add_library(dir.to_string()),
                 LibraryRequest::RemoveLibrary(index) => self.config.remove_library(index),
 
-                LibraryRequest::RegisterUndoDirectory(dir) => self.register_undo_directory(dir),
+                LibraryRequest::RegisterUndoDirectory(dir) => {
+                    self.register_undo_directory(&PathBuf::from(dir));
+                }
                 LibraryRequest::UndoRemovedDirectory(dir) => self.undo_removed_directory(dir),
 
                 #[allow(clippy::unit_arg)]
@@ -371,23 +370,22 @@ impl Library {
             "`STATE` should be set to `STATE_BUSY` ({STATE_BUSY}) before calling `discover_files`"
         );
 
+        println!("discover_files()");
         let mut songs = match self.songs.is_empty() {
             true => Library::deserialize_songs(),
             false => mem::take(&mut self.songs),
         };
 
         for library_path in self.config.directories() {
-            let _ = visit_dirs(Path::new(&library_path), &mut |f| {
-                let file = f.path();
-                if !file.extension().is_some_and(extension_supported) {
+            let _ = visit_dirs(Path::new(&library_path), &mut |file| {
+                let path = file.path();
+                if !path.extension().is_some_and(extension_supported) {
                     return;
                 }
 
                 // Add the song to the library if it is new
-                let file = gio::File::for_path(file);
-                let uri = file.uri().to_string();
-                if let Err(index) = songs.find_song(&uri, self.config.uri_opt()) {
-                    songs.insert(index, SharedSong::from_file(file, uri));
+                if let Err(index) = songs.find_song(&path) {
+                    songs.insert(index, SharedSong::from_path(path));
                 }
             })
             .inspect_err(|e| eprintln!("Error reading '{library_path}': {e}"));
@@ -453,7 +451,7 @@ impl Library {
                     let modification_time = info.file_modification_time(|info| {
                         eprintln!(
                             "WARNING: Could not determine modification time for '{:?}'; skipping...",
-                            info.file_path()
+                            info.path()
                         );
                         info.known_modification_time()
                     });
@@ -665,11 +663,10 @@ impl Library {
     ) {
         let mut libraries = Vec::with_capacity(config.directories().len());
         let mut missing_libraries = Vec::new();
-        for (index, dir) in config.directory_uris().iter().enumerate() {
-            let opt_dir = &dir[config.uri_opt()..];
+        for (index, dir) in config.directories().iter().enumerate() {
             match fs::exists(&config.directories()[index]) {
-                Ok(true) => libraries.push(opt_dir),
-                _ => missing_libraries.push(opt_dir),
+                Ok(true) => libraries.push(dir),
+                _ => missing_libraries.push(dir),
             }
         }
 
@@ -683,15 +680,11 @@ impl Library {
         .into_iter();
 
         while let Some(song) = old_songs.next() {
-            let opt_uri = &song.uri[config.uri_opt()..];
-            match songs.find_song(&song.uri, config.uri_opt()) {
+            match songs.find_song(&song.path) {
                 // Valid song entry
-                Err(index)
-                    if (song.file.path())
-                        .is_some_and(|path| fs::exists(path).unwrap_or_default()) =>
-                {
+                Err(index) if fs::exists(&song.path).unwrap_or_default() => {
                     // Filter songs outside of `config.directories`
-                    if libraries.iter().any(|dir| opt_uri.starts_with(dir)) {
+                    if libraries.iter().any(|dir| song.path.starts_with(dir)) {
                         songs.insert(index, song);
                         continue;
                     }
@@ -702,13 +695,13 @@ impl Library {
                 }
                 // Missing file
                 Err(_) => {
-                    match missing.find_song(&song.uri, config.uri_opt()) {
+                    match missing.find_song(&song.path) {
                         // New missing song entry
                         Err(index) => {
                             // Only remember missing files if they are within
                             // a library directory which is currently missing
                             // (otherwise, they were either moved or removed)
-                            if (missing_libraries.iter()).any(|dir| opt_uri.starts_with(dir)) {
+                            if (missing_libraries.iter()).any(|dir| song.path.starts_with(dir)) {
                                 // #[cfg(debug_assertions)]
                                 // println!(
                                 //     "Remembering {} because its library is missing",
@@ -730,7 +723,7 @@ impl Library {
                 // Duplicate entry
                 Ok(index) => {
                     #[cfg(debug_assertions)]
-                    println!("Resolving duplicate entry: {}", song.uri);
+                    println!("Resolving duplicate entry: {:?}", song.path);
                     // SAFETY: `index` is `Ok`, therefore within bounds
                     (unsafe { songs.get_unchecked(index) }.info().user())
                         .merge_with(&song.info().user());
@@ -773,9 +766,9 @@ impl Library {
 
                     #[cfg(debug_assertions)]
                     println!(
-                        "Found moved file:\n{} -> {}",
-                        old_info.file_path(),
-                        found_entry_info.file_path()
+                        "Found moved file:\n{:?} -> {:?}",
+                        old_info.path(),
+                        found_entry_info.path()
                     );
                 }
                 None => {
@@ -913,15 +906,12 @@ impl Library {
 
     /// Adds all songs from directory `dir` to `self.undo_songs`, so their
     /// info can be recovered using `LibraryRequest::UndoRemovedDirectory`
-    fn register_undo_directory(&mut self, dir: String) {
-        let dir_uri = &*gio::File::for_path(dir).uri();
-        let Err(start_index) =
-            (self.songs).find_song(dir_uri, self.config.uri_opt().min(dir_uri.len()))
-        else {
-            unreachable!( /* `dir_uri` is a directory, not a song file */ )
+    fn register_undo_directory(&mut self, dir: &PathBuf) {
+        let Err(start_index) = (self.songs).find_song(dir) else {
+            unreachable!( /* `dir` is a directory, not a song file */ )
         };
         for song in self.songs.iter().skip(start_index) {
-            if !song.uri.starts_with(dir_uri) {
+            if !song.path.starts_with(dir) {
                 return;
             }
             self.undo_songs.push(Arc::clone(song));
@@ -1062,9 +1052,7 @@ impl Library {
         let mut queue = Vec::with_capacity(paths.size_hint().0);
         for file in paths {
             if file_supported(file) {
-                queue.push(QueueItem::Song(
-                    self.song_from_library_or_new(gio::File::for_path(file)),
-                ));
+                queue.push(QueueItem::Song(self.song_from_library_or_new(file.into())));
             } else if file == "Pause" {
                 queue.push(QueueItem::new_stopper(false));
             } else if file == "Close Player" {
@@ -1079,16 +1067,14 @@ impl Library {
     /// returns it, otherwise it returns a new `SharedSong`
     #[inline]
     #[must_use]
-    fn song_from_library_or_new(&self, file: gio::File) -> SharedSong {
-        let file_uri = &*file.uri();
-        // SAFETY: `file.uri()` converts special characters to regular ones
-        if unsafe { self.config.uri_within_library(file_uri) }
-            && let Ok(index) = self.songs.find_song(file_uri, self.config.uri_opt())
+    fn song_from_library_or_new(&self, path: PathBuf) -> SharedSong {
+        if (self.config.directories().iter()).any(|dir| path.starts_with(dir))
+            && let Ok(index) = self.songs.find_song(&path)
         {
             // SAFETY: `index` is `Ok`, therefore within bounds
             return Arc::clone(unsafe { self.songs.get_unchecked(index) });
         }
-        SharedSong::from_file(file, file_uri.to_owned())
+        SharedSong::from_path(path)
     }
     /// Extends `queue` with songs found on disk within `dir`. If files are
     /// part of the music library, their existing instances will be used.
@@ -1110,11 +1096,10 @@ impl Library {
                 return;
             }
 
-            let file = gio::File::for_path(&file_path);
-            let song = self.song_from_library_or_new(file);
+            let song = self.song_from_library_or_new(file_path.clone());
             match songs.binary_search_by(|existing: &QueueItem| {
                 // SAFETY: Only the `Song` variant is ever inserted into `songs`
-                unsafe { existing.as_song_unchecked().file.path().unwrap() }.cmp(&file_path)
+                unsafe { &existing.as_song_unchecked().path }.cmp(&file_path)
             }) {
                 Err(index) | Ok(index) => songs.insert(index, QueueItem::Song(song)),
             }
@@ -1170,7 +1155,7 @@ impl Library {
         (self.missing_songs).extend(mem::take(&mut *self.check_moved.lock().unwrap()));
         for missing in self.missing_songs {
             // Re-insert missing songs so their info is kept
-            if let Err(index) = self.songs.find_song(&missing.uri, self.config.uri_opt()) {
+            if let Err(index) = self.songs.find_song(&missing.path) {
                 self.songs.insert(index, missing);
             }
         }

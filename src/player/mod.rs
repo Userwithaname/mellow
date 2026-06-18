@@ -15,8 +15,6 @@ pub mod song_queue;
 pub use queue_item::{QueueItem, SharedStopper};
 pub use song_queue::{SongQueue, UndoAction};
 
-// TODO: MPRIS support for Gnome Shell media controls
-
 static PLAYER_TX: OnceLock<mpsc::Sender<PlayerRequest>> = OnceLock::new();
 /// Returns the channel sender for sending requests to the player using `PlayerRequest`
 ///
@@ -368,7 +366,7 @@ impl Player {
         let pending_track = self.queue.pending_track;
 
         let file_uri = match self.queue.current() {
-            QueueItem::Song(song) => &song.uri,
+            QueueItem::Song(song) => song.get_uri(),
             QueueItem::Stopper(_) => {
                 if (self.queue.remove_current().as_stopper()).should_close_player() {
                     let _ = ui_tx().send(UpdateUI::RunAction("app.quit"));
@@ -816,7 +814,7 @@ impl Player {
                     let error = format!("{message:?}");
                     eprintln!("gstreamer error: {error}\n");
 
-                    if (self.queue.current()).is_song_and(|song| error.contains(&song.uri)) {
+                    if (self.queue.current()).is_song_and(|song| error.contains(&*song.get_uri())) {
                         self.force_stop_playback();
                     }
                 }

@@ -1,6 +1,5 @@
 use core::error::Error;
 use gst::ClockTime;
-use gtk::gio::prelude::FileExt;
 use rand::random_range;
 use std::fs;
 use std::sync::Arc;
@@ -503,7 +502,7 @@ impl SongQueue {
             let QueueItem::Song(song) = item else {
                 continue;
             };
-            if song.file.path().unwrap().exists() {
+            if song.path.exists() {
                 continue;
             }
 
@@ -647,7 +646,7 @@ impl SongQueue {
             + "\n"
             + (self.songs.iter())
                 .map(|item| match item {
-                    QueueItem::Song(song) => song.info().file_path() + "\n",
+                    QueueItem::Song(song) => song.info().path().to_str().unwrap().to_owned() + "\n",
                     QueueItem::Stopper(stopper) => match stopper.should_close_player() {
                         false => String::from("Pause\n"),
                         true => String::from("Close Player\n"),
