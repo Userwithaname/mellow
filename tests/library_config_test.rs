@@ -41,7 +41,7 @@ mod tests {
         }
 
         fn test_set_libraries(&mut self) {
-            self.config.set_libraries(&[
+            self.config.set_libraries(vec![
                 "/some/directory".into(),
                 "/some/folder".into(),
                 "/some/other/directory".into(),

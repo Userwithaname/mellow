@@ -47,8 +47,8 @@ impl LibraryConfig {
     }
 
     /// Replaces the configured directories with `dirs`
-    pub fn set_libraries(&mut self, dirs: &[PathBuf]) {
-        self.directories = dirs.to_vec();
+    pub fn set_libraries(&mut self, dirs: Vec<PathBuf>) {
+        self.directories = dirs;
         self.directories.sort();
         println!(
             "Library directories updated\nLibraries: {:?}",

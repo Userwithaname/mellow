@@ -441,7 +441,6 @@ impl Library {
                     info.invalidate_thumbnail();
                 }
 
-
                 // If files were modified, queue another rebuild so the new info gets loaded
                 if needs_rebuild
                     && STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_CANCEL
@@ -889,6 +888,11 @@ impl Library {
         self.missing_songs = missing_songs;
     }
 
+    /// Runs the given task once the library build is done, regardless if it succeeded or failed
+    #[inline]
+    pub fn run_on_build_stopped(&mut self, f: LibraryTask) {
+        self.on_build_stopped.push(f);
+    }
     /// Runs the tasks in `on_build_stopped` and leaves it empty
     ///
     /// Call this function once the library build is done, regardless
@@ -899,11 +903,7 @@ impl Library {
             f(self);
         }
     }
-    /// Runs the given task once the library build is done, regardless if it succeeded or failed
-    #[inline]
-    pub fn run_on_build_stopped(&mut self, f: LibraryTask) {
-        self.on_build_stopped.push(f);
-    }
+
     /// Runs the given task once the library build successfully completes in full
     #[inline]
     pub fn run_on_build_succeeded(&mut self, f: LibraryTask) {

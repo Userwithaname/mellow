@@ -65,9 +65,7 @@ impl Window {
             move |_| window.drag_overlay.set_visible(false)
         });
         drop_target.connect_drop(|_, value, _, _| {
-            let files = (value.get::<FileList>().unwrap())
-                .files()
-                .iter()
+            let files = (value.get::<FileList>().unwrap().files().iter())
                 .map(|file| file.path().unwrap().to_str().unwrap().to_owned())
                 .collect();
             (library_tx().send(LibraryRequest::QueueFromPaths(files))).expect(EXP_RX);

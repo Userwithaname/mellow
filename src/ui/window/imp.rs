@@ -291,16 +291,13 @@ impl Window {
             return;
         }
 
-        let mut offset = 0;
         let (mut left, mut right) = (queue[..index].iter(), queue[index + 1..].iter());
+        let mut offset = 0;
         loop {
             offset += 1;
             match (left.next_back(), right.next()) {
                 (Some(left), _) if *left == *item => break index -= offset,
                 (_, Some(right)) if *right == *item => break index += offset,
-                // NOTE: If the subpage item is no longer present, this will loop through
-                // the entire queue before determining it doesn't exist. Should the number
-                // of iterations be limited somehow?
                 (None, None) => return self.close_queue_subpage(),
                 _ => (),
             }

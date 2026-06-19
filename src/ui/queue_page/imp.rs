@@ -368,7 +368,7 @@ impl QueuePage {
     pub fn recenter_queue(&self, index: isize) {
         self.next_scroll_pos.set(QueueScrollAction::Offset(
             (self.playing_index.get() as isize - index) as i32,
-        ))
+        ));
     }
 
     #[inline]
@@ -575,6 +575,7 @@ impl QueuePage {
         let selections = Rc::clone(&self.selections);
         let fallback_image = fallback_song_image();
         let queue_page = self.to_owned();
+
         self.list_box.bind_model(Some(&model), move |object| {
             let queue_item_object = object.downcast_ref::<QueueItemObject>().unwrap();
             let queue_row = ListRow::default();
@@ -582,7 +583,6 @@ impl QueuePage {
 
             queue_row.set_title(&queue_item_object.title());
             queue_row.set_subtitle(&queue_item_object.subtitle());
-
             queue_row.add_bindings(&[
                 queue_item_object
                     .bind_property("artwork", &row_imp.prefix_image.get(), "paintable")
@@ -661,6 +661,7 @@ impl QueuePage {
     /// Returns `true` if interaction at a given `start_pos_x`
     /// should drag the queue row, or `false` if not
     #[inline]
+    #[must_use]
     const fn should_drag(start_pos_x: f64) -> bool {
         start_pos_x < 65.0
     }
@@ -876,7 +877,7 @@ impl QueuePage {
 
                 let start_y = match gesture_drag.start_point() {
                     Some((_, start_y)) => start_y + queue_page.list_box.margin_top() as f64,
-                    _ => return,
+                    None => return,
                 };
                 let end_y = match gesture_drag.offset() {
                     Some((_, offset_y)) => start_y + offset_y,

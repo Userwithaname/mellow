@@ -287,12 +287,11 @@ impl SongInfoLoader<'_> {
     #[inline]
     #[must_use]
     pub fn file_modification_time<F: FnOnce(&Self) -> u64>(&self, fallback: F) -> u64 {
-        if let Ok(info) = self.path.metadata()
-            && let Ok(time) = info.modified()
-        {
-            time.duration_since(UNIX_EPOCH).unwrap().as_secs()
-        } else {
-            fallback(self)
+        match self.path.metadata() {
+            Ok(info) if let Ok(time) = info.modified() => {
+                time.duration_since(UNIX_EPOCH).unwrap().as_secs()
+            }
+            _ => fallback(self),
         }
     }
     /// Updates the modification time to the current one from the file
