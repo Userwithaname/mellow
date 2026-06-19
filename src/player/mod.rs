@@ -533,7 +533,7 @@ impl Player {
     }
 
     /// Seeks to the beginning of the current track
-    fn repeat_song(&self) -> Result<(), gst::StateChangeError> {
+    fn repeat_song(&mut self) -> Result<(), gst::StateChangeError> {
         self.seek_to_time(ClockTime::ZERO)
     }
 
@@ -552,7 +552,7 @@ impl Player {
     }
 
     /// Seek to a position in the song using a 0 to 1 value
-    fn seek_to_position(&self, position: f64) -> Result<(), gst::StateChangeError> {
+    fn seek_to_position(&mut self, position: f64) -> Result<(), gst::StateChangeError> {
         #[allow(clippy::cast_possible_truncation)]
         #[allow(clippy::cast_precision_loss)]
         #[allow(clippy::cast_sign_loss)]
@@ -565,10 +565,10 @@ impl Player {
 
     /// Seek to a particular time in the song
     #[inline]
-    fn seek_to_time(&self, time: ClockTime) -> Result<(), gst::StateChangeError> {
+    fn seek_to_time(&mut self, time: ClockTime) -> Result<(), gst::StateChangeError> {
         match (self.backend).seek_simple(SeekFlags::FLUSH | SeekFlags::ACCURATE, time) {
             Ok(()) => {
-                self.backend.state(None).0?;
+                self.backend.state(ClockTime::from_mseconds(150)).0?;
                 self.ui_set_time();
             }
             Err(e) => eprintln!("{e}"),
@@ -591,11 +591,11 @@ impl Player {
             println!("Gapless transition interrupted by seek request");
             self.backend.set_state(State::Null)?;
             self.request_state(self.current_state);
-            let _ = self.backend.state(None); // Wait for backend state
+            self.wait_for_gstreamer_state();
             self.next_song_loaded = false;
             self.skip_prev();
             self.update();
-            let _ = self.backend.state(None); // Wait for backend state
+            self.wait_for_gstreamer_state();
             self.queue.current().as_song().info().deduct_played();
         }
 
@@ -606,7 +606,7 @@ impl Player {
         }
 
         self.seeking = true;
-        let _ = self.backend.state(None); // Wait for backend state
+        self.wait_for_gstreamer_state();
         Ok(())
     }
 
@@ -621,9 +621,9 @@ impl Player {
         {
             // Reset state to re-enable missed `GStreamer` callbacks
             let _ = self.backend.set_state(State::Null);
-            let _ = self.backend.state(None); // Wait for backend state
+            self.wait_for_gstreamer_state();
             let _ = self.backend.set_state(State::Paused);
-            let _ = self.backend.state(None); // Wait for backend state
+            self.wait_for_gstreamer_state();
 
             // Seek one final time after state reset
             let _ = self.seek_to_time(pos);
@@ -649,11 +649,11 @@ impl Player {
 
         let _ = self.backend.set_state(State::Null);
         self.request_state(self.current_state);
-        let _ = self.backend.state(None); // Wait for backend state
+        self.wait_for_gstreamer_state();
         self.next_song_loaded = false;
         self.skip_prev();
         self.update();
-        let _ = self.backend.state(None); // Wait for backend state
+        self.wait_for_gstreamer_state();
         self.queue.current().as_song().info().deduct_played();
 
         // Seek to the same time the player was at before, or skip the song
@@ -737,7 +737,7 @@ impl Player {
     /// Sends the current state to the UI receiver
     #[inline]
     fn ui_set_state(&self) {
-        let state = self.backend.state(None);
+        let state = self.backend.state(ClockTime::from_mseconds(150));
         let interactive = !self.queue.is_empty();
         let playing = state.0.is_ok() && matches!(state.1, State::Playing);
         #[cfg(debug_assertions)]
@@ -775,6 +775,12 @@ impl Player {
         ui_tx.send(UpdateUI::OpenSheet(true)).expect(EXP_RX);
     }
 
+    fn wait_for_gstreamer_state(&mut self) {
+        if (self.backend.state(Some(ClockTime::from_mseconds(150))).0).is_err() {
+            self.force_stop_playback();
+        }
+    }
+
     /// Handles `GStreamer` events and empties the message queue
     fn handle_gst_events(&mut self) {
         while let Some(message) = self.bus.pop() {
@@ -805,7 +811,19 @@ impl Player {
                         self.ui_set_state();
                     }
                 }
-                gst::MessageType::Warning => eprintln!("gstreamer warning: {message:?}\n"),
+                gst::MessageType::Warning => {
+                    let warning = format!("{message:?}");
+                    eprintln!("gstreamer warning: {warning}\n");
+
+                    // Handling for the case where skipping songs too quickly
+                    // could overwhelm GStreamer, causing it to hang indefinitely
+                    if warning.contains("buffer without a new-segment") {
+                        self.force_stop_playback();
+                        while self.rx.try_recv().is_ok() {
+                            // Clear all pending `PlayerRequest`s
+                        }
+                    }
+                }
                 gst::MessageType::Error => {
                     // Update the UI manually, in case the `StreamStart` branch did not run
                     self.queue.ui_update_queue_index();
@@ -814,7 +832,7 @@ impl Player {
                     let error = format!("{message:?}");
                     eprintln!("gstreamer error: {error}\n");
 
-                    if (self.queue.current()).is_song_and(|song| error.contains(&*song.get_uri())) {
+                    if error.contains(&self.backend.property::<String>("uri")) {
                         self.force_stop_playback();
                     }
                 }
