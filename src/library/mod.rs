@@ -377,7 +377,7 @@ impl Library {
         for library_path in self.config.directories() {
             let _ = visit_dirs(library_path.to_path_buf(), &mut |path| {
                 // Add the song to the library if it is new, and the extension is supported
-                if !path.extension().is_some_and(extension_supported)
+                if path.extension().is_some_and(extension_supported)
                     && let Err(index) = songs.find_song(&path)
                 {
                     songs.insert(index, SharedSong::from_path(path));
