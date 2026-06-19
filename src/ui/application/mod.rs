@@ -112,7 +112,7 @@ impl Application {
                     let mut library = Library::init(
                         LibraryConfig::new(match directories.as_str() {
                             // The value ":" means "first launch"
-                            ":" => vec![PathBuf::from(music_dir().clone())],
+                            ":" => vec![PathBuf::from(music_dir())],
                             dirs => unescaped_split(dirs, ',')
                                 .iter()
                                 .map(PathBuf::from)
@@ -123,15 +123,15 @@ impl Application {
                     #[cfg(feature = "startup-logs")]
                     println!("Library initialized");
 
+                    SongQueue::init_queue(&library, startup_queue.into()).unwrap();
+                    #[cfg(feature = "startup-logs")]
+                    println!("Queue was sent to the player");
+
                     // `STATE` does not need to be set here,
                     // because it defaults to `STATE_BUSY`
                     library.discover_files();
                     #[cfg(feature = "startup-logs")]
                     println!("Files were checked");
-
-                    SongQueue::init_queue(&library, startup_queue.into()).unwrap();
-                    #[cfg(feature = "startup-logs")]
-                    println!("Queue was sent to the player");
 
                     library.request_handler().unwrap();
                 })

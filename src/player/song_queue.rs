@@ -750,6 +750,7 @@ impl SongQueue {
                     library.play_all_songs(false)?;
                 }
             }
+            // FIX: Wait for library songs to be validated before calling `play_all_songs`
             StartupQueueChoice::QueueFromSongs => library.play_all_songs(false)?,
             StartupQueueChoice::QueueFromAlbums => {
                 library_tx().send(LibraryRequest::OnBuildSucceeded(Box::new(|library| {

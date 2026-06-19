@@ -274,7 +274,7 @@ impl Library {
     #[must_use]
     pub fn init(config: LibraryConfig, library_rx: mpsc::Receiver<LibraryRequest>) -> Library {
         Library {
-            songs: Vec::new(),
+            songs: Library::deserialize_songs(),
             albums: Vec::new(),
             artists: Vec::new(),
             missing_songs: Vec::new(),
@@ -368,26 +368,20 @@ impl Library {
             "`STATE` should be set to `STATE_BUSY` ({STATE_BUSY}) before calling `discover_files`"
         );
 
-        println!("discover_files()");
-        let mut songs = match self.songs.is_empty() {
-            true => Library::deserialize_songs(),
-            false => mem::take(&mut self.songs),
-        };
-
         for library_path in self.config.directories() {
             let _ = visit_dirs(library_path.to_path_buf(), &mut |path| {
                 // Add the song to the library if it is new, and the extension is supported
                 if path.extension().is_some_and(extension_supported)
-                    && let Err(index) = songs.find_song(&path)
+                    && let Err(index) = self.songs.find_song(&path)
                 {
-                    songs.insert(index, SharedSong::from_path(path));
+                    self.songs.insert(index, SharedSong::from_path(path));
                 }
             })
             .inspect_err(|e| eprintln!("Error reading '{library_path:?}': {e}"));
         }
-        self.songs.clone_from(&songs);
 
         self.tasks.run({
+            let songs = self.songs.clone();
             let missing = mem::take(&mut self.missing_songs);
             let check = Arc::clone(&self.check_moved);
             let config = self.config.clone();
