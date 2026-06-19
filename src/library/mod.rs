@@ -46,8 +46,9 @@ pub struct Library {
     queue_initialized: bool,
     rebuild_pending: bool,
 
-    on_build_succeeded: Vec<LibraryTask>,
     on_build_stopped: Vec<LibraryTask>,
+    on_build_succeeded: Vec<LibraryTask>,
+    on_songs_set: Vec<SongsTask>,
 
     tasks: Runner,
     pub config: LibraryConfig,
@@ -234,6 +235,7 @@ pub fn init_library_tx(
 }
 
 type LibraryTask = Box<dyn FnOnce(&mut Library) + Send + 'static>;
+type SongsTask = Box<dyn FnOnce(&Songs) + Send + 'static>;
 
 pub enum LibraryRequest {
     /// Rebuilds the library, cancelling any rebuild that might be currently running
@@ -259,10 +261,6 @@ pub enum LibraryRequest {
     RunTask(BoxedTask),
     /// Runs the given task on the library thread directly, with mutable access to the `Library`
     RunLibraryTask(LibraryTask),
-    /// Runs the given task once the library build successfully completes in full
-    OnBuildSucceeded(LibraryTask),
-    /// Runs the given task once the library build is done, regardless if it succeeded or failed
-    OnBuildStopped(LibraryTask),
 
     /// Cleanly shuts down the library and thread pool, and writes the configuration data to disk
     Uninit,
@@ -284,8 +282,9 @@ impl Library {
             queue_initialized: false,
             rebuild_pending: false,
 
-            on_build_succeeded: Vec::new(),
             on_build_stopped: Vec::new(),
+            on_build_succeeded: Vec::new(),
+            on_songs_set: Vec::new(),
 
             tasks: Runner::new(
                 thread::available_parallelism()
@@ -304,13 +303,6 @@ impl Library {
     #[must_use]
     pub const fn is_empty(&self) -> bool {
         self.songs.is_empty()
-    }
-
-    /// Returns all artists known to the library
-    #[inline]
-    #[must_use]
-    pub const fn artists(&self) -> &Artists {
-        &self.artists
     }
 
     /// Main loop for handling library requests
@@ -332,11 +324,9 @@ impl Library {
                     paths.iter().map(|path| &**path), //
                 )?,
 
+                LibraryRequest::RunLibraryTask(f) => f(&mut self),
                 LibraryRequest::CancelRebuild => self.cancel_library_build(),
                 LibraryRequest::Rebuild => self.start_library_build(),
-                LibraryRequest::OnBuildSucceeded(f) => self.on_build_succeeded.push(f),
-                LibraryRequest::OnBuildStopped(f) => self.on_build_stopped.push(f),
-                LibraryRequest::RunLibraryTask(f) => f(&mut self),
 
                 LibraryRequest::AddLibrary(dir) => self.config.add_library(dir),
                 LibraryRequest::RemoveLibrary(index) => self.config.remove_library(index),
@@ -411,26 +401,24 @@ impl Library {
         config: &LibraryConfig,
         num_workers: usize,
     ) -> Result<(), Box<dyn Error>> {
-        let num_tasks = num_workers - 2;
-        let library_tx = library_tx();
-        let ui_tx = ui_tx();
-
         Library::validate_songs(&mut songs, &mut missing, check_moved, config);
 
         #[cfg(feature = "startup-logs")]
         println!("Library songs validation complete");
 
-        let file_times = Arc::new(Mutex::new(()));
-        Library::run_task(library_tx, {
+        let ui_tx = ui_tx();
+        let library_tx = library_tx();
+
+        let _ = library_tx.send(LibraryRequest::RunLibraryTask(Box::new({
             let songs = songs.clone();
-            let busy = Arc::clone(&file_times);
-            move || {
-                let _ = library_tx.send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
-                    library.set_missing_songs(missing);
-                })));
+            move |library| {
+                #[cfg(feature = "startup-logs")]
+                println!("Checking modification times");
+
+                library.set_missing_songs(missing);
+                library.set_songs(songs.clone());
 
                 // Check file modification times in the background
-                let file_times_guard = busy.lock().unwrap();
                 let mut needs_rebuild = false;
                 for song in &songs {
                     if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
@@ -452,28 +440,30 @@ impl Library {
                     needs_rebuild |= info.inspect_basic_mut().take().is_some();
                     info.invalidate_thumbnail();
                 }
+
+
                 // If files were modified, queue another rebuild so the new info gets loaded
                 if needs_rebuild
                     && STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_CANCEL
                 {
-                    let _ = library_tx.send(LibraryRequest::CancelRebuild);
-                    let _ = library_tx.send(LibraryRequest::OnBuildStopped(Box::new(|_| {
+                    library.cancel_library_build();
+                    library.run_on_build_stopped(Box::new(|_| {
                         ui_tx.send(UpdateUI::Progress(Some(0.0))).expect(EXP_RX);
                         println!("Rebuilding because files were modified");
 
                         // Sending rebuild request through the channel instead of running directly,
                         // so it waits for any cancellations to complete in full before rebuilding
                         library_tx.send(LibraryRequest::Rebuild).expect(EXP_RX);
-                    })));
-                    drop(file_times_guard);
+                    }));
                     println!("Modifications detected, library will rebuild shortly");
-                    return;
                 }
 
-                drop(file_times_guard);
+                #[cfg(feature = "startup-logs")]
+                println!("Modification times were checked - nothing to do");
             }
-        });
+        })));
 
+        let num_tasks = num_workers - 2;
         Library::run_task(library_tx, {
             let songs = songs.clone();
             move || {
@@ -604,14 +594,13 @@ impl Library {
         #[cfg(feature = "startup-logs")]
         println!("Merged moved file entries");
 
-        let state = STATE.swap(STATE_CANCEL, atomic::Ordering::Acquire);
+        let state = STATE.load(atomic::Ordering::Acquire);
         library_tx.send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
+            STATE.store(STATE_CANCEL, atomic::Ordering::Release);
+
             library.set_artists(artists);
             library.set_albums(albums);
-            library.set_songs(songs);
-
-            // Wait for the file modification times to be fully checked
-            drop(file_times.lock().unwrap());
+            // Songs are already set after validating
 
             ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
 
@@ -839,14 +828,35 @@ impl Library {
         }
     }
 
+    /// Returns all songs known to the library
+    #[inline]
+    #[must_use]
+    pub const fn songs(&self) -> &Songs {
+        &self.songs
+    }
     /// Replaces `self.songs` with `songs`
     ///
     /// # Panics
     /// The function panics if the UI channel receiver is closed
     #[inline]
     fn set_songs(&mut self, songs: Songs) {
+        for f in mem::take(&mut self.on_songs_set) {
+            f(&songs);
+        }
         (ui_tx().send(UpdateUI::SetLibrarySongs(songs.clone()))).expect(EXP_RX);
         self.songs = songs;
+    }
+    /// Runs the given task the next time library songs are updated
+    #[inline]
+    pub fn run_on_songs_set(&mut self, f: SongsTask) {
+        self.on_songs_set.push(f);
+    }
+
+    /// Returns all albums known to the library
+    #[inline]
+    #[must_use]
+    pub const fn albums(&self) -> &Albums {
+        &self.albums
     }
     /// Replaces `self.albums` with `albums`
     ///
@@ -856,6 +866,13 @@ impl Library {
     fn set_albums(&mut self, albums: Albums) {
         (ui_tx().send(UpdateUI::SetLibraryAlbums(albums.clone()))).expect(EXP_RX);
         self.albums = albums;
+    }
+
+    /// Returns all artists known to the library
+    #[inline]
+    #[must_use]
+    pub const fn artists(&self) -> &Artists {
+        &self.artists
     }
     /// Replaces `self.artists` with `artists`
     ///
@@ -872,16 +889,6 @@ impl Library {
         self.missing_songs = missing_songs;
     }
 
-    /// Runs the tasks in `on_build_succeeded` and leaves it empty
-    ///
-    /// Call this function once the library build has succeeded
-    #[inline]
-    fn build_succeeded(&mut self) {
-        for f in mem::take(&mut self.on_build_succeeded) {
-            f(self);
-        }
-    }
-
     /// Runs the tasks in `on_build_stopped` and leaves it empty
     ///
     /// Call this function once the library build is done, regardless
@@ -892,11 +899,30 @@ impl Library {
             f(self);
         }
     }
+    /// Runs the given task once the library build is done, regardless if it succeeded or failed
+    #[inline]
+    pub fn run_on_build_stopped(&mut self, f: LibraryTask) {
+        self.on_build_stopped.push(f);
+    }
+    /// Runs the given task once the library build successfully completes in full
+    #[inline]
+    pub fn run_on_build_succeeded(&mut self, f: LibraryTask) {
+        self.on_build_succeeded.push(f);
+    }
+    /// Runs the tasks in `on_build_succeeded` and leaves it empty
+    ///
+    /// Call this function once the library build has succeeded
+    #[inline]
+    fn build_succeeded(&mut self) {
+        for f in mem::take(&mut self.on_build_succeeded) {
+            f(self);
+        }
+    }
 
     /// Adds all songs from directory `dir` to `self.undo_songs`, so their
     /// info can be recovered using `LibraryRequest::UndoRemovedDirectory`
     fn register_undo_directory(&mut self, dir: &PathBuf) {
-        let Err(start_index) = (self.songs).find_song(dir) else {
+        let Err(start_index) = self.songs.find_song(dir) else {
             unreachable!( /* `dir` is a directory, not a song file */ )
         };
         for song in self.songs.iter().skip(start_index) {
@@ -912,99 +938,6 @@ impl Library {
         self.cancel_library_build_blocking();
         self.missing_songs.extend(mem::take(&mut self.undo_songs));
         self.config.add_library(dir);
-    }
-
-    /// Starts a queue of all songs in the library
-    ///
-    /// # Errors
-    /// The function errors if either the player or UI channel receiver is closed
-    pub fn play_all_songs(&self, shuffle: bool) -> Result<(), Box<dyn Error>> {
-        let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue {
-            queue: self.songs.to_queue(),
-            shuffled: match shuffle {
-                true => Some(vec![]),
-                false => None,
-            },
-            track: 0,
-        })?;
-        player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
-        let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::OpenSheet(false))?;
-        ui_tx.send(UpdateUI::FocusPlaying)?;
-        Ok(())
-    }
-
-    /// Starts a queue of all albums in the library
-    ///
-    /// # Errors
-    /// The function errors if either the player or UI channel receiver is closed
-    pub fn play_all_albums(&self) -> Result<(), Box<dyn Error>> {
-        let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue {
-            queue: self.albums.to_queue(),
-            shuffled: None,
-            track: 0,
-        })?;
-        player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
-        let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::OpenSheet(false))?;
-        ui_tx.send(UpdateUI::FocusPlaying)?;
-        Ok(())
-    }
-
-    /// Starts a randomly ordered queue of all albums in the library
-    ///
-    /// # Errors
-    /// The function errors if either the player or UI channel receiver is closed
-    pub fn shuffle_all_albums(&self) -> Result<(), Box<dyn Error>> {
-        let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue {
-            queue: self.albums.to_shuffled_queue(),
-            shuffled: None,
-            track: 0,
-        })?;
-        let ui_tx = ui_tx();
-        player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
-        ui_tx.send(UpdateUI::OpenSheet(false))?;
-        ui_tx.send(UpdateUI::FocusPlaying)?;
-        Ok(())
-    }
-
-    /// Starts a queue of all albums in the library
-    ///
-    /// # Errors
-    /// The function errors if either the player or UI channel receiver is closed
-    pub fn play_all_artists(&self) -> Result<(), Box<dyn Error>> {
-        let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue {
-            queue: self.artists.to_queue(),
-            shuffled: None,
-            track: 0,
-        })?;
-        player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
-        let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::OpenSheet(false))?;
-        ui_tx.send(UpdateUI::FocusPlaying)?;
-        Ok(())
-    }
-
-    /// Starts a randomly ordered queue of all artists in the library
-    ///
-    /// # Errors
-    /// The function errors if either the player or UI channel receiver is closed
-    pub fn shuffle_all_artists(&self) -> Result<(), Box<dyn Error>> {
-        let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue {
-            queue: self.artists.to_shuffled_queue(),
-            shuffled: None,
-            track: 0,
-        })?;
-        player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
-        let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::OpenSheet(false))?;
-        ui_tx.send(UpdateUI::FocusPlaying)?;
-        Ok(())
     }
 
     /// Starts a queue of all songs found within the specified `paths`,

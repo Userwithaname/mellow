@@ -5,7 +5,10 @@ use std::fs;
 use std::sync::Arc;
 
 use crate::excuses::EXP_RX;
-use crate::library::{Library, LibraryRequest, SharedSongExt, SortedArtists, library_tx};
+use crate::library::{
+    Albums, Artists, Library, LibraryRequest, SharedSongExt, Songs, SortedArtists, ToQueue,
+    ToShuffledQueue, library_tx,
+};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{StartupQueueChoice, UpdateUI, ui_tx};
 use crate::util::ReorderVecExt;
@@ -724,64 +727,97 @@ impl SongQueue {
         }
 
         // If the queue was not loaded from file, load by preference instead
-        Self::init_by_startup_choice(library, queue_startup_choice)
+        // Sending this as a library task ensures the library thread has time
+        // to check the song files, so the startup choices can work correctly
+        let _ = library_tx().send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
+            Self::init_by_startup_choice(library, queue_startup_choice);
+        })));
+
+        Ok(())
     }
 
     /// Loads the queue based on `queue_startup_choice`
     ///
-    /// # Errors
-    /// Returns an error if either the player or UI channel is closed
-    fn init_by_startup_choice(
-        library: &Library,
-        queue_startup_choice: StartupQueueChoice,
-    ) -> Result<(), Box<dyn Error>> {
-        let player_tx = player_tx();
+    /// # Panics
+    /// Panics if either the player or UI channel is closed
+    fn init_by_startup_choice(library: &mut Library, queue_startup_choice: StartupQueueChoice) {
+        fn play_songs(songs: &Songs, shuffle: bool) {
+            player_tx()
+                .send(PlayerRequest::LoadQueue {
+                    queue: songs.to_queue(),
+                    shuffled: match shuffle {
+                        true => Some(vec![]),
+                        false => None,
+                    },
+                    track: 0,
+                })
+                .expect(EXP_RX);
+        }
+        fn play_albums(albums: &Albums, shuffled: bool) {
+            player_tx()
+                .send(PlayerRequest::LoadQueue {
+                    queue: match shuffled {
+                        true => albums.to_shuffled_queue(),
+                        false => albums.to_queue(),
+                    },
+                    shuffled: None,
+                    track: 0,
+                })
+                .expect(EXP_RX);
+        }
+        fn play_artists(artists: &Artists, shuffled: bool) {
+            player_tx()
+                .send(PlayerRequest::LoadQueue {
+                    queue: match shuffled {
+                        true => artists.to_shuffled_queue(),
+                        false => artists.to_queue(),
+                    },
+                    shuffled: None,
+                    track: 0,
+                })
+                .expect(EXP_RX);
+        }
+
         match queue_startup_choice {
-            _ if library.is_empty() => {
-                // Maybe open the settings page and focus on the directory options?
-                // ui_tx().send(UpdateUI::FocusLibrary)?;
-                ui_tx().send(UpdateUI::OpenSheet(true))?;
-            }
+            _ if library.is_empty() => ui_tx().send(UpdateUI::OpenSheet(true)).expect(EXP_RX),
             StartupQueueChoice::RestoreQueue => {
                 if fs::exists(songs_file()).unwrap_or_default() {
-                    ui_tx().send(UpdateUI::OpenSheet(true))?;
+                    ui_tx().send(UpdateUI::OpenSheet(true)).expect(EXP_RX);
                 } else {
                     // Load all songs into queue on first launch
-                    library.play_all_songs(false)?;
+                    library.run_on_songs_set(Box::new(|songs| play_songs(songs, false)));
                 }
             }
-            // FIX: Wait for library songs to be validated before calling `play_all_songs`
-            StartupQueueChoice::QueueFromSongs => library.play_all_songs(false)?,
+            StartupQueueChoice::QueueFromSongs => {
+                library.run_on_songs_set(Box::new(|songs| play_songs(songs, false)));
+            }
+            StartupQueueChoice::QueueFromSongsShuffled => {
+                library.run_on_songs_set(Box::new(|songs| play_songs(songs, false)));
+            }
             StartupQueueChoice::QueueFromAlbums => {
-                library_tx().send(LibraryRequest::OnBuildSucceeded(Box::new(|library| {
-                    library.play_all_albums().unwrap();
-                    let _ = player_tx.send(PlayerRequest::TogglePlay(Some(false)));
-                })))?;
+                library.run_on_build_succeeded(Box::new(|library| {
+                    play_albums(library.albums(), false);
+                }));
+            }
+            StartupQueueChoice::QueueFromAlbumsShuffled => {
+                library.run_on_build_succeeded(Box::new(|library| {
+                    play_albums(library.albums(), true);
+                }));
             }
             StartupQueueChoice::QueueFromArtists => {
-                library_tx().send(LibraryRequest::OnBuildSucceeded(Box::new(|library| {
-                    library.play_all_artists().unwrap();
-                    let _ = player_tx.send(PlayerRequest::TogglePlay(Some(false)));
-                })))?;
-            }
-            StartupQueueChoice::QueueFromSongsShuffled => library.play_all_songs(true)?,
-            StartupQueueChoice::QueueFromAlbumsShuffled => {
-                library_tx().send(LibraryRequest::OnBuildSucceeded(Box::new(|library| {
-                    library.shuffle_all_albums().unwrap();
-                    let _ = player_tx.send(PlayerRequest::TogglePlay(Some(false)));
-                })))?;
+                library.run_on_build_succeeded(Box::new(|library| {
+                    play_artists(library.artists(), false);
+                }));
             }
             StartupQueueChoice::QueueFromArtistsShuffled => {
-                library_tx().send(LibraryRequest::OnBuildSucceeded(Box::new(|library| {
-                    library.shuffle_all_artists().unwrap();
-                    let _ = player_tx.send(PlayerRequest::TogglePlay(Some(false)));
-                })))?;
+                library.run_on_build_succeeded(Box::new(|library| {
+                    play_artists(library.artists(), true);
+                }));
             }
-            StartupQueueChoice::EmptyQueue => ui_tx().send(UpdateUI::OpenSheet(true))?,
+            StartupQueueChoice::EmptyQueue => {
+                ui_tx().send(UpdateUI::OpenSheet(true)).expect(EXP_RX);
+            }
         }
-        player_tx.send(PlayerRequest::TogglePlay(Some(false)))?;
-
-        Ok(())
     }
 }
 
