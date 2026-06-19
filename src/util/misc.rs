@@ -63,8 +63,6 @@ pub fn visit_dirs<F: FnMut(PathBuf)>(dir: PathBuf, f: &mut F) -> io::Result<()> 
         let path = entry?.path();
         match path.is_dir() {
             false => f(path),
-            // TODO: Use `become` once the `explicit_tail_calls` feature is available
-            // <https://github.com/rust-lang/rust/issues/112788>
             true => visit_dirs(path, f)?,
         }
     }
