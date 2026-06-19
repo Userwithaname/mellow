@@ -375,13 +375,11 @@ impl Library {
         };
 
         for library_path in self.config.directories() {
-            let _ = visit_dirs(library_path, &mut |path| {
-                if !path.extension().is_some_and(extension_supported) {
-                    return;
-                }
-
-                // Add the song to the library if it is new
-                if let Err(index) = songs.find_song(&path) {
+            let _ = visit_dirs(library_path.to_path_buf(), &mut |path| {
+                // Add the song to the library if it is new, and the extension is supported
+                if !path.extension().is_some_and(extension_supported)
+                    && let Err(index) = songs.find_song(&path)
+                {
                     songs.insert(index, SharedSong::from_path(path));
                 }
             })
@@ -1082,7 +1080,7 @@ impl Library {
     /// # Panics
     /// The function panics if any contained file paths are not valid UTF-8
     fn extend_queue_from_dir(&self, queue: &mut Vec<QueueItem>, dir: &str) {
-        let path = Path::new(&dir);
+        let path = PathBuf::from(&dir);
         if !path.is_dir() || !path.exists() {
             return;
         }

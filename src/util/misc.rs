@@ -1,4 +1,4 @@
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::{fs, io};
 
 /// Splits the input string at every occurence of a character,
@@ -58,12 +58,14 @@ pub fn unescaped_split(input: &str, character: char) -> Vec<String> {
 /// - If `dir` is not a directory
 /// - If a contained file or directory could not be read
 #[inline]
-pub fn visit_dirs<F: FnMut(PathBuf)>(dir: &Path, f: &mut F) -> io::Result<()> {
+pub fn visit_dirs<F: FnMut(PathBuf)>(dir: PathBuf, f: &mut F) -> io::Result<()> {
     for entry in fs::read_dir(dir)? {
         let path = entry?.path();
         match path.is_dir() {
             false => f(path),
-            true => visit_dirs(&path, f)?,
+            // TODO: Use `become` once the `explicit_tail_calls` feature is available
+            // <https://github.com/rust-lang/rust/issues/112788>
+            true => visit_dirs(path, f)?,
         }
     }
     Ok(())
