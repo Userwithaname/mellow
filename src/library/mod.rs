@@ -525,7 +525,7 @@ impl Library {
                             drop(album_locked);
 
                             // Associate the song with its album
-                            song.set_album(Arc::clone(album));
+                            song.set_album(Some(Arc::clone(album)));
                         }
                         Err(album_index) => {
                             // SAFETY: `artist_index` is `Ok`, therefore within bounds
@@ -545,7 +545,7 @@ impl Library {
                             albums.insert(album_index, Arc::clone(&album));
 
                             // Associate the song with its album
-                            song.set_album(album);
+                            song.set_album(Some(album));
                         }
                     },
                     Err(artist_index) => {
@@ -564,7 +564,7 @@ impl Library {
                         artists.insert(artist_index, artist);
 
                         // Associate the song with its album
-                        song.set_album(album);
+                        song.set_album(Some(album));
                     }
                 }
             });

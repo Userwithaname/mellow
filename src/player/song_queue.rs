@@ -506,7 +506,10 @@ impl SongQueue {
                 continue;
             };
             if song.path.exists() {
-                continue;
+                if song.is_within_library() {
+                    continue;
+                }
+                song.set_album(None);
             }
 
             missing_items.push(index);
@@ -521,7 +524,7 @@ impl SongQueue {
             .send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
                 let moved = (missing_items.into_iter())
                     .filter_map(|index| {
-                        // SAFETY: Explained in the inner block
+                        // SAFETY: Explained inside the block
                         let song = unsafe {
                             queue
                                 // SAFETY: `missing_items` (`index`) is built using `.enumerate`
@@ -535,11 +538,15 @@ impl SongQueue {
                             library.artists().locate_song_by_info(new_song_info)
                         })?;
 
+                        let ui_tx = ui_tx();
                         if index == playing_index {
                             // If the currently playing song has been moved, there is likely an
                             // error shown in the interface; dismissing if found
-                            let _ = ui_tx().send(UpdateUI::DismissNotifications);
+                            let _ = ui_tx.send(UpdateUI::DismissNotifications);
                         }
+
+                        // Causes any open subpages to be redrawn
+                        let _ = ui_tx.send(UpdateUI::Progress(None));
 
                         Some((index, QueueItem::from_song(&new_song)))
                     })

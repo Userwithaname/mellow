@@ -33,7 +33,7 @@ pub trait SharedSongExt {
     fn deserialize(data: &str) -> Option<SharedSong>;
     fn album(&self) -> MutexGuard<'_, Option<SharedAlbum>>;
     fn get_album(&self) -> Option<SharedAlbum>;
-    fn set_album(&self, album: SharedAlbum);
+    fn set_album(&self, album: Option<SharedAlbum>);
 }
 impl SharedSongExt for SharedSong {
     /// Constructs a new `SharedSong` from a file path
@@ -63,8 +63,8 @@ impl SharedSongExt for SharedSong {
     }
     /// Sets `self.album` to the given `album`
     #[inline]
-    fn set_album(&self, album: SharedAlbum) {
-        *self.album.lock().unwrap() = Some(album);
+    fn set_album(&self, album: Option<SharedAlbum>) {
+        *self.album.lock().unwrap() = album;
     }
 }
 
@@ -186,6 +186,16 @@ impl<'s> Song {
     #[must_use]
     pub fn get_uri(&self) -> glib::GString {
         gio::File::for_path(&self.path).uri()
+    }
+
+    /// Checks whether the song is known to the library
+    ///
+    /// # Panics
+    /// Panics if the `album` mutex is poisoned
+    #[inline]
+    #[must_use]
+    pub fn is_within_library(&self) -> bool {
+        self.album.lock().unwrap().is_some()
     }
 
     /// Returns a `SongInfoLoader`, which can be used to access information
