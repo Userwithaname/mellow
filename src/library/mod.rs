@@ -3,7 +3,7 @@ use core::{cmp::Ordering, error::Error, mem};
 use rand::random_range;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, mpsc};
-use std::time::{Duration, Instant};
+use std::time::Instant;
 use std::{fs, thread};
 
 pub mod album;
@@ -239,6 +239,7 @@ type SongsTask = Box<dyn FnOnce(&Songs) + Send + 'static>;
 
 pub enum LibraryRequest {
     /// Rebuilds the library, cancelling any rebuild that might be currently running
+    /// For more responsive cancellation, use `Library::rebuild` instead
     Rebuild,
     /// Cancels the current library build and pauses the thread pool requests
     /// until all current tasks finish running
@@ -264,6 +265,15 @@ pub enum LibraryRequest {
 
     /// Cleanly shuts down the library and thread pool, and writes the configuration data to disk
     Uninit,
+}
+impl PartialEq for LibraryRequest {
+    fn eq(&self, other: &Self) -> bool {
+        match self {
+            LibraryRequest::Rebuild => matches!(other, LibraryRequest::Rebuild),
+            LibraryRequest::CancelRebuild => matches!(other, LibraryRequest::CancelRebuild),
+            _ => false,
+        }
+    }
 }
 
 impl Library {
@@ -316,26 +326,50 @@ impl Library {
     /// a poisoned `Mutex` is passed
     #[inline]
     pub fn request_handler(mut self) -> Result<(), Box<dyn Error>> {
+        let mut request_queue = Vec::new();
         loop {
-            match self.rx.recv()? {
-                LibraryRequest::RunTask(task) => self.tasks.run(task),
+            request_queue.push(self.rx.recv()?);
+            while let Ok(request) = self.rx.try_recv() {
+                // Reject duplicate rebuild and cancellation requests
+                match request {
+                    LibraryRequest::CancelRebuild
+                        if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL
+                            || request_queue.contains(&request) =>
+                    {
+                        println!("Dropped duplicate cancellation request");
+                    }
+                    LibraryRequest::Rebuild
+                        if self.rebuild_pending || request_queue.contains(&request) =>
+                    {
+                        println!("Dropped duplicate rebuild request");
+                    }
+                    _ => request_queue.push(request),
+                }
+            }
 
-                LibraryRequest::QueueFromPaths(paths) => self.play_from_paths(
-                    paths.iter().map(|path| &**path), //
-                )?,
+            for request in request_queue.drain(..) {
+                match request {
+                    LibraryRequest::RunTask(task) => self.tasks.run(task),
 
-                LibraryRequest::RunLibraryTask(f) => f(&mut self),
-                LibraryRequest::CancelRebuild => self.cancel_library_build(),
-                LibraryRequest::Rebuild => self.start_library_build(),
+                    LibraryRequest::QueueFromPaths(paths) => self.play_from_paths(
+                        paths.iter().map(|path| &**path), //
+                    )?,
 
-                LibraryRequest::AddLibrary(dir) => self.config.add_library(dir),
-                LibraryRequest::RemoveLibrary(index) => self.config.remove_library(index),
+                    LibraryRequest::RunLibraryTask(f) => f(&mut self),
+                    LibraryRequest::CancelRebuild => self.cancel_library_build(),
+                    LibraryRequest::Rebuild => self.start_library_build(),
 
-                LibraryRequest::RegisterUndoDirectory(dir) => self.register_undo_directory(&dir),
-                LibraryRequest::UndoRemovedDirectory(dir) => self.undo_removed_directory(dir),
+                    LibraryRequest::AddLibrary(dir) => self.config.add_library(dir),
+                    LibraryRequest::RemoveLibrary(index) => self.config.remove_library(index),
 
-                #[allow(clippy::unit_arg)]
-                LibraryRequest::Uninit => return Ok(self.shutdown()),
+                    LibraryRequest::RegisterUndoDirectory(dir) => {
+                        self.register_undo_directory(&dir);
+                    }
+                    LibraryRequest::UndoRemovedDirectory(dir) => self.undo_removed_directory(dir),
+
+                    #[allow(clippy::unit_arg)]
+                    LibraryRequest::Uninit => return Ok(self.shutdown()),
+                }
             }
         }
     }
@@ -368,6 +402,10 @@ impl Library {
                 }
             })
             .inspect_err(|e| eprintln!("Error reading '{library_path:?}': {e}"));
+        }
+
+        if STATE.load(atomic::Ordering::Acquire) == STATE_CANCEL {
+            return;
         }
 
         self.tasks.run({
@@ -446,13 +484,10 @@ impl Library {
                     && STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_CANCEL
                 {
                     library.cancel_library_build();
-                    library.run_on_build_stopped(Box::new(|_| {
+                    library.run_on_build_stopped(Box::new(|library| {
                         ui_tx.send(UpdateUI::Progress(Some(0.0))).expect(EXP_RX);
                         println!("Rebuilding because files were modified");
-
-                        // Sending rebuild request through the channel instead of running directly,
-                        // so it waits for any cancellations to complete in full before rebuilding
-                        library_tx.send(LibraryRequest::Rebuild).expect(EXP_RX);
+                        library.start_library_build();
                     }));
                     println!("Modifications detected, library will rebuild shortly");
                 }
@@ -466,8 +501,6 @@ impl Library {
         Library::run_task(library_tx, {
             let songs = songs.clone();
             move || {
-                // Wait before starting background tasks in case they aren't needed
-                thread::sleep(Duration::from_millis(100));
                 if STATE.load(atomic::Ordering::Relaxed) != STATE_BUSY {
                     return;
                 }
@@ -762,6 +795,20 @@ impl Library {
                 let _ = ui_tx.send(UpdateUI::Progress(Some(progress)));
             }
         }
+    }
+
+    /// Cancels any currently ongoing rebuild and requests a new one
+    ///
+    /// # Panics
+    /// Panics if the library channel is closed
+    pub fn rebuild() {
+        if STATE.load(atomic::Ordering::Acquire) == STATE_BUSY {
+            STATE.store(STATE_CANCEL, atomic::Ordering::Relaxed);
+            library_tx()
+                .send(LibraryRequest::CancelRebuild)
+                .expect(EXP_RX);
+        }
+        library_tx().send(LibraryRequest::Rebuild).expect(EXP_RX);
     }
 
     /// Starts a new library build

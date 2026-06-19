@@ -4,8 +4,7 @@ use glib::clone;
 use gtk::{gio, glib};
 use std::rc::Rc;
 
-use crate::excuses::EXP_RX;
-use crate::library::{LibraryRequest, library_tx};
+use crate::library::Library;
 use crate::ui::main_player::imp::MainPlayer;
 use crate::ui::{AlbumPage, AlbumsPage, ArtistPage, ArtistsPage, SongsPage};
 
@@ -96,6 +95,6 @@ pub fn queue_visible_artist(
 #[inline]
 pub fn refresh_library() -> gio::ActionEntry<gio::SimpleActionGroup> {
     gio::ActionEntry::builder("refresh_library")
-        .activate(|_, _, _| library_tx().send(LibraryRequest::Rebuild).expect(EXP_RX))
+        .activate(|_, _, _| Library::rebuild())
         .build()
 }

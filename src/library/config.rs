@@ -2,7 +2,7 @@ use std::fs;
 use std::path::PathBuf;
 
 use crate::config_dir;
-use crate::library::{LibraryRequest, library_tx};
+use crate::library::{Library, LibraryRequest, library_tx};
 use crate::ui::{UpdateUI, ui_tx};
 
 pub const FILE_SUPPORT: &[&str] = &[
@@ -81,7 +81,7 @@ impl LibraryConfig {
 
         let library_tx = library_tx();
         let _ = library_tx.send(LibraryRequest::RegisterUndoDirectory(removed_dir.clone()));
-        let _ = library_tx.send(LibraryRequest::Rebuild);
+        Library::rebuild();
 
         println!("Removed a library\nLibraries: {:?}", self.directories);
 
@@ -102,7 +102,7 @@ impl LibraryConfig {
     /// Requests a library rebuild and updates the directory list in the UI
     fn update_library(&self) {
         let _ = ui_tx().send(UpdateUI::SetLibraryDirs(self.directories_string()));
-        let _ = library_tx().send(LibraryRequest::Rebuild);
+        Library::rebuild();
     }
 
     /// Creates the config directory if it does not exist yet

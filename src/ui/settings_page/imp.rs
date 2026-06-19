@@ -5,7 +5,7 @@ use gtk::{CompositeTemplate, InterfaceColorScheme};
 use gtk::{gdk, glib};
 
 use crate::excuses::{ACTION_ERR, EXP_INIT, EXP_RX};
-use crate::library::{LibraryRequest, library_tx};
+use crate::library::{Library, LibraryRequest, library_tx};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::StartupQueueChoice;
 use crate::util::{approx_eq, lerp};
@@ -93,7 +93,7 @@ impl SettingsPage {
     #[template_callback]
     pub fn handle_refresh_library(&self) {
         self.refresh_library_button.set_sensitive(false);
-        library_tx().send(LibraryRequest::Rebuild).expect(EXP_RX);
+        Library::rebuild();
     }
     #[template_callback]
     pub fn handle_add_directory(&self) {
