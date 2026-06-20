@@ -222,7 +222,7 @@ impl Application {
         imp.window.get().unwrap().save_and_uninit().unwrap();
 
         // Wait for all components to stop, except if timeout was exceeded
-        let timeout = Duration::from_millis(500);
+        let timeout = Duration::from_secs(5);
         let (notify_done, rx) = mpsc::channel::<()>();
         let (library_handle, player_handle) = (
             imp.library_handle.take().unwrap(),
