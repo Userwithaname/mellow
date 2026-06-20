@@ -462,19 +462,21 @@ impl Library {
                     if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
                         return;
                     }
+
                     let mut info = song.info();
-                    let modification_time = info.file_modification_time(|info| {
-                        eprintln!(
-                            "WARNING: Could not determine modification time for '{:?}'; skipping...",
-                            info.path()
-                        );
-                        info.known_modification_time()
-                    });
-                    if modification_time == info.known_modification_time()
-                        || modification_time == !0
+                    let known_modification_time = info.known_modification_time();
+                    if known_modification_time == !0
+                        || known_modification_time == info.file_modification_time(|info| {
+                            eprintln!(
+                                "WARNING: Modification time could not be read: '{:?}'; skipping...",
+                                info.path()
+                            );
+                            known_modification_time
+                        })
                     {
                         continue;
                     }
+
                     needs_rebuild |= info.inspect_basic_mut().take().is_some();
                     info.invalidate_thumbnail();
                 }
