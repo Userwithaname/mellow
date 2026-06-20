@@ -640,7 +640,7 @@ impl SongQueue {
     /// # Panics
     /// The function panics if `CONFIG_DIR` is unititialized
     #[inline]
-    pub fn save_queue(&self, remember: bool, time: Option<u64>) {
+    pub fn save_queue(&self, remember: bool, time_ms: Option<u64>) {
         let queue_file = queue_file();
         if !remember {
             let _ = fs::remove_file(&queue_file);
@@ -648,7 +648,7 @@ impl SongQueue {
         }
         let contents = self.index.to_string()
             + "\n"
-            + &time.map_or_else(|| String::from("-"), |time| time.to_string())
+            + &time_ms.map_or_else(|| String::from("-"), |time_ms| time_ms.to_string())
             + "\n"
             + &self.shuffle.to_string()
             + "\n"
@@ -682,7 +682,7 @@ impl SongQueue {
             return;
         }
         let contents = (self.shuffled.iter())
-            .map(|i| i.to_string() + "\n")
+            .map(|index| index.to_string() + "\n")
             .collect::<String>();
         match fs::write(&shuffled_file, contents.trim()) {
             Ok(()) => println!("Shuffled song queue successfully written to disk"),

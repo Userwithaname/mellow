@@ -6,7 +6,7 @@ use std::sync::{OnceLock, mpsc};
 use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_RX, INIT_ERR};
 use crate::ui::{UpdateUI, ui_tx};
-use crate::util::hint::unlikely;
+use crate::util::hint::{cold, unlikely};
 use crate::util::wrap_index;
 
 pub mod queue_item;
@@ -533,7 +533,7 @@ impl Player {
     }
 
     /// Seeks to the beginning of the current track
-    fn repeat_song(&mut self) -> Result<(), gst::StateChangeError> {
+    fn repeat_song(&self) -> Result<(), gst::StateChangeError> {
         self.seek_to_time(ClockTime::ZERO)
     }
 
@@ -552,7 +552,7 @@ impl Player {
     }
 
     /// Seek to a position in the song using a 0 to 1 value
-    fn seek_to_position(&mut self, position: f64) -> Result<(), gst::StateChangeError> {
+    fn seek_to_position(&self, position: f64) -> Result<(), gst::StateChangeError> {
         #[allow(clippy::cast_possible_truncation)]
         #[allow(clippy::cast_precision_loss)]
         #[allow(clippy::cast_sign_loss)]
@@ -565,7 +565,7 @@ impl Player {
 
     /// Seek to a particular time in the song
     #[inline]
-    fn seek_to_time(&mut self, time: ClockTime) -> Result<(), gst::StateChangeError> {
+    fn seek_to_time(&self, time: ClockTime) -> Result<(), gst::StateChangeError> {
         match (self.backend).seek_simple(SeekFlags::FLUSH | SeekFlags::ACCURATE, time) {
             Ok(()) => {
                 self.backend.state(ClockTime::from_mseconds(150)).0?;
@@ -811,7 +811,7 @@ impl Player {
                         self.ui_set_state();
                     }
                 }
-                gst::MessageType::Warning => {
+                gst::MessageType::Warning => cold({
                     let warning = format!("{message:?}");
                     eprintln!("gstreamer warning: {warning}\n");
 
@@ -823,8 +823,8 @@ impl Player {
                             // Clear all pending `PlayerRequest`s
                         }
                     }
-                }
-                gst::MessageType::Error => {
+                }),
+                gst::MessageType::Error => cold({
                     // Update the UI manually, in case the `StreamStart` branch did not run
                     self.queue.ui_update_queue_index();
                     self.ui_update_song_info();
@@ -835,7 +835,7 @@ impl Player {
                     if error.contains(&self.backend.property::<String>("uri")) {
                         self.force_stop_playback();
                     }
-                }
+                }),
                 _ => (),
             }
         }
@@ -863,11 +863,11 @@ impl Player {
 
     /// Uninitializes the player and writes the queue to disk
     fn shutdown(self, save_queue: bool, save_time: bool) {
-        let time = match self.current_time().map(ClockTime::mseconds) {
-            Some(time) if time > 999 && save_time => Some(time),
+        let time_ms = match self.current_time().map(ClockTime::mseconds) {
+            Some(time_ms) if time_ms > 999 && save_time => Some(time_ms),
             _ => None,
         };
-        self.queue.save_queue(save_queue, time);
+        self.queue.save_queue(save_queue, time_ms);
         self.queue.save_shuffled_queue(save_queue);
         let _ = self.backend.set_state(State::Null);
     }
