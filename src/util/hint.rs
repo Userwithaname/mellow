@@ -1,4 +1,17 @@
-use core::hint::cold_path;
+/// Hints to the compiler that the path leading to this
+/// expression is unlikely to be taken
+///
+/// The the given expression is evaluated as-is
+///
+/// See also: `likely`, `unlikely`, `core::hint::cold_path`
+#[macro_export]
+macro_rules! cold_expression {
+    ($expression:expr) => {{
+        core::hint::cold_path();
+        $expression
+    }};
+}
+pub use cold_expression;
 
 /// Returns the given value, and hints to the compiler that
 /// the path leading to this function call is unlikely to
@@ -21,7 +34,7 @@ pub const fn likely(value: bool) -> bool {
     if value {
         true
     } else {
-        cold_path();
+        core::hint::cold_path();
         false
     }
 }
@@ -35,7 +48,7 @@ pub const fn likely(value: bool) -> bool {
 #[inline(always)]
 pub const fn unlikely(value: bool) -> bool {
     if value {
-        cold_path();
+        core::hint::cold_path();
         true
     } else {
         false

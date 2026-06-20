@@ -6,7 +6,7 @@ use std::sync::{OnceLock, mpsc};
 use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_RX, INIT_ERR};
 use crate::ui::{UpdateUI, ui_tx};
-use crate::util::hint::{cold, unlikely};
+use crate::util::hint::{cold_expression, unlikely};
 use crate::util::wrap_index;
 
 pub mod queue_item;
@@ -811,7 +811,7 @@ impl Player {
                         self.ui_set_state();
                     }
                 }
-                gst::MessageType::Warning => cold({
+                gst::MessageType::Warning => cold_expression! {{
                     let warning = format!("{message:?}");
                     eprintln!("gstreamer warning: {warning}\n");
 
@@ -823,8 +823,8 @@ impl Player {
                             // Clear all pending `PlayerRequest`s
                         }
                     }
-                }),
-                gst::MessageType::Error => cold({
+                }},
+                gst::MessageType::Error => cold_expression! {{
                     // Update the UI manually, in case the `StreamStart` branch did not run
                     self.queue.ui_update_queue_index();
                     self.ui_update_song_info();
@@ -835,7 +835,7 @@ impl Player {
                     if error.contains(&self.backend.property::<String>("uri")) {
                         self.force_stop_playback();
                     }
-                }),
+                }},
                 _ => (),
             }
         }
