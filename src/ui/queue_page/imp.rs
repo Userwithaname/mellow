@@ -1035,6 +1035,7 @@ impl QueuePage {
     #[inline]
     pub fn uninit(&self) {
         self.list_model.get().expect(EXP_INIT).remove_all();
+        self.queue_item_objects.take();
     }
 
     /// Used to verify that `model_index_to_queue` is working correctly
