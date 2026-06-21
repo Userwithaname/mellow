@@ -17,9 +17,9 @@ const NUM_ITEMS_AHEAD: usize = 45;
 const NUM_ITEMS_BEHIND: usize = 45;
 const ROW_HEIGHT: usize = 55;
 const PAN_UP_BUTTON_HEIGHT: i32 = 44;
-const PAN_REPEAT_DELAY: Duration = Duration::from_millis(200);
-const PAN_REPEAT_DELAY_MIN: Duration = Duration::from_millis(10);
-const PAN_REPEAT_SPEEDUP: Duration = Duration::from_millis(3);
+const PAN_REPEAT_DELAY: Duration = Duration::from_millis(165);
+const PAN_REPEAT_DELAY_MIN: Duration = Duration::from_millis(5);
+const PAN_REPEAT_SPEEDUP: Duration = Duration::from_millis(2);
 
 #[derive(Default, CompositeTemplate)]
 #[template(file = "queue_page.ui")]
