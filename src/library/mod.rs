@@ -691,7 +691,9 @@ impl Library {
         .concat()
         .into_iter();
 
-        while let Some(song) = old_songs.next() {
+        while let Some(song) = old_songs.next()
+            && song.path.extension().is_some_and(extension_supported)
+        {
             match songs.find_song(&song.path) {
                 // Valid song entry
                 Err(index) if fs::exists(&song.path).unwrap_or_default() => {
