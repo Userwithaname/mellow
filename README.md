@@ -24,6 +24,10 @@ letting music be the central point of focus.
 > on the [issues page](https://github.com/Userwithaname/mellow/issues). Suggestions
 > and feature requests are welcome as well.
 
+> [!WARNING]
+> Forwards compatibility is not guaranteed; if you plan on trying out older versions
+> or commits, it is recommended to backup your configuration beforehand.
+
 # Philosophy
 
 Mellow's primary design goal is to minimize distraction and maximize immersion,
