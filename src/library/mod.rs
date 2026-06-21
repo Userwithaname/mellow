@@ -1025,7 +1025,7 @@ impl Library {
         let mut queue = Vec::with_capacity(paths.size_hint().0);
         for file in paths {
             if file_supported(file) {
-                queue.push(QueueItem::Song(self.song_from_library_or_new(file.into())));
+                queue.push(QueueItem::Song(self.find_song_or_new(Path::new(file))));
             } else if file == "Pause" {
                 queue.push(QueueItem::new_stopper(false));
             } else if file == "Close Player" {
@@ -1040,14 +1040,14 @@ impl Library {
     /// returns it, otherwise it returns a new `SharedSong`
     #[inline]
     #[must_use]
-    fn song_from_library_or_new(&self, path: PathBuf) -> SharedSong {
+    fn find_song_or_new(&self, path: &Path) -> SharedSong {
         if (self.config.directories().iter()).any(|dir| path.starts_with(dir))
             && let Ok(index) = self.songs.find_song(&path)
         {
             // SAFETY: `index` is `Ok`, therefore within bounds
             return Arc::clone(unsafe { self.songs.get_unchecked(index) });
         }
-        SharedSong::from_path(path)
+        SharedSong::from_path(path.to_path_buf())
     }
     /// Extends `queue` with songs found on disk within `dir`. If files are
     /// part of the music library, their existing instances will be used.
@@ -1068,7 +1068,7 @@ impl Library {
                 return;
             }
 
-            let song = self.song_from_library_or_new(file_path.clone());
+            let song = self.find_song_or_new(&file_path);
             match songs.binary_search_by(|existing: &QueueItem| {
                 // SAFETY: Only the `Song` variant is ever inserted into `songs`
                 unsafe { &existing.as_song_unchecked().path }.cmp(&file_path)
