@@ -1,4 +1,4 @@
-use adw::subclass::prelude::*;
+use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, RefCell};
 use gtk::{CompositeTemplate, glib};
 use std::sync::Arc;
@@ -125,7 +125,26 @@ impl ObjectSubclass for AlbumPage {
     }
 }
 
-impl ObjectImpl for AlbumPage {}
+impl ObjectImpl for AlbumPage {
+    fn constructed(&self) {
+        self.artist_name.set_cursor_from_name(Some("pointer"));
+        let click = gtk::GestureClick::builder()
+            .propagation_phase(gtk::PropagationPhase::Capture)
+            .build();
+        click.connect_released(glib::clone!(
+            #[weak(rename_to=subpage)]
+            self,
+            #[weak(rename_to=label)]
+            self.artist_name,
+            move |_, _, pos_x, pos_y| if (0.0..label.width() as f64).contains(&pos_x)
+                && (0.0..label.height() as f64).contains(&pos_y)
+            {
+                subpage.handle_go_to_artist();
+            }
+        ));
+        self.artist_name.add_controller(click);
+    }
+}
 impl WidgetImpl for AlbumPage {}
 impl NavigationPageImpl for AlbumPage {}
 
