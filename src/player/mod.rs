@@ -363,8 +363,6 @@ impl Player {
             return;
         }
 
-        let pending_track = self.queue.pending_track;
-
         let file_uri = match self.queue.current() {
             QueueItem::Song(song) => song.get_uri(),
             QueueItem::Stopper(_) => {
@@ -378,7 +376,7 @@ impl Player {
             }
         };
 
-        if pending_track {
+        if self.queue.pending_track {
             println!("\n{file_uri}");
             self.backend.set_property("uri", file_uri);
             self.queue.pending_track = false;
@@ -441,11 +439,16 @@ impl Player {
         self.queue.load_new(queue, shuffled);
         self.skip_to(index);
 
-        // Updating manually before using this thread to load the thumbnail
+        // Updating manually before using this thread to load the artwork
         self.update();
 
-        // Ensure the current thumbnail is loaded before updating the UI queue
-        queue_item.map_song(|song| drop(song.info().load_thumbnail()));
+        // Load the current thumbnail and artwork before updating the UI queue
+        queue_item.map_song(|song| {
+            let mut info = song.info();
+            drop(info.load_thumbnail());
+            info.load_detailed();
+        });
+
         let _ = ui_tx().send(UpdateUI::ExitQueueSelection);
         self.queue.ui_update_queue();
     }
