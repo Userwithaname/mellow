@@ -12,6 +12,7 @@ use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::{Songs, ToQueue};
 use crate::player::{PlayerRequest, player_tx};
+use crate::ui::song_object::SongFilters;
 use crate::ui::{ItemRow, SongObject, SongOrdering, SortConfig};
 use crate::ui::{UpdateUI, fallback_song_image, ui_tx};
 use crate::util::search;
@@ -38,6 +39,7 @@ pub struct SongsPage {
     sorter: Rc<RefCell<gtk::CustomSorter>>,
 
     sort_mode: OnceCell<SortConfig<SongOrdering>>,
+    song_filters: Rc<RefCell<SongFilters>>,
 
     shuffle: Cell<bool>,
     pending_scroll_pos: Cell<Option<f64>>,
@@ -138,13 +140,14 @@ impl SongsPage {
         glib::timeout_future(wait).await;
 
         let query = Rc::clone(&self.search_query);
+        let song_filters = Rc::clone(&self.song_filters);
         let filter = gtk::CustomFilter::new(move |object| {
             let song_object = object.downcast_ref::<SongObject>().unwrap();
             let query = &query.borrow().to_lowercase();
             let score = search::query_score(query, &song_object.song().to_lowercase())
                 .max(search::query_score(query, &song_object.artist().to_lowercase()) / 4.0);
             song_object.set_rank(score);
-            score > 0.01
+            score > 0.01 && song_filters.borrow_mut().filter(song_object)
         });
         let filter_model = gtk::FilterListModel::new(Some(model), Some(filter.clone()));
         self.filter.replace(filter);

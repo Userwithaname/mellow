@@ -12,6 +12,7 @@ use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::{Albums, ToQueue, ToShuffledQueue};
 use crate::player::{PlayerRequest, player_tx};
+use crate::ui::album_object::AlbumFilters;
 use crate::ui::{AlbumObject, AlbumOrdering, ItemTile, SortConfig};
 use crate::ui::{UpdateUI, fallback_album_image, ui_tx};
 use crate::util::search;
@@ -38,6 +39,7 @@ pub struct AlbumsPage {
     sorter: Rc<RefCell<gtk::CustomSorter>>,
 
     sort_mode: OnceCell<SortConfig<AlbumOrdering>>,
+    album_filters: Rc<RefCell<AlbumFilters>>,
 
     shuffle: Cell<bool>,
     pending_scroll_pos: Cell<Option<f64>>,
@@ -152,13 +154,14 @@ impl AlbumsPage {
         glib::timeout_future(wait).await;
 
         let query = Rc::clone(&self.search_query);
+        let album_filters = Rc::clone(&self.album_filters);
         let filter = gtk::CustomFilter::new(move |object| {
             let album_object = object.downcast_ref::<AlbumObject>().unwrap();
             let query = &query.borrow().to_lowercase();
             let score = search::query_score(query, &album_object.album().to_lowercase())
                 .max(search::query_score(query, &album_object.artist().to_lowercase()) / 4.0);
             album_object.set_rank(score);
-            score > 0.01
+            score > 0.01 && album_filters.borrow().filter(album_object)
         });
         let filter_model = gtk::FilterListModel::new(Some(model), Some(filter.clone()));
         self.filter.replace(filter);

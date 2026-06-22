@@ -5,7 +5,8 @@ use gtk::{gdk, glib};
 use std::sync::Arc;
 
 use crate::library::{Library, SharedSong, library_tx};
-use crate::ui::{SortConfig, UpdateUI, ui_tx};
+use crate::ui::{FilterMode, SortConfig, UpdateUI, ui_tx};
+use crate::util::CmpIsEqOr;
 
 mod imp;
 
@@ -217,5 +218,43 @@ impl From<&str> for SongOrdering {
             "Random" => SongOrdering::Random,
             _ => unimplemented!(),
         }
+    }
+}
+
+#[derive(Default)]
+pub struct SongFilters {
+    pub filter_mode: FilterMode,
+    pub rating: Option<(cmp::Ordering, u8)>,
+    pub play_count: Option<(cmp::Ordering, u64)>,
+    pub year: Option<(cmp::Ordering, u32)>,
+}
+
+impl SongFilters {
+    #[inline]
+    pub fn filter(&self, song_object: &SongObject) -> bool {
+        match self.filter_mode {
+            FilterMode::Exclusive => self.filter_exclusive(song_object),
+            FilterMode::Inclusive => self.filter_inclusive(song_object),
+        }
+    }
+    pub fn filter_exclusive(&self, song_object: &SongObject) -> bool {
+        self.rating
+            .is_none_or(|rating| song_object.rating().cmp(&rating.1).is_eq_or(rating.0))
+            && self.play_count.is_none_or(|play_count| {
+                (song_object.played().cmp(&play_count.1)).is_eq_or(play_count.0)
+            })
+            && (self.year).is_none_or(|year| song_object.year().cmp(&year.1).is_eq_or(year.0))
+    }
+    pub fn filter_inclusive(&self, song_object: &SongObject) -> bool {
+        self.rating.is_none() && self.play_count.is_none() && self.year.is_none()
+            || self
+                .rating
+                .is_some_and(|rating| song_object.rating().cmp(&rating.1) == rating.0)
+            || self
+                .play_count
+                .is_some_and(|play_count| song_object.played().cmp(&play_count.1) == play_count.0)
+            || self
+                .year
+                .is_some_and(|year| song_object.year().cmp(&year.1) == year.0)
     }
 }

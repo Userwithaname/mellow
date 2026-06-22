@@ -254,3 +254,10 @@ impl<O> SortConfig<O> {
         }
     }
 }
+
+#[derive(Default)]
+pub enum FilterMode {
+    #[default]
+    Exclusive,
+    Inclusive,
+}
