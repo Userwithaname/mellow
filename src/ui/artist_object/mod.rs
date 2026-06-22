@@ -68,6 +68,7 @@ impl ArtistObject {
                 ArtistOrdering::Default => self.cmp_artist(other),
                 ArtistOrdering::Added => self.cmp_added_newer(other),
                 ArtistOrdering::Modified => self.cmp_modified_newer(other),
+                ArtistOrdering::Random => self.cmp_random(other),
             },
             ordering => ordering,
         };
@@ -99,6 +100,11 @@ impl ArtistObject {
             ordering => ordering,
         }
     }
+    #[inline]
+    #[must_use]
+    fn cmp_random(&self, other: &Self) -> cmp::Ordering {
+        other.random().cmp(&self.random())
+    }
 }
 
 #[derive(Default)]
@@ -110,6 +116,7 @@ pub struct ArtistData {
     rank: f64,
     modified: u64,
     added: u64,
+    random: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -119,6 +126,7 @@ pub enum ArtistOrdering {
     Default,
     Added,
     Modified,
+    Random,
 }
 
 impl ArtistOrdering {
@@ -129,6 +137,7 @@ impl ArtistOrdering {
             ArtistOrdering::Default => "Default",
             ArtistOrdering::Added => "Added",
             ArtistOrdering::Modified => "Modified",
+            ArtistOrdering::Random => "Random",
         }
     }
 }
@@ -139,6 +148,7 @@ impl From<&str> for ArtistOrdering {
             "Default" => ArtistOrdering::Default,
             "Added" => ArtistOrdering::Added,
             "Modified" => ArtistOrdering::Modified,
+            "Random" => ArtistOrdering::Random,
             _ => unimplemented!(),
         }
     }

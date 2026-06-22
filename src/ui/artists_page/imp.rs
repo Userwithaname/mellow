@@ -2,6 +2,7 @@ use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, OnceCell, RefCell};
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib};
+use rand::random_range;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -206,6 +207,7 @@ impl ArtistsPage {
                 let info = song.info();
                 let info = info.user();
 
+                artist.set_random(random_range(0..u64::MAX));
                 artist.set_modified(info.modified);
                 artist.set_added(info.added);
             }

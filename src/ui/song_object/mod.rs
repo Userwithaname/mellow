@@ -98,6 +98,7 @@ impl SongObject {
                 SongOrdering::ReleaseDate => self.cmp_release_date(other),
                 SongOrdering::Added => self.cmp_added_newer(other),
                 SongOrdering::Modified => self.cmp_modified_newer(other),
+                SongOrdering::Random => self.cmp_random(other),
             },
             ordering => ordering,
         };
@@ -154,6 +155,11 @@ impl SongObject {
             ordering => ordering,
         }
     }
+    #[inline]
+    #[must_use]
+    fn cmp_random(&self, other: &Self) -> cmp::Ordering {
+        other.random().cmp(&self.random())
+    }
 }
 
 #[derive(Default)]
@@ -169,6 +175,7 @@ pub struct SongData {
     played: u64,
     modified: u64,
     added: u64,
+    random: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -179,6 +186,7 @@ pub enum SongOrdering {
     ReleaseDate,
     Added,
     Modified,
+    Random,
 }
 
 impl SongOrdering {
@@ -192,6 +200,7 @@ impl SongOrdering {
             SongOrdering::ReleaseDate => "Release Date",
             SongOrdering::Added => "Added",
             SongOrdering::Modified => "Modified",
+            SongOrdering::Random => "Random",
         }
     }
 }

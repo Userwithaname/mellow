@@ -3,6 +3,7 @@ use core::cell::{Cell, OnceCell, RefCell};
 use core::sync::atomic::Ordering;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib};
+use rand::random_range;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -199,6 +200,7 @@ impl SongsPage {
                 let info = shared_song.info();
                 let info = info.user();
 
+                song.set_random(random_range(0..u64::MAX));
                 song.set_played(info.play_count as u64);
                 song.set_rating(match info.rating {
                     0 => 3,

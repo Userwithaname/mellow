@@ -22,6 +22,7 @@ pub struct SongObject {
     #[property(name = "played", get, set, type = u64, member = played)]
     #[property(name = "modified", get, set, type = u64, member = modified)]
     #[property(name = "added", get, set, type = u64, member = added)]
+    #[property(name = "random", get, set, type = u64, member = random)]
     pub data: RefCell<SongData>,
 
     pub shared_song: OnceCell<SharedSong>,

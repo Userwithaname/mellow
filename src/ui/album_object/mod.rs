@@ -102,6 +102,7 @@ impl AlbumObject {
                 AlbumOrdering::Added => self.cmp_added_newer(other),
                 AlbumOrdering::PlayCount => self.cmp_most_played(other),
                 AlbumOrdering::Rating => self.cmp_best_rating(other),
+                AlbumOrdering::Random => self.cmp_random(other),
             },
             ordering => ordering,
         };
@@ -162,6 +163,11 @@ impl AlbumObject {
             ordering => ordering,
         }
     }
+    #[inline]
+    #[must_use]
+    fn cmp_random(&self, other: &Self) -> cmp::Ordering {
+        other.random().cmp(&self.random())
+    }
 }
 
 #[derive(Default)]
@@ -176,6 +182,7 @@ pub struct AlbumData {
     played: f64,
     modified: u64,
     added: u64,
+    random: u64,
 }
 
 #[derive(Clone, Copy)]
@@ -186,6 +193,7 @@ pub enum AlbumOrdering {
     Added,
     Rating,
     PlayCount,
+    Random,
 }
 
 impl AlbumOrdering {
@@ -199,6 +207,7 @@ impl AlbumOrdering {
             AlbumOrdering::ReleaseDate => "Release Date",
             AlbumOrdering::Added => "Added",
             AlbumOrdering::Modified => "Modified",
+            AlbumOrdering::Random => "Random",
         }
     }
 }
@@ -212,6 +221,7 @@ impl From<&str> for AlbumOrdering {
             "Release Date" => AlbumOrdering::ReleaseDate,
             "Added" => AlbumOrdering::Added,
             "Modified" => AlbumOrdering::Modified,
+            "Random" => AlbumOrdering::Random,
             _ => unimplemented!(),
         }
     }

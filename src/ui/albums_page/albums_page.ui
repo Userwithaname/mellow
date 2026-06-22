@@ -46,6 +46,11 @@
         <attribute name='action'>menu.albums_sort_mode</attribute>
         <attribute name='target' type='s'>"Modified"</attribute>
       </item>
+      <item>
+        <attribute name="label" translatable="yes">Random</attribute>
+        <attribute name='action'>menu.albums_sort_mode</attribute>
+        <attribute name='target' type='s'>"Random"</attribute>
+      </item>
     </section>
   </menu>
   <template class="MellowAlbumsPage" parent="AdwNavigationPage">

@@ -21,6 +21,7 @@ pub struct AlbumObject {
     #[property(name = "played", get, set, type = f64, member = played)]
     #[property(name = "modified", get, set, type = u64, member = modified)]
     #[property(name = "added", get, set, type = u64, member = added)]
+    #[property(name = "random", get, set, type = u64, member = random)]
     pub data: RefCell<AlbumData>,
 
     pub shared_album: OnceCell<SharedAlbum>,
