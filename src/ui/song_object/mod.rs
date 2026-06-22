@@ -214,6 +214,7 @@ impl From<&str> for SongOrdering {
             "Release Date" => SongOrdering::ReleaseDate,
             "Added" => SongOrdering::Added,
             "Modified" => SongOrdering::Modified,
+            "Random" => SongOrdering::Random,
             _ => unimplemented!(),
         }
     }
