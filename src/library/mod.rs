@@ -22,6 +22,7 @@ use crate::library::album::NewSharedAlbum;
 use crate::library::artist::NewSharedArtist;
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{UpdateUI, ui_tx};
+use crate::util::hint::likely;
 use crate::util::tasks::{BoxedTask, Runner};
 use crate::{songs_file, util::visit_dirs};
 
@@ -692,7 +693,7 @@ impl Library {
         .into_iter();
 
         while let Some(song) = old_songs.next()
-            && song.path.extension().is_some_and(extension_supported)
+            && likely(song.path.extension().is_some_and(extension_supported))
         {
             match songs.find_song(&song.path) {
                 // Valid song entry
@@ -1042,7 +1043,7 @@ impl Library {
     #[must_use]
     fn find_song_or_new(&self, path: &Path) -> SharedSong {
         if (self.config.directories().iter()).any(|dir| path.starts_with(dir))
-            && let Ok(index) = self.songs.find_song(&path)
+            && let Ok(index) = self.songs.find_song(path)
         {
             // SAFETY: `index` is `Ok`, therefore within bounds
             return Arc::clone(unsafe { self.songs.get_unchecked(index) });

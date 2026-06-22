@@ -363,8 +363,34 @@ impl Player {
             return;
         }
 
-        let file_uri = match self.queue.current() {
-            QueueItem::Song(song) => song.get_uri(),
+        match self.queue.current() {
+            QueueItem::Song(song) => {
+                if self.queue.pending_track {
+                    let file_uri = song.get_uri();
+                    println!("\n{file_uri}");
+                    self.backend.set_property("uri", file_uri);
+                    self.queue.pending_track = false;
+
+                    if self.current_state == State::Null {
+                        self.ui_update_song_info();
+                        self.queue.ui_update_queue_index();
+                        self.request_state(State::Paused);
+                        self.next_song_loaded = false;
+                    } else {
+                        self.next_song_loaded = true;
+                    }
+                }
+
+                if let Some(state) = self.pending_state.take() {
+                    match self.backend.set_state(state) {
+                        Ok(_) => self.current_state = state,
+                        Err(_) => self.force_stop_playback(),
+                    }
+                }
+
+                // Re-enable gapless playback (for example after track skip)
+                self.backend.set_property("instant-uri", false);
+            }
             QueueItem::Stopper(_) => {
                 if (self.queue.remove_current().as_stopper()).should_close_player() {
                     let _ = ui_tx().send(UpdateUI::RunAction("app.quit"));
@@ -372,34 +398,9 @@ impl Player {
                 self.queue.ui_update_queue();
                 let _ = self.backend.set_state(State::Null);
                 self.request_state(State::Paused);
-                return self.update();
-            }
-        };
-
-        if self.queue.pending_track {
-            println!("\n{file_uri}");
-            self.backend.set_property("uri", file_uri);
-            self.queue.pending_track = false;
-
-            if self.current_state == State::Null {
-                self.ui_update_song_info();
-                self.queue.ui_update_queue_index();
-                self.request_state(State::Paused);
-                self.next_song_loaded = false;
-            } else {
-                self.next_song_loaded = true;
+                self.update();
             }
         }
-
-        if let Some(state) = self.pending_state.take() {
-            match self.backend.set_state(state) {
-                Ok(_) => self.current_state = state,
-                Err(_) => self.force_stop_playback(),
-            }
-        }
-
-        // Re-enable gapless playback (for example after track skip)
-        self.backend.set_property("instant-uri", false);
     }
 
     /// Replaces the song queue with `queue` and skips to `index`.
