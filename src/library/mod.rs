@@ -1086,14 +1086,23 @@ impl Library {
     /// File path is determined by `songs_file()`
     #[inline]
     fn serialize_songs(songs: &Songs) {
-        let serialized = (songs.iter())
+        let songs_data = (songs.iter())
             .map(|song| song.serialize() + "\n")
             .collect::<String>();
         match fs::write(
             songs_file(),
             [
-                "! Editing this file may cause issues with the application !\n\n",
-                serialized.trim(),
+                "\
+/--------------------------------------------------------------------\\
+|             Editing this file is usually not necessary             |
+|                                                                    |
+| Hint: Paths of moved and renamed files are corrected automatically |
+|                                                                    |
+|  Hint: You can append the contents of a different `songs` file to  |
+|  this one to combine their data (such as ratings and play counts)  |
+\\--------------------------------------------------------------------/
+\n",
+                songs_data.trim(),
             ]
             .concat(),
         ) {
@@ -1112,7 +1121,7 @@ impl Library {
         match fs::read_to_string(songs_file()) {
             Ok(data) => data
                 .split("\n\n")
-                .skip(1) // Skip the warning at the top of the file
+                .skip(1) // Skip the note written at the top of the `songs` file
                 .filter_map(SharedSong::deserialize)
                 .collect(),
             Err(_) => Vec::with_capacity(512), // Estimate to reduce reallocations
