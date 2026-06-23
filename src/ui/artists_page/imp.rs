@@ -33,8 +33,8 @@ pub struct ArtistsPage {
     search_query: Rc<RefCell<String>>,
 
     artists: RefCell<Vec<ArtistObject>>,
-    filter: Rc<RefCell<gtk::CustomFilter>>,
-    sorter: Rc<RefCell<gtk::CustomSorter>>,
+    filter: RefCell<gtk::CustomFilter>,
+    sorter: RefCell<gtk::CustomSorter>,
 
     sort_mode: OnceCell<SortConfig<ArtistOrdering>>,
 

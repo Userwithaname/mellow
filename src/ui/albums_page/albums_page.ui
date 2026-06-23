@@ -90,6 +90,169 @@
               </object>
             </child>
 
+            <child type="end">
+              <!-- TODO: Move this button into the search bar instead (like Nautilus does) -->
+              <object class="GtkMenuButton">
+                <property name="popover">
+                  <object class="GtkPopover">
+                    <property name="width-request">430</property>
+                    <child type="content">
+
+                      <object class="AdwPreferencesPage">
+                        <child>
+                          <object class="AdwPreferencesGroup">
+                            <property name="hexpand">true</property>
+                            <property name="title" translatable="yes">Filter Albums</property>
+
+                            <child>
+                              <object class="AdwSpinRow" id="rating_spin_row">
+                                <signal name="notify::value" handler="handle_filters_changed" swapped="true"/>
+                                <property name="title" translatable="yes">Rating</property>
+                                <property name="adjustment">
+                                  <object class="GtkAdjustment">
+                                    <property name="step-increment">1</property>
+                                    <property name="lower">0</property>
+                                    <property name="upper">5</property>
+                                    <property name="value">3</property>
+                                  </object>
+                                </property>
+                                <child type="prefix">
+                                  <object class="GtkCheckButton" id="rating_checkbox">
+                                    <signal name="toggled" handler="handle_filters_changed" swapped="true"/>
+                                  </object>
+                                </child>
+                                <child type="suffix">
+                                  <object class="GtkBox">
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="label" translatable="yes">stars</property>
+                                        <property name="margin-end">8</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkDropDown" id="rating_condition">
+                                        <signal name="notify::selected" handler="handle_filters_changed" swapped="true"/>
+                                        <property name="vexpand">false</property>
+                                        <property name="hexpand">false</property>
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <property name="model">
+                                          <object class="GtkStringList">
+                                            <items>
+                                              <item translatable="yes">or more</item>
+                                              <item translatable="yes">or less</item>
+                                            </items>
+                                          </object>
+                                        </property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+
+                            <child>
+                              <object class="AdwSpinRow" id="play_count_spin_row">
+                                <signal name="notify::value" handler="handle_filters_changed" swapped="true"/>
+                                <property name="title" translatable="yes">Played</property>
+                                <property name="adjustment">
+                                  <object class="GtkAdjustment">
+                                    <property name="page-increment">10</property>
+                                    <property name="step-increment">1</property>
+                                    <property name="lower">0</property>
+                                    <property name="upper">9999</property>
+                                    <property name="value">0</property>
+                                  </object>
+                                </property>
+                                <child type="prefix">
+                                  <object class="GtkCheckButton" id="play_count_checkbox">
+                                    <signal name="toggled" handler="handle_filters_changed" swapped="true"/>
+                                  </object>
+                                </child>
+                                <child type="suffix">
+                                  <object class="GtkBox">
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="label" translatable="yes">times</property>
+                                        <property name="margin-end">8</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkDropDown" id="play_count_condition">
+                                        <signal name="notify::selected" handler="handle_filters_changed" swapped="true"/>
+                                        <property name="vexpand">false</property>
+                                        <property name="hexpand">false</property>
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <property name="model">
+                                          <object class="GtkStringList">
+                                            <items>
+                                              <item translatable="yes">or more</item>
+                                              <item translatable="yes">or less</item>
+                                            </items>
+                                          </object>
+                                        </property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+
+                            <child>
+                              <object class="AdwSpinRow" id="year_spin_row">
+                                <signal name="notify::value" handler="handle_filters_changed" swapped="true"/>
+                                <property name="title" translatable="yes">Year</property>
+                                <property name="adjustment">
+                                  <object class="GtkAdjustment">
+                                    <property name="page-increment">10</property>
+                                    <property name="step-increment">1</property>
+                                    <property name="lower">0</property>
+                                    <property name="upper">9999</property>
+                                    <property name="value">2000</property>
+                                  </object>
+                                </property>
+                                <child type="prefix">
+                                  <object class="GtkCheckButton" id="year_checkbox">
+                                    <signal name="toggled" handler="handle_filters_changed" swapped="true"/>
+                                  </object>
+                                </child>
+                                <child type="suffix">
+                                  <object class="GtkBox">
+                                    <child>
+                                      <object class="GtkDropDown" id="year_condition">
+                                        <signal name="notify::selected" handler="handle_filters_changed" swapped="true"/>
+                                        <property name="vexpand">false</property>
+                                        <property name="hexpand">false</property>
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <property name="model">
+                                          <object class="GtkStringList">
+                                            <items>
+                                              <item translatable="yes">or newer</item>
+                                              <item translatable="yes">or older</item>
+                                            </items>
+                                          </object>
+                                        </property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+
+                          </object>
+                        </child>
+                      </object>
+
+                    </child>
+                  </object>
+                </property>
+                <property name="icon-name">radio-mixed-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Filter Songs</property>
+              </object>
+            </child>
+
           </object>
         </child>
 

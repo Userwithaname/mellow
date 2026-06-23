@@ -4,6 +4,7 @@ use core::sync::atomic::Ordering;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib};
 use rand::random_range;
+use std::cmp;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -31,12 +32,33 @@ pub struct SongsPage {
     songs_grid: TemplateChild<gtk::GridView>,
 
     #[template_child]
+    rating_checkbox: TemplateChild<gtk::CheckButton>,
+    #[template_child]
+    rating_spin_row: TemplateChild<adw::SpinRow>,
+    #[template_child]
+    rating_condition: TemplateChild<gtk::DropDown>,
+
+    #[template_child]
+    play_count_checkbox: TemplateChild<gtk::CheckButton>,
+    #[template_child]
+    play_count_spin_row: TemplateChild<adw::SpinRow>,
+    #[template_child]
+    play_count_condition: TemplateChild<gtk::DropDown>,
+
+    #[template_child]
+    year_checkbox: TemplateChild<gtk::CheckButton>,
+    #[template_child]
+    year_spin_row: TemplateChild<adw::SpinRow>,
+    #[template_child]
+    year_condition: TemplateChild<gtk::DropDown>,
+
+    #[template_child]
     pub search_entry: TemplateChild<gtk::SearchEntry>,
     search_query: Rc<RefCell<String>>,
 
     songs: RefCell<Vec<SongObject>>,
-    filter: Rc<RefCell<gtk::CustomFilter>>,
-    sorter: Rc<RefCell<gtk::CustomSorter>>,
+    filter: RefCell<gtk::CustomFilter>,
+    sorter: RefCell<gtk::CustomSorter>,
 
     sort_mode: OnceCell<SortConfig<SongOrdering>>,
     song_filters: Rc<RefCell<SongFilters>>,
@@ -63,6 +85,49 @@ impl SongsPage {
         self.search_entry.set_text("");
         self.search_query.take();
         self.songs_grid.grab_focus();
+    }
+    #[template_callback]
+    pub fn handle_filters_changed(&self) {
+        let mut filters = self.song_filters.borrow_mut();
+
+        filters.rating = match self.rating_checkbox.is_active() {
+            true => Some((
+                match self.rating_condition.selected() {
+                    0 => cmp::Ordering::Greater,
+                    1 => cmp::Ordering::Less,
+                    _ => unimplemented!(),
+                },
+                self.rating_spin_row.value() as u8,
+            )),
+            false => None,
+        };
+
+        filters.play_count = match self.play_count_checkbox.is_active() {
+            true => Some((
+                match self.play_count_condition.selected() {
+                    0 => cmp::Ordering::Greater,
+                    1 => cmp::Ordering::Less,
+                    _ => unimplemented!(),
+                },
+                self.play_count_spin_row.value() as u64,
+            )),
+            false => None,
+        };
+
+        filters.year = match self.year_checkbox.is_active() {
+            true => Some((
+                match self.year_condition.selected() {
+                    0 => cmp::Ordering::Greater,
+                    1 => cmp::Ordering::Less,
+                    _ => unimplemented!(),
+                },
+                self.year_spin_row.value() as u32,
+            )),
+            false => None,
+        };
+
+        drop(filters);
+        self.filter.borrow().changed(gtk::FilterChange::Different);
     }
 
     #[template_callback]

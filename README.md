@@ -58,9 +58,6 @@ When the overlay is closed, it is time to enjoy the music.
 
 # Roadmap
 
-- **Library filtering**: Allow filtering library views to only display the items which
-  match the selected restrictions (for example, only those with 4 stars and more, only
-  those released before a certain year, only unplayed, etc)
 - **User-assigned custom tags**: Allow users to assign custom tags to library songs for
   easier browsing (for example, songs could be marked as "calm" or "energic", which would
   make it easier to find the right music for the current mood using library filters)
