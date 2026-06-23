@@ -1,7 +1,7 @@
 use core::error::Error;
 use gdk::{gdk_pixbuf::Pixbuf, prelude::*};
 use gtk::{gdk, gio, glib};
-use std::fs::{self, File};
+use std::fs;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::Read;
 use std::path::PathBuf;
@@ -147,7 +147,7 @@ impl<'s> Song {
         deserialize! {
             data => {
                 "path"<str> => path,
-                "uri"<str> => path, // COMPAT: Backwards compatibility with <= 0.2.2 files
+                "uri"<str> => path, // COMPAT: Support for loading <= 0.2.2 `songs` file
                 "added"<?> => user_info.added,
                 "modified"<?> => user_info.modified,
                 "title"<String> => info.title,
@@ -792,7 +792,7 @@ impl SongInfoLoader<'_> {
     /// The function returns an error if the thumbnail file does not exist
     #[inline]
     fn read_thumbnail_from_disk(&self) -> Result<Option<gdk::Texture>, Box<dyn Error>> {
-        let mut thumbnail_file = File::open(self.thumbnail_file_path())?;
+        let mut thumbnail_file = fs::File::open(self.thumbnail_file_path())?;
         let mut buffer = Vec::new();
         thumbnail_file.read_to_end(&mut buffer).unwrap();
         Ok(gdk::Texture::from_bytes(&glib::Bytes::from(&*buffer)).ok())

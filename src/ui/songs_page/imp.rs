@@ -1,10 +1,10 @@
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, OnceCell, RefCell};
+use core::cmp;
 use core::sync::atomic::Ordering;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib};
 use rand::random_range;
-use std::cmp;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -98,7 +98,6 @@ impl SongsPage {
             1 => FilterMode::Exclusive,
             _ => unimplemented!(),
         };
-
         filters.rating = match self.rating_checkbox.is_active() {
             true => Some((
                 match self.rating_condition.selected() {
@@ -110,7 +109,6 @@ impl SongsPage {
             )),
             false => None,
         };
-
         filters.play_count = match self.play_count_checkbox.is_active() {
             true => Some((
                 match self.play_count_condition.selected() {
@@ -122,7 +120,6 @@ impl SongsPage {
             )),
             false => None,
         };
-
         filters.year = match self.year_checkbox.is_active() {
             true => Some((
                 match self.year_condition.selected() {
