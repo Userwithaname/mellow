@@ -1,5 +1,5 @@
 use core::sync::atomic::{self, AtomicI8};
-use core::{cmp::Ordering, error::Error, mem};
+use core::{error::Error, mem};
 use rand::random_range;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, mpsc};
@@ -18,8 +18,7 @@ pub use song::{SharedSong, SharedSongExt, Song, SongInfo, SongInfoLoader};
 
 use crate::UI_TIMEOUT;
 use crate::excuses::EXP_RX;
-use crate::library::album::NewSharedAlbum;
-use crate::library::artist::NewSharedArtist;
+use crate::library::{album::NewSharedAlbum, artist::NewSharedArtist};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{UpdateUI, ui_tx};
 use crate::util::hint::likely;
@@ -99,10 +98,8 @@ impl SortedAlbums for Albums {
     fn find_album(&self, info: &SongInfo) -> Result<usize, usize> {
         self.binary_search_by(|album| {
             let album = album.lock().unwrap();
-            match album.artist.lock().unwrap().name.cmp(&info.album_artist) {
-                Ordering::Equal => album.title.cmp(&info.album),
-                ordering => ordering,
-            }
+            (album.artist.lock().unwrap().name.cmp(&info.album_artist))
+                .then_with(|| album.title.cmp(&info.album))
         })
     }
 }

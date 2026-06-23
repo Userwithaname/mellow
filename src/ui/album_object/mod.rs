@@ -115,54 +115,35 @@ impl AlbumObject {
     #[inline]
     #[must_use]
     fn cmp_artist_year_album(&self, other: &Self) -> cmp::Ordering {
-        match self.artist().cmp(&other.artist()) {
-            cmp::Ordering::Equal => match self.year().cmp(&other.year()) {
-                cmp::Ordering::Equal => self.album().cmp(&other.album()),
-                ordering => ordering,
-            },
-            ordering => ordering,
-        }
+        (self.artist().cmp(&other.artist()))
+            .then_with(|| self.year().cmp(&other.year()))
+            .then_with(|| self.album().cmp(&other.album()))
     }
     #[inline]
     #[must_use]
     fn cmp_most_played(&self, other: &Self) -> cmp::Ordering {
-        match other.played().total_cmp(&self.played()) {
-            cmp::Ordering::Equal => self.index().cmp(&other.index()),
-            ordering => ordering,
-        }
+        (other.played().total_cmp(&self.played())).then_with(|| self.index().cmp(&other.index()))
     }
     #[inline]
     #[must_use]
     fn cmp_best_rating(&self, other: &Self) -> cmp::Ordering {
-        match other.rating().total_cmp(&self.rating()) {
-            cmp::Ordering::Equal => self.cmp_most_played(other),
-            ordering => ordering,
-        }
+        (other.rating().total_cmp(&self.rating())).then_with(|| self.cmp_most_played(other))
     }
     #[inline]
     #[must_use]
     fn cmp_release_date(&self, other: &Self) -> cmp::Ordering {
-        match other.year().cmp(&self.year()) {
-            cmp::Ordering::Equal => self.index().cmp(&other.index()),
-            ordering => ordering,
-        }
+        (other.year().cmp(&self.year())).then_with(|| self.index().cmp(&other.index()))
     }
     #[inline]
     #[must_use]
     fn cmp_modified_newer(&self, other: &Self) -> cmp::Ordering {
         // NOTE: Comparing modification time using the first song is not necessarily correct
-        match other.modified().cmp(&self.modified()) {
-            cmp::Ordering::Equal => self.cmp_artist_year_album(other),
-            ordering => ordering,
-        }
+        (other.modified().cmp(&self.modified())).then_with(|| self.cmp_artist_year_album(other))
     }
     #[inline]
     #[must_use]
     fn cmp_added_newer(&self, other: &Self) -> cmp::Ordering {
-        match other.added().cmp(&self.added()) {
-            cmp::Ordering::Equal => self.cmp_artist_year_album(other),
-            ordering => ordering,
-        }
+        (other.added().cmp(&self.added())).then_with(|| self.cmp_artist_year_album(other))
     }
     #[inline]
     #[must_use]

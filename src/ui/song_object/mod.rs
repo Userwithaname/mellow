@@ -111,50 +111,32 @@ impl SongObject {
     #[inline]
     #[must_use]
     fn cmp_default(&self, other: &Self) -> cmp::Ordering {
-        match self.artist().cmp(&other.artist()) {
-            cmp::Ordering::Equal => self.index().cmp(&other.index()),
-            ordering => ordering,
-        }
+        (self.artist().cmp(&other.artist())).then_with(|| self.index().cmp(&other.index()))
     }
     #[inline]
     #[must_use]
     fn cmp_best_rating(&self, other: &Self) -> cmp::Ordering {
-        match other.rating().cmp(&self.rating()) {
-            cmp::Ordering::Equal => self.cmp_most_played(other),
-            ordering => ordering,
-        }
+        (other.rating().cmp(&self.rating())).then_with(|| self.cmp_most_played(other))
     }
     #[inline]
     #[must_use]
     fn cmp_most_played(&self, other: &Self) -> cmp::Ordering {
-        match other.played().cmp(&self.played()) {
-            cmp::Ordering::Equal => self.cmp_default(other),
-            ordering => ordering,
-        }
+        (other.played().cmp(&self.played())).then_with(|| self.cmp_default(other))
     }
     #[inline]
     #[must_use]
     fn cmp_release_date(&self, other: &Self) -> cmp::Ordering {
-        match other.year().cmp(&self.year()) {
-            cmp::Ordering::Equal => self.cmp_default(other),
-            ordering => ordering,
-        }
+        (other.year().cmp(&self.year())).then_with(|| self.cmp_default(other))
     }
     #[inline]
     #[must_use]
     fn cmp_added_newer(&self, other: &Self) -> cmp::Ordering {
-        match other.modified().cmp(&self.modified()) {
-            cmp::Ordering::Equal => self.cmp_default(other),
-            ordering => ordering,
-        }
+        (other.modified().cmp(&self.modified())).then_with(|| self.cmp_default(other))
     }
     #[inline]
     #[must_use]
     fn cmp_modified_newer(&self, other: &Self) -> cmp::Ordering {
-        match other.modified().cmp(&self.modified()) {
-            cmp::Ordering::Equal => self.cmp_default(other),
-            ordering => ordering,
-        }
+        (other.modified().cmp(&self.modified())).then_with(|| self.cmp_default(other))
     }
     #[inline]
     #[must_use]

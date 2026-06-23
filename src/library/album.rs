@@ -1,4 +1,3 @@
-use core::cmp::Ordering;
 use std::sync::{Arc, Mutex};
 
 use crate::library::{SharedArtist, SharedSong, Song, SongInfo, ToQueue};
@@ -159,9 +158,8 @@ impl SortedAlbumSongs for AlbumSongs {
     fn find_album_song(&self, info: &SongInfo) -> Result<usize, usize> {
         self.binary_search_by(|song| {
             let mut new_info = song.info();
-            new_info.load_basic_and(|new_info| match new_info.disc.cmp(&info.disc) {
-                Ordering::Equal => new_info.track.cmp(&info.track),
-                ordering => ordering,
+            new_info.load_basic_and(|new_info| {
+                (new_info.disc.cmp(&info.disc)).then_with(|| new_info.track.cmp(&info.track))
             })
         })
     }

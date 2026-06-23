@@ -87,18 +87,12 @@ impl ArtistObject {
     fn cmp_added_newer(&self, other: &Self) -> cmp::Ordering {
         // NOTE: Comparing added time using the oldest
         // album's first song is not necessarily correct
-        match other.added().cmp(&self.added()) {
-            cmp::Ordering::Equal => self.index().cmp(&other.index()),
-            ordering => ordering,
-        }
+        (other.added().cmp(&self.added())).then_with(|| self.index().cmp(&other.index()))
     }
     #[inline]
     #[must_use]
     fn cmp_modified_newer(&self, other: &Self) -> cmp::Ordering {
-        match other.modified().cmp(&self.modified()) {
-            cmp::Ordering::Equal => self.index().cmp(&other.index()),
-            ordering => ordering,
-        }
+        (other.modified().cmp(&self.modified())).then_with(|| self.index().cmp(&other.index()))
     }
     #[inline]
     #[must_use]
