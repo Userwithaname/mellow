@@ -136,7 +136,9 @@ impl SongsPage {
         };
 
         drop(filters);
+        self.remember_scroll_pos();
         self.filter.borrow().changed(gtk::FilterChange::Different);
+        self.restore_scroll_pos();
     }
 
     #[template_callback]
