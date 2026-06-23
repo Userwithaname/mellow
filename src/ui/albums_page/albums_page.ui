@@ -96,8 +96,9 @@
                 <property name="popover">
                   <object class="GtkPopover">
                     <property name="width-request">430</property>
-                    <child type="content">
+                    <property name="autohide">true</property>
 
+                    <child type="content">
                       <object class="AdwPreferencesPage">
                         <child>
                           <object class="AdwPreferencesGroup">
