@@ -228,7 +228,7 @@ impl SongFilters {
             && (self.year).is_none_or(|year| song_object.year().cmp(&year.1).is_eq_or(year.0))
     }
     pub fn filter_inclusive(&self, song_object: &SongObject) -> bool {
-        self.rating.is_none() && self.play_count.is_none() && self.year.is_none()
+        (self.rating.is_none() && self.play_count.is_none() && self.year.is_none())
             || self
                 .rating
                 .is_some_and(|rating| song_object.rating().cmp(&rating.1) == rating.0)

@@ -14,7 +14,7 @@ use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::{Songs, ToQueue};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::song_object::SongFilters;
-use crate::ui::{ItemRow, SongObject, SongOrdering, SortConfig};
+use crate::ui::{FilterMode, ItemRow, SongObject, SongOrdering, SortConfig};
 use crate::ui::{UpdateUI, fallback_song_image, ui_tx};
 use crate::util::search;
 
@@ -30,6 +30,9 @@ pub struct SongsPage {
     view_stack: TemplateChild<adw::ViewStack>,
     #[template_child]
     songs_grid: TemplateChild<gtk::GridView>,
+
+    #[template_child]
+    filter_mode: TemplateChild<adw::ToggleGroup>,
 
     #[template_child]
     rating_checkbox: TemplateChild<gtk::CheckButton>,
@@ -89,6 +92,12 @@ impl SongsPage {
     #[template_callback]
     pub fn handle_filters_changed(&self) {
         let mut filters = self.song_filters.borrow_mut();
+
+        filters.filter_mode = match self.filter_mode.active() {
+            0 => FilterMode::Inclusive,
+            1 => FilterMode::Exclusive,
+            _ => unimplemented!(),
+        };
 
         filters.rating = match self.rating_checkbox.is_active() {
             true => Some((
@@ -376,6 +385,12 @@ impl ObjectImpl for SongsPage {
             #[weak(rename_to=songs_page)]
             self,
             move |_| songs_page.restore_scroll_pos()
+        ));
+
+        self.filter_mode.connect_active_notify(glib::clone!(
+            #[weak(rename_to=songs_page)]
+            self,
+            move |_| songs_page.handle_filters_changed()
         ));
 
         let fallback_image = fallback_song_image();
