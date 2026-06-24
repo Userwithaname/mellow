@@ -396,6 +396,7 @@ impl Player {
                     let _ = ui_tx().send(UpdateUI::RunAction("app.quit"));
                 }
                 self.queue.ui_update_queue();
+                self.queue.ui_validate_queue_subpage_index();
                 let _ = self.backend.set_state(State::Null);
                 self.request_state(State::Paused);
                 self.update();
