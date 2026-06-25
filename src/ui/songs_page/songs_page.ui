@@ -93,6 +93,8 @@
             <child type="end">
               <!-- TODO: Move this button into the search bar instead (like Nautilus does) -->
               <object class="GtkMenuButton">
+                <property name="tooltip-text" translatable="yes">Filter Songs</property>
+                <property name="icon-name">radio-mixed-symbolic</property>
                 <property name="popover">
                   <object class="GtkPopover">
                     <property name="width-request">430</property>
@@ -282,7 +284,6 @@
                     </child>
                   </object>
                 </property>
-                <property name="icon-name">radio-mixed-symbolic</property>
               </object>
             </child>
 
