@@ -97,7 +97,7 @@
                 <property name="icon-name">radio-mixed-symbolic</property>
                 <property name="popover">
                   <object class="GtkPopover">
-                    <property name="width-request">430</property>
+                    <property name="width-request">480</property>
                     <property name="autohide">true</property>
 
                     <child type="content">
