@@ -154,6 +154,9 @@ pub struct SongData {
     artwork: Option<gdk::Texture>,
     year: u32,
     rank: f64,
+    /// Rating, as displayed in the UI (0 if unassigned)
+    stars: u8,
+    /// Rating with a fallback value (3 if unassigned, used for sorting)
     rating: u8,
     played: u64,
     modified: u64,
@@ -221,7 +224,7 @@ impl SongFilters {
     }
     pub fn filter_exclusive(&self, song_object: &SongObject) -> bool {
         self.rating
-            .is_none_or(|rating| song_object.rating().cmp(&rating.1).is_eq_or(rating.0))
+            .is_none_or(|rating| song_object.stars().cmp(&rating.1).is_eq_or(rating.0))
             && self.play_count.is_none_or(|play_count| {
                 (song_object.played().cmp(&play_count.1)).is_eq_or(play_count.0)
             })
@@ -231,7 +234,7 @@ impl SongFilters {
         (self.rating.is_none() && self.play_count.is_none() && self.year.is_none())
             || self
                 .rating
-                .is_some_and(|rating| song_object.rating().cmp(&rating.1) == rating.0)
+                .is_some_and(|rating| song_object.stars().cmp(&rating.1) == rating.0)
             || self
                 .play_count
                 .is_some_and(|play_count| song_object.played().cmp(&play_count.1) == play_count.0)

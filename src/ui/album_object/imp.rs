@@ -17,6 +17,7 @@ pub struct AlbumObject {
     #[property(name = "artwork", get, set, type = Option<gdk::Paintable>, member = artwork)]
     #[property(name = "year", get, set, type = u32, member = year)]
     #[property(name = "rank", get, set, type = f64, member = rank)]
+    #[property(name = "stars", get, set, type = f64, member = stars)]
     #[property(name = "rating", get, set, type = f64, member = rating)]
     #[property(name = "played", get, set, type = f64, member = played)]
     #[property(name = "modified", get, set, type = u64, member = modified)]

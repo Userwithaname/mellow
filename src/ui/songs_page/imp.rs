@@ -278,6 +278,7 @@ impl SongsPage {
 
                 song.set_random(random_range(0..u64::MAX));
                 song.set_played(info.play_count as u64);
+                song.set_stars(info.rating);
                 song.set_rating(match info.rating {
                     0 => 3,
                     n => n,

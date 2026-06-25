@@ -160,6 +160,9 @@ pub struct AlbumData {
     artwork: Option<gdk::Texture>,
     year: u32,
     rank: f64,
+    /// Rating, as displayed in the UI (0 if unassigned)
+    stars: f64,
+    /// Rating with a fallback value (3 if unassigned, used for sorting)
     rating: f64,
     played: f64,
     modified: u64,
@@ -227,9 +230,7 @@ impl AlbumFilters {
     }
     pub fn filter_exclusive(&self, album_object: &AlbumObject) -> bool {
         self.rating.is_none_or(|rating| {
-            (album_object.rating())
-                .total_cmp(&(rating.1 as f64))
-                .is_eq_or(rating.0)
+            (album_object.stars().total_cmp(&(rating.1 as f64))).is_eq_or(rating.0)
         }) && self.play_count.is_none_or(|play_count| {
             (album_object.played().total_cmp(&(play_count.1 as f64))).is_eq_or(play_count.0)
         }) && (self.year).is_none_or(|year| album_object.year().cmp(&year.1).is_eq_or(year.0))
@@ -237,9 +238,7 @@ impl AlbumFilters {
     pub fn filter_inclusive(&self, album_object: &AlbumObject) -> bool {
         (self.rating.is_none() && self.play_count.is_none() && self.year.is_none())
             || self.rating.is_some_and(|rating| {
-                (album_object.rating())
-                    .total_cmp(&(rating.1 as f64))
-                    .is_eq_or(rating.0)
+                (album_object.stars().total_cmp(&(rating.1 as f64))).is_eq_or(rating.0)
             })
             || self.play_count.is_some_and(|play_count| {
                 (album_object.played().total_cmp(&(play_count.1 as f64))).is_eq_or(play_count.0)

@@ -283,6 +283,7 @@ impl AlbumsPage {
 
                 album.set_random(random_range(0..=u64::MAX));
                 album.set_played(album_locked.average_play_count());
+                album.set_stars(album_locked.average_rating(0.0));
                 album.set_rating(album_locked.sort_rating(3.0));
 
                 let song = album_locked.first_song();
