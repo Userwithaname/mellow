@@ -570,7 +570,7 @@ impl SongInfoLoader<'_> {
     #[inline]
     pub fn load_detailed_and<O, F: FnOnce(&DetailedSongInfo) -> O>(&mut self, f: F) -> O {
         #[cfg(debug_assertions)]
-        if self.detailed_info.try_write().is_err() {
+        if self.detailed_info.try_read().is_err() {
             eprintln!("Note: Blocking on read lock for `load_detailed_and`");
         }
         if let Some(info) = self.detailed_info.read().unwrap().as_ref() {
