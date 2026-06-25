@@ -475,7 +475,7 @@ impl Library {
                         continue;
                     }
 
-                    needs_rebuild |= info.inspect_basic_mut().take().is_some();
+                    needs_rebuild |= info.take_basic().is_some();
                     info.invalidate_thumbnail();
                 }
 

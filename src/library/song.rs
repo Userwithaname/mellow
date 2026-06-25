@@ -5,7 +5,7 @@ use std::fs;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::Read;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
+use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard};
 use std::sync::{TryLockError, TryLockResult};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -333,7 +333,7 @@ impl SongInfoLoader<'_> {
     pub fn user(&self) -> MutexGuard<'_, UserSongInfo> {
         #[cfg(debug_assertions)]
         if self.user_info.try_lock().is_err() {
-            eprintln!("Note: Blocking on read lock for `user`");
+            eprintln!("Note: Blocking on mutex lock for `user`");
         }
         self.user_info.lock().unwrap()
     }
@@ -373,26 +373,12 @@ impl SongInfoLoader<'_> {
     #[inline]
     pub fn inspect_basic(&self) -> RwLockReadGuard<'_, Option<SongInfo>> {
         #[cfg(debug_assertions)]
-        if self.detailed_info.try_read().is_err() {
+        if self.info.try_read().is_err() {
             eprintln!(
                 "Note: Blocking on read lock for `inspect_basic` (would `try_inspect_basic` make sense here?)"
             );
         }
         self.info.read().unwrap()
-    }
-    /// Returns the basic song info if loaded, but does not load it
-    ///
-    /// This function blocks until the `RwLock` write lock can be obtained
-    ///
-    /// # Panics
-    /// The function panics if the basic info `RwLock` is poisoned
-    #[inline]
-    pub fn inspect_basic_mut(&mut self) -> RwLockWriteGuard<'_, Option<SongInfo>> {
-        #[cfg(debug_assertions)]
-        if self.detailed_info.try_write().is_err() {
-            eprintln!("Note: Blocking on write lock for `inspect_basic_mut`");
-        }
-        self.info.write().unwrap()
     }
     /// Returns the basic song info if accessible without blocking
     /// the current thread, but does not load it
@@ -410,7 +396,7 @@ impl SongInfoLoader<'_> {
     #[inline]
     pub fn load_basic(&mut self) {
         #[cfg(debug_assertions)]
-        if self.detailed_info.try_write().is_err() {
+        if self.info.try_read().is_err() {
             eprintln!(
                 "Note: Blocking on read lock for `load_basic` (would `try_load_basic` make sense here?)"
             );
@@ -429,7 +415,7 @@ impl SongInfoLoader<'_> {
     #[inline]
     pub fn load_basic_and<O, F: FnOnce(&SongInfo) -> O>(&mut self, f: F) -> O {
         #[cfg(debug_assertions)]
-        if self.detailed_info.try_write().is_err() {
+        if self.info.try_read().is_err() {
             eprintln!("Note: Blocking on read lock for `load_basic_and`");
         }
         if let Some(info) = self.info.read().unwrap().as_ref() {
@@ -491,13 +477,13 @@ impl SongInfoLoader<'_> {
             }
         })
     }
-    /// Unloads basic song info
+    /// Unloads basic song info and returns the previous value
     ///
     /// # Panics
     /// The function panics if the basic info `RwLock` is poisoned
     #[inline]
-    pub fn unload_basic(&mut self) {
-        *self.info.write().unwrap() = None;
+    pub fn take_basic(&mut self) -> Option<SongInfo> {
+        self.info.write().unwrap().take()
     }
     #[inline]
     fn load_basic_from_file(&mut self) -> Result<SongInfo, Box<dyn Error>> {
