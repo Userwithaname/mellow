@@ -4,34 +4,20 @@
   <br>Mellow
 </h1>
   <p align="center">
+    <img height=512 src="https://github.com/user-attachments/assets/2d76d5d3-a9b8-451d-920d-68d4b217a1b5">
+  </p>
+  <p align="center">
     Listen to music without distraction
   </p>
 </p>
 
+---
+
 # About
 
-Mellow is an experimental music player, which strives for maximal immersion with
-minimal distraction. Elements of the interface are purposefully abstracted away,
-letting music be the central point of focus.
-
-<p align="center">
-  <img height=512 src="https://github.com/user-attachments/assets/2d76d5d3-a9b8-451d-920d-68d4b217a1b5">
-</p>
-
-> [!NOTE]
-> This software is in active development; features and design may still be subject
-> to change. If you encounter any problems while using it, please post about them
-> on the [issues page](https://github.com/Userwithaname/mellow/issues). Suggestions
-> and feature requests are welcome as well.
-
-> [!WARNING]
-> Forwards compatibility is not guaranteed; if you plan on trying out older versions
-> or commits, it is recommended to backup your configuration beforehand.
-
-# Philosophy
-
-Mellow's primary design goal is to minimize distraction and maximize immersion,
-and with that encourage experiencing the music in-the-moment.
+Mellow is an experimental music player, which strives for maximal immersion by
+minimizing distractions. Non-crucial elements of the interface are hidden away,
+making it easier to focus on what is most important - the music.
 
 Unlike most players, Mellow puts the currently playing song at the base of the
 interface. This means that there is no "back" button on the main player, which
@@ -62,9 +48,20 @@ When the overlay is closed, it is time to enjoy the music.
   easier browsing (for example, songs could be marked as "calm" or "energic", which would
   make it easier to find the right music for the current mood using library filters)
 
-# Installing Mellow
+---
 
 > [!NOTE]
+> This software is in active development; features and design may still be subject
+> to change. If you encounter any problems while using it, please post about them
+> on the [issues page](https://github.com/Userwithaname/mellow/issues).
+
+> [!WARNING]
+> Forwards compatibility is not guaranteed; if you plan on trying out older versions
+> or commits, it is recommended to backup your configuration beforehand.
+
+# Installing Mellow
+
+> [!TIP]
 > Only Linux builds are currently supported. If you would like to try Mellow on
 > a different operating system, it may be possible by building it from source.
 
