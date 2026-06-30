@@ -15,7 +15,7 @@ minimal distraction. Elements of the interface are purposefully abstracted away,
 letting music be the central point of focus.
 
 <p align="center">
-  <img width=512 src="https://github.com/user-attachments/assets/90f9a4f1-c55c-4fd6-8400-4576032d0895">
+  <img height=512 src="https://github.com/user-attachments/assets/2d76d5d3-a9b8-451d-920d-68d4b217a1b5">
 </p>
 
 > [!NOTE]
