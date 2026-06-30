@@ -14,20 +14,19 @@ Song queue:
 
 Music library:
 
+- IDEA: Allow initiating a full library rebuild
+
 - [x] Save/load user settings and application state
   - IDEA: Remember filters?
   - IDEA: Remember if sort order was reversed(?)
-- [ ] Allow initiating a full library rebuild
 - [x] Search/filtering for songs/albums/artists pages
 - [x] Songs/albums/artists sort modes
-- [ ] **Songs/albums/artists filtering**
-  - TODO: Create a submenu in the sort dropdown for selecting filters
-  - [ ] Filter by tags, ratings, year, etc
-  - IDEA: Conditional filters: year < 2000, rating > 3, play-count = 0, etc
-  > Note: may not work with the dropdown-submenu design
+- [-] Songs/albums/artists filtering
+  - TODO: Add filters for artists as well
+  - [ ] Filter by tags
 - [x] Artists page
   - [x] Artist subpage, accessed from each item
-    - IDEA: Display average ratnig
+    - IDEA: Display average rating
 - [x] Albums page
   - [-] Album subpage, accessed from each item
     - TODO: Tag management (user-specified album tags (inferred from songs?))

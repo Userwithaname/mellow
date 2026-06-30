@@ -43,7 +43,7 @@ Music Library:
   - FIX: Items sometimes don't show up until scrolling after searching (Flatpak is unaffected)
 - [x] Sort modes work as expected
 - [ ] Filtering works as expected
-  - TODO: **Implement filters**
+  - FIX: Items sometimes don't show up until scrolling after changing filters (Flatpak is unaffected)
 
 User Experience:
 
