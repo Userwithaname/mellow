@@ -4,10 +4,10 @@
   <br>Mellow
 </h1>
   <p align="center">
-    <img height=512 src="https://github.com/user-attachments/assets/2d76d5d3-a9b8-451d-920d-68d4b217a1b5">
+    Listen to music without distraction
   </p>
   <p align="center">
-    Listen to music without distraction
+    <img height=512 src="https://github.com/user-attachments/assets/2d76d5d3-a9b8-451d-920d-68d4b217a1b5">
   </p>
 </p>
 
