@@ -64,12 +64,13 @@ impl Album {
     /// Loops through all album songs and returns the average rating,
     /// or returns `fallback` if no songs have a rating assigned. Songs
     /// with no rating assigned do not contribute to the average.
+    #[inline]
     #[must_use]
     pub fn average_rating(&self, fallback: f64) -> f64 {
         let mut rating_total = 0.0;
         let mut num_songs = 0;
         for song in &self.songs {
-            match song.info().user().rating {
+            match song.info().user().rating.stars() {
                 0 => continue,
                 n => rating_total += n as f64,
             }
@@ -83,11 +84,12 @@ impl Album {
     /// Loops through all album songs and returns the average rating,
     /// defaulting to `fallback` for songs which do not have a rating
     /// assigned
+    #[inline]
     #[must_use]
     pub fn sort_rating(&self, fallback: f64) -> f64 {
         let mut rating_total = 0.0;
         for song in &self.songs {
-            match song.info().user().rating {
+            match song.info().user().rating.as_raw() {
                 0 => rating_total += fallback,
                 n => rating_total += n as f64,
             }
@@ -95,6 +97,7 @@ impl Album {
         rating_total / self.songs.len() as f64
     }
     /// Loops through all album songs and returns the average play count
+    #[inline]
     #[must_use]
     pub fn average_play_count(&self) -> f64 {
         let mut play_count_total = 0;
@@ -110,7 +113,7 @@ impl Album {
     /// Sets the rating of all songs on the album to `rating`
     pub fn rate_all_songs(&self, rating: u8) {
         for song in &self.songs {
-            song.info().set_rating(rating);
+            song.info().set_stars(rating);
         }
     }
 }

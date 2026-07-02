@@ -20,6 +20,11 @@ pub struct Rating {
     pub on_rating_set: RateFn,
 }
 
+// TODO: Add a button to toggle as favorite (to the left side)
+// TODO: Add a button/menu for adding custom tags (to the right side)
+// IDEA: Should those be part of a new widget instead, so that the stars
+// widget can still be used on its own, or will they always be used together?
+
 // TODO: Allow keyboard navigation for changing ratings
 // - Allow the entire widget to be focused using the tab key
 // - Capture the left/right arrow keys to increase or decrease the rating

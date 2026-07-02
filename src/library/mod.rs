@@ -10,6 +10,7 @@ pub mod album;
 pub mod artist;
 pub mod config;
 pub mod song;
+pub mod song_rating;
 
 pub use album::{Album, SharedAlbum, SortedAlbumSongs};
 pub use artist::{Artist, SharedArtist, SortedArtistAlbums};

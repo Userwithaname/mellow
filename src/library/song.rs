@@ -15,6 +15,7 @@ use lofty::probe::Probe;
 
 use crate::cache_dir;
 use crate::library::SharedAlbum;
+use crate::library::song_rating::SongRating;
 use crate::util::hint::{cold, unlikely};
 use crate::util::{deserialize, serialize, serialize_list, unescaped_split};
 
@@ -354,12 +355,20 @@ impl SongInfoLoader<'_> {
         self.user_info.lock().unwrap().play_count -= 1;
     }
 
-    /// Sets the song rating
+    /// Sets the song stars rating (1 to 5, or 0 to unset)
     ///
     /// # Panics
     /// The function panics if the user info `Mutex` is poisoned
-    pub fn set_rating(&self, rating: u8) {
-        self.user_info.lock().unwrap().rating = rating;
+    pub fn set_stars(&self, rating: u8) {
+        self.user_info.lock().unwrap().rating.set_stars(rating);
+    }
+
+    /// Marks the song as favorite or non-favorite
+    ///
+    /// # Panics
+    /// The function panics if the user info `Mutex` is poisoned
+    pub fn set_favorite(&self, favorite: bool) {
+        self.user_info.lock().unwrap().rating.set_favorite(favorite);
     }
 
     /// Returns the basic song info if loaded, but does not load it
@@ -846,8 +855,8 @@ pub struct UserSongInfo {
     /// How many times this song was played
     pub play_count: usize,
     /// User-assigned song rating
-    pub rating: u8,
-    /// User-assigned tags for this song
+    pub rating: SongRating,
+    /// User-assigned tags
     pub tags: Vec<String>,
 }
 /// Fields which do not need to be held in memory at all times
@@ -892,7 +901,7 @@ impl Default for UserSongInfo {
             added: 0,
             modified: 0,
             play_count: 0,
-            rating: 0,
+            rating: SongRating::default(),
             tags: Vec::new(),
         }
     }
@@ -914,18 +923,21 @@ impl UserSongInfo {
     }
 
     /// Copies info from `other` and merges into `self`:
-    /// - Ratings are averaged, or whichever one is non-zero is used
+    /// - Stars are averaged, or whichever one is non-zero is used
+    /// - Marks `self` as favorite if either `self` or `other` is favorited
     /// - Play counts are set to the highest number of the two
     /// - Added/modified time is set to the earliest of the two
+    /// - Tags missing from `self` are copied from `other`
     #[inline]
     pub fn merge_with(&mut self, other: &UserSongInfo) {
-        if self.rating == 0 {
-            self.rating = other.rating;
-        } else if other.rating > 0 {
-            self.rating = (self.rating + other.rating) / 2;
-        }
+        self.rating.merge_with(&other.rating);
         self.added = self.added.min(other.added);
         self.modified = self.modified.min(other.modified);
         self.play_count = self.play_count.max(other.play_count);
+        for tag in &other.tags {
+            if let Err(index) = self.tags.binary_search(tag) {
+                self.tags.insert(index, tag.to_string());
+            }
+        }
     }
 }

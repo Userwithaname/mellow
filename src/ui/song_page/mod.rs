@@ -52,9 +52,9 @@ impl SongPage {
             ui.context.replace(Some(to_queue));
         });
 
-        ui.rating.set_rating_silent(info.user().rating);
+        ui.rating.set_rating_silent(info.user().rating.stars());
         ui.rating.connect_rating_set(move |rating| {
-            song.info().set_rating(rating);
+            song.info().set_stars(rating);
         });
     }
 
