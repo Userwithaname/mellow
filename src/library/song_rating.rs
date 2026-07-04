@@ -1,3 +1,4 @@
+use std::fmt::Display;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
@@ -94,7 +95,7 @@ impl SongRating {
     /// ```
     #[inline]
     pub const fn set_favorite(&mut self, favorite: bool) {
-        self.0 = self.0 & Self::STARS_MASK | favorite as u8 * Self::FAVORITE_MASK;
+        self.0 = self.0 & Self::STARS_MASK | (favorite as u8 * Self::FAVORITE_MASK);
     }
 
     /// Merges the rating from `other` into `self`
@@ -120,13 +121,13 @@ impl FromStr for SongRating {
 
     #[inline]
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        Ok(SongRating(s.parse()?))
+        s.parse().map(SongRating)
     }
 }
 
-impl ToString for SongRating {
+impl Display for SongRating {
     #[inline]
-    fn to_string(&self) -> String {
-        self.0.to_string()
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        self.0.fmt(f)
     }
 }

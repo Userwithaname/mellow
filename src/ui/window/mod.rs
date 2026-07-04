@@ -47,7 +47,8 @@ impl Window {
     /// Sets up functionality to accept external file drops
     ///
     /// # Panics
-    /// The function panics if the file path is not valid UTF-8
+    /// The function panics if the file path is not valid UTF-8,
+    /// or if the library channel is closed
     #[inline]
     fn setup_drag_and_drop(&self) {
         let drop_target =
@@ -66,9 +67,11 @@ impl Window {
         });
         drop_target.connect_drop(|_, value, _, _| {
             let files = (value.get::<FileList>().unwrap().files().iter())
-                .map(|file| file.path().unwrap().to_str().unwrap().to_owned())
+                .map(|file| file.path().unwrap())
                 .collect();
-            (library_tx().send(LibraryRequest::QueueFromPaths(files))).expect(EXP_RX);
+            library_tx()
+                .send(LibraryRequest::QueueFromPaths(files))
+                .expect(EXP_RX);
             true
         });
         self.add_controller(drop_target);

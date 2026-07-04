@@ -557,10 +557,9 @@ impl ObjectSubclass for Window {
                 .build();
 
             if let Ok(dir) = library_picker.select_folder_future(Some(&window)).await {
-                (library_tx().send(LibraryRequest::AddLibrary(
-                    dir.path().unwrap().to_str().unwrap().into(),
-                )))
-                .expect(EXP_RX);
+                library_tx()
+                    .send(LibraryRequest::AddLibrary(dir.path().unwrap()))
+                    .expect(EXP_RX);
             } else {
                 // Allow changing the library through the UI again if canceled,
                 // otherwise it will re-activate when the directory list is updated
@@ -579,21 +578,17 @@ impl ObjectSubclass for Window {
                 .initial_folder(&gio::File::for_path(music_dir()))
                 .build();
 
-            // TODO: If possible, allow files _or_ folders
+            // TODO: If possible, allow files _and_ folders
             if let Ok(dirs) = file_picker.open_multiple_future(Some(&window)).await {
                 let mut paths = vec![];
                 let mut index = 0;
                 while let Some(path) = dirs.item(index) {
-                    paths.push(
-                        (path.downcast::<gio::File>().unwrap().path().unwrap())
-                            .to_str()
-                            .unwrap()
-                            .to_owned(),
-                    );
+                    paths.push(path.downcast::<gio::File>().unwrap().path().unwrap());
                     index += 1;
                 }
-                dbg!(&paths);
-                (library_tx().send(LibraryRequest::QueueFromPaths(paths.into()))).expect(EXP_RX);
+                library_tx()
+                    .send(LibraryRequest::QueueFromPaths(paths))
+                    .expect(EXP_RX);
             }
         });
     }

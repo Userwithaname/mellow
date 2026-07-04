@@ -67,7 +67,7 @@ impl Application {
             let args = RefCell::new(Some((settings, ui_rx, mpris_rx)));
             app.connect_startup(move |app| {
                 let Some((settings, ui_rx, mpris_rx)) = args.take() else {
-                    return; // This closure should not be run multiple times
+                    return; // This closure should not run multiple times
                 };
                 Self::init_window(app, settings, ui_rx);
                 glib::spawn_future_local(mpris::controller(mpris_rx));
@@ -201,10 +201,7 @@ impl Application {
     /// Handles opening files from disk
     #[inline]
     fn open_files(&self, files: &[gio::File], _: &str) {
-        let files = files
-            .iter()
-            .map(|file| file.path().unwrap().to_str().unwrap().to_owned())
-            .collect();
+        let files = files.iter().map(|file| file.path().unwrap()).collect();
         (library_tx().send(LibraryRequest::QueueFromPaths(files))).expect(EXP_RX);
     }
 

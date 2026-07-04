@@ -40,11 +40,11 @@ pub struct Library {
     songs: Songs,
     albums: Albums,
     artists: Artists,
+
     missing_songs: Songs,
     check_moved: Arc<Mutex<Songs>>,
     undo_songs: Songs,
 
-    queue_initialized: bool,
     rebuild_pending: bool,
 
     on_build_stopped: Vec<LibraryTask>,
@@ -245,7 +245,7 @@ pub enum LibraryRequest {
     CancelRebuild,
 
     /// Starts a player queue using the given file or directory paths
-    QueueFromPaths(Box<[String]>),
+    QueueFromPaths(Vec<PathBuf>),
 
     /// Adds a new library directory to the configuration
     AddLibrary(PathBuf),
@@ -284,11 +284,11 @@ impl Library {
             songs: Library::deserialize_songs(),
             albums: Vec::new(),
             artists: Vec::new(),
+
             missing_songs: Vec::new(),
             check_moved: Arc::new(Mutex::new(Vec::new())),
             undo_songs: Vec::new(),
 
-            queue_initialized: false,
             rebuild_pending: false,
 
             on_build_stopped: Vec::new(),
@@ -322,7 +322,9 @@ impl Library {
     ///
     /// # Panics
     /// The function may panic upon handling a request if
-    /// a poisoned `Mutex` is passed
+    /// a poisoned `Mutex` is passed. When processing
+    /// `LibraryRequest::QueueFromPaths`, the function
+    /// panics if any path contains invalid unicode.
     #[inline]
     pub fn request_handler(mut self) -> Result<(), Box<dyn Error>> {
         let mut request_queue = Vec::new();
@@ -351,7 +353,7 @@ impl Library {
                     LibraryRequest::RunTask(task) => self.tasks.run(task),
 
                     LibraryRequest::QueueFromPaths(paths) => self.play_from_paths(
-                        paths.iter().map(|path| &**path), //
+                        paths.iter().map(|path| path.to_str().unwrap()), //
                     )?,
 
                     LibraryRequest::RunLibraryTask(f) => f(&mut self),
@@ -1013,7 +1015,6 @@ impl Library {
         let ui_tx = ui_tx();
         ui_tx.send(UpdateUI::OpenSheet(false))?;
         ui_tx.send(UpdateUI::FocusPlaying)?;
-        self.queue_initialized = true;
         Ok(())
     }
 
