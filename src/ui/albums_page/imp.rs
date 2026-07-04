@@ -59,6 +59,7 @@ pub struct AlbumsPage {
     pub search_entry: TemplateChild<gtk::SearchEntry>,
     search_query: Rc<RefCell<String>>,
 
+    contents_id: Cell<u8>,
     albums: RefCell<Vec<AlbumObject>>,
     filter: RefCell<gtk::CustomFilter>,
     sorter: RefCell<gtk::CustomSorter>,
@@ -185,6 +186,8 @@ impl AlbumsPage {
 
     #[inline]
     pub async fn load_albums(&self, albums: &Albums) {
+        let id = self.contents_id.get().wrapping_add(1);
+        self.contents_id.set(id);
         if albums.is_empty() {
             self.albums_grid.set_model(None::<&gtk::NoSelection>);
             self.view_stack.set_visible_child_name("empty");
@@ -218,13 +221,25 @@ impl AlbumsPage {
             if async_timer.elapsed() > UI_TIMEOUT {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
+                if self.contents_id.get() != id {
+                    println!("Library page contents ID changed - stopping");
+                    return;
+                }
             }
         }
         let model = gio::ListStore::new::<AlbumObject>();
         model.extend_from_slice(&album_objects);
-        self.update_sort_fields(&model).await;
+        self.update_sort_fields(&model, id).await;
+        if self.contents_id.get() != id {
+            println!("Library page contents ID changed - stopping");
+            return;
+        }
         self.albums.replace(album_objects);
         glib::timeout_future(wait).await;
+        if self.contents_id.get() != id {
+            println!("Library page contents ID changed - stopping");
+            return;
+        }
 
         let query = Rc::clone(&self.search_query);
         let album_filters = Rc::clone(&self.album_filters);
@@ -239,6 +254,10 @@ impl AlbumsPage {
         let filter_model = gtk::FilterListModel::new(Some(model), Some(filter.clone()));
         self.filter.replace(filter);
         glib::timeout_future(wait).await;
+        if self.contents_id.get() != id {
+            println!("Library page contents ID changed - stopping");
+            return;
+        }
 
         let sort_mode = *self.sort_mode.get().unwrap();
         let sorter = gtk::CustomSorter::new(move |object_a, object_b| {
@@ -249,6 +268,10 @@ impl AlbumsPage {
         let sort_model = gtk::SortListModel::new(Some(filter_model), Some(sorter.clone()));
         self.sorter.replace(sorter);
         glib::timeout_future(wait).await;
+        if self.contents_id.get() != id {
+            println!("Library page contents ID changed - stopping");
+            return;
+        }
 
         self.albums_grid
             .set_model(Some(&gtk::NoSelection::new(Some(sort_model))));
@@ -261,7 +284,7 @@ impl AlbumsPage {
     }
 
     #[inline]
-    pub async fn update_sort_fields<M>(&self, model: &M)
+    pub async fn update_sort_fields<M>(&self, model: &M, id: u8)
     where
         M: IsA<gio::ListModel> + ListModelExt,
     {
@@ -298,6 +321,10 @@ impl AlbumsPage {
             if async_timer.elapsed() > UI_TIMEOUT {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
+                if self.contents_id.get() != id {
+                    println!("Library page contents ID changed - stopping");
+                    return;
+                }
             }
 
             i += 1;
@@ -332,7 +359,7 @@ impl AlbumsPage {
         ordering.replace(sort_mode);
         self.sorter.borrow().changed(gtk::SorterChange::Different);
         if let Some(model) = &self.albums_grid.model() {
-            self.update_sort_fields(model).await;
+            self.update_sort_fields(model, self.contents_id.get()).await;
         }
         self.restore_scroll_pos();
     }

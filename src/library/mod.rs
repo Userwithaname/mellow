@@ -540,11 +540,20 @@ impl Library {
         let mut albums = Vec::with_capacity(songs.len() / 16);
         let mut artists = Vec::with_capacity(songs.len() / 64);
 
+        let mut timer = Instant::now() - UI_TIMEOUT;
         let progress_step = 1.0 / songs.len() as f64;
         let mut progress = 0.0;
-        let mut timer = Instant::now();
 
         for song in &songs {
+            if timer.elapsed() > UI_TIMEOUT {
+                timer = Instant::now();
+                if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
+                    let _ = ui_tx.send(UpdateUI::Progress(None));
+                    break;
+                }
+                let _ = ui_tx.send(UpdateUI::Progress(Some(progress)));
+            }
+
             song.info().load_basic_and(|song_info| {
                 let album_index = albums.find_album(song_info);
                 let artist_index = artists.find_artist(song_info);
@@ -606,22 +615,14 @@ impl Library {
             });
 
             progress += progress_step;
-            if timer.elapsed() > UI_TIMEOUT {
-                timer = Instant::now();
-                if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
-                    let _ = ui_tx.send(UpdateUI::Progress(None));
-                    break;
-                }
-                let _ = ui_tx.send(UpdateUI::Progress(Some(progress)));
-            }
         }
 
         #[cfg(feature = "startup-logs")]
         println!("Library connections have finished building");
 
-        if let Ok(check_moved) = check_moved.lock()
+        if STATE.load(atomic::Ordering::Acquire) != STATE_CANCEL
+            && let Ok(check_moved) = check_moved.lock()
             && !check_moved.is_empty()
-            && STATE.load(atomic::Ordering::Relaxed) != STATE_CANCEL
         {
             Library::merge_moved_entries(&artists, check_moved);
         }
@@ -633,11 +634,13 @@ impl Library {
         library_tx.send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
             STATE.store(STATE_CANCEL, atomic::Ordering::Release);
 
-            library.set_artists(artists);
-            library.set_albums(albums);
-            // Songs are already set after validating
+            if state != STATE_CANCEL {
+                library.set_artists(artists);
+                library.set_albums(albums);
+                // Songs were already set after validating
 
-            ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
+                ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
+            }
 
             // Cancel any remaining background tasks and wait for them to stop
             library.cancel_library_build_blocking();
@@ -730,7 +733,10 @@ impl Library {
                         }
                         // Duplicate missing song entry
                         Ok(index) => {
-                            song.info().user().merge_with(&missing[index].info().user());
+                            let missing = &missing[index];
+                            if !Arc::ptr_eq(&song, missing) {
+                                song.info().user().merge_with(&missing.info().user());
+                            }
                             drop(song);
                         }
                     }
@@ -739,9 +745,13 @@ impl Library {
                 Ok(index) => {
                     #[cfg(debug_assertions)]
                     println!("Resolving duplicate entry: {:?}", song.path);
+
                     // SAFETY: `index` is `Ok`, therefore within bounds
-                    (unsafe { songs.get_unchecked(index) }.info().user())
-                        .merge_with(&song.info().user());
+                    let existing = unsafe { songs.get_unchecked(index) };
+                    if !Arc::ptr_eq(&song, existing) {
+                        existing.info().user().merge_with(&song.info().user());
+                    }
+
                     drop(song);
                 }
             }

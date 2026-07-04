@@ -13,11 +13,11 @@ use lofty::file::TaggedFile;
 use lofty::prelude::*;
 use lofty::probe::Probe;
 
-use crate::cache_dir;
 use crate::library::SharedAlbum;
 use crate::library::song_rating::SongRating;
 use crate::util::hint::{cold, unlikely};
 use crate::util::{deserialize, serialize, serialize_list, unescaped_split};
+use crate::{cache_dir, cold_expression};
 
 pub struct Song {
     album: Mutex<Option<SharedAlbum>>,
@@ -417,10 +417,7 @@ impl SongInfoLoader<'_> {
     /// Loads the basic song info if needed and runs the given closure
     ///
     /// # Panics
-    /// The function panics if the basic info `RwLock` is poisoned. It may
-    /// also panic in the rare case where the `SongInfo` is not loaded prior,
-    /// and is concurrently unloaded in the brief moment between when the
-    /// write guard is dropped and the read guard is obtained.
+    /// The function panics if the basic info `RwLock` is poisoned
     #[inline]
     pub fn load_basic_and<O, F: FnOnce(&SongInfo) -> O>(&mut self, f: F) -> O {
         #[cfg(debug_assertions)]
@@ -432,7 +429,13 @@ impl SongInfoLoader<'_> {
         }
         self.assign_basic();
         // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
-        f(self.info.read().unwrap().as_ref().unwrap())
+        match self.info.read().unwrap().as_ref() {
+            Some(info) => f(info),
+            None => cold_expression! {{
+                eprintln!("BUG: Song info is no longer loaded - retrying");
+                self.load_basic_and(f)
+            }},
+        }
     }
     /// Loads the detailed song info if it possible to do so without
     /// blocking the thread and is not already loaded
@@ -572,10 +575,7 @@ impl SongInfoLoader<'_> {
     /// Loads the detailed song info if needed and runs the given closure
     ///
     /// # Panics
-    /// The function panics if the detailed info `RwLock` is poisoned. It may
-    /// also panic in the rare case where the `SongInfo` is not loaded prior,
-    /// and is concurrently unloaded in the brief moment between when the
-    /// write guard is dropped and the read guard is obtained.
+    /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
     pub fn load_detailed_and<O, F: FnOnce(&DetailedSongInfo) -> O>(&mut self, f: F) -> O {
         #[cfg(debug_assertions)]
@@ -587,7 +587,13 @@ impl SongInfoLoader<'_> {
         }
         self.assign_detailed();
         // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
-        f(self.detailed_info.read().unwrap().as_ref().unwrap())
+        match self.detailed_info.read().unwrap().as_ref() {
+            Some(info) => f(info),
+            None => cold_expression! {{
+                eprintln!("BUG: Detailed song info is no longer loaded - retrying");
+                self.load_detailed_and(f)
+            }},
+        }
     }
     /// Loads the detailed song info and assigns it if it is not already loaded
     ///

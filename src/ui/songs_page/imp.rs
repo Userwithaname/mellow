@@ -59,6 +59,7 @@ pub struct SongsPage {
     pub search_entry: TemplateChild<gtk::SearchEntry>,
     search_query: Rc<RefCell<String>>,
 
+    contents_id: Cell<u8>,
     songs: RefCell<Vec<SongObject>>,
     filter: RefCell<gtk::CustomFilter>,
     sorter: RefCell<gtk::CustomSorter>,
@@ -184,6 +185,8 @@ impl SongsPage {
 
     #[inline]
     pub async fn load_songs(&self, songs: &Songs) {
+        let id = self.contents_id.get().wrapping_add(1);
+        self.contents_id.set(id);
         if songs.is_empty() {
             self.songs_grid.set_model(None::<&gtk::NoSelection>);
             self.view_stack.set_visible_child_name("empty");
@@ -195,22 +198,33 @@ impl SongsPage {
         // The timers are used to reduce major UI stutters
         // by turning them into multiple smaller ones
         let wait = Duration::from_millis(10);
-        let async_timeout = Duration::from_millis(1000 / 60);
         let mut async_timer = Instant::now();
 
         let mut song_objects = Vec::with_capacity(songs.len());
         for (index, song) in songs.iter().enumerate() {
             song_objects.push(SongObject::new(index as u32, Arc::clone(song)));
-            if async_timer.elapsed() > async_timeout {
+            if async_timer.elapsed() > UI_TIMEOUT {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
+                if self.contents_id.get() != id {
+                    println!("Library page contents ID changed - stopping");
+                    return;
+                }
             }
         }
         let model = gio::ListStore::new::<SongObject>();
         model.extend_from_slice(&song_objects);
-        self.update_sort_fields(&model).await;
+        self.update_sort_fields(&model, id).await;
+        if self.contents_id.get() != id {
+            println!("Library page contents ID changed - stopping");
+            return;
+        }
         self.songs.replace(song_objects);
         glib::timeout_future(wait).await;
+        if self.contents_id.get() != id {
+            println!("Library page contents ID changed - stopping");
+            return;
+        }
 
         let query = Rc::clone(&self.search_query);
         let song_filters = Rc::clone(&self.song_filters);
@@ -225,6 +239,10 @@ impl SongsPage {
         let filter_model = gtk::FilterListModel::new(Some(model), Some(filter.clone()));
         self.filter.replace(filter);
         glib::timeout_future(wait).await;
+        if self.contents_id.get() != id {
+            println!("Library page contents ID changed - stopping");
+            return;
+        }
 
         let sort_mode = *self.sort_mode.get().unwrap();
         let sorter = gtk::CustomSorter::new(move |object_a, object_b| {
@@ -235,6 +253,10 @@ impl SongsPage {
         let sort_model = gtk::SortListModel::new(Some(filter_model), Some(sorter.clone()));
         self.sorter.replace(sorter);
         glib::timeout_future(wait).await;
+        if self.contents_id.get() != id {
+            println!("Library page contents ID changed - stopping");
+            return;
+        }
 
         self.songs_grid
             .set_model(Some(&gtk::NoSelection::new(Some(sort_model))));
@@ -255,7 +277,7 @@ impl SongsPage {
     }
 
     #[inline]
-    pub async fn update_sort_fields<M>(&self, model: &M)
+    pub async fn update_sort_fields<M>(&self, model: &M, id: u8)
     where
         M: IsA<gio::ListModel> + ListModelExt,
     {
@@ -291,6 +313,10 @@ impl SongsPage {
             if async_timer.elapsed() > UI_TIMEOUT {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
+                if self.contents_id.get() != id {
+                    println!("Library page contents ID changed - stopping");
+                    return;
+                }
             }
 
             i += 1;
@@ -317,7 +343,7 @@ impl SongsPage {
         ordering.replace(sort_mode);
         self.sorter.borrow().changed(gtk::SorterChange::Different);
         if let Some(model) = &self.songs_grid.model() {
-            self.update_sort_fields(model).await;
+            self.update_sort_fields(model, self.contents_id.get()).await;
         }
         self.restore_scroll_pos();
     }
