@@ -3,7 +3,7 @@
   <template class="MellowRating" parent="GtkBox">
     <property name="halign">center</property>
     <property name="valign">center</property>
-    <property name="spacing">48</property>
+    <property name="spacing">12</property>
     <child>
       <object class="GtkButton" id="favorite_button">
         <signal name="clicked" handler="handle_toggle_favorite" swapped="true"/>
