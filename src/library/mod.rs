@@ -638,12 +638,10 @@ impl Library {
         // If files were modified, queue another rebuild so the new info gets loaded
         if needs_rebuild && STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_CANCEL {
             let _ = library_tx().send(LibraryRequest::RunLibraryTask(Box::new(|library| {
-                library.cancel_library_build();
-                library.run_on_build_stopped(Box::new(|library| {
-                    ui_tx().send(UpdateUI::Progress(Some(0.0))).expect(EXP_RX);
-                    println!("Rebuilding because files were modified");
-                    library.start_library_build();
-                }));
+                library.cancel_library_build_blocking();
+                ui_tx().send(UpdateUI::Progress(Some(0.0))).expect(EXP_RX);
+                println!("Rebuilding because files were modified");
+                library.start_library_build();
             })));
             println!("Modifications detected, library will rebuild shortly");
         } else {
