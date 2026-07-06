@@ -203,6 +203,9 @@ impl ArtistsPage {
         if self.artists_grid.is_mapped() {
             self.restore_scroll_pos();
         }
+
+        #[cfg(feature = "startup-logs")]
+        println!("Artists page loaded");
     }
 
     #[inline]

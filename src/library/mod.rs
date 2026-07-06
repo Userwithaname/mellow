@@ -562,6 +562,7 @@ impl Library {
             && !check_moved.is_empty()
         {
             Library::merge_moved_entries(&artists, check_moved);
+            (ui_tx.send(UpdateUI::SetLibrarySongs(songs))).expect(EXP_RX);
         }
 
         #[cfg(feature = "startup-logs")]
@@ -920,15 +921,11 @@ impl Library {
         &self.songs
     }
     /// Replaces `self.songs` with `songs`
-    ///
-    /// # Panics
-    /// The function panics if the UI channel receiver is closed
     #[inline]
     fn set_songs(&mut self, songs: Songs) {
         for f in mem::take(&mut self.on_songs_set) {
             f(&songs);
         }
-        (ui_tx().send(UpdateUI::SetLibrarySongs(songs.clone()))).expect(EXP_RX);
         self.songs = songs;
     }
     /// Runs the given task the next time library songs are updated
@@ -943,7 +940,7 @@ impl Library {
     pub const fn albums(&self) -> &Albums {
         &self.albums
     }
-    /// Replaces `self.albums` with `albums`
+    /// Replaces `self.albums` with `albums`, and updates the library albums UI
     ///
     /// # Panics
     /// The function panics if the UI channel receiver is closed
@@ -959,7 +956,7 @@ impl Library {
     pub const fn artists(&self) -> &Artists {
         &self.artists
     }
-    /// Replaces `self.artists` with `artists`
+    /// Replaces `self.artists` with `artists`, and updates the library artists UI
     ///
     /// # Panics
     /// The function panics if the UI channel receiver is closed

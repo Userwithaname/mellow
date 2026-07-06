@@ -281,6 +281,9 @@ impl AlbumsPage {
         if self.albums_grid.is_mapped() {
             self.restore_scroll_pos();
         }
+
+        #[cfg(feature = "startup-logs")]
+        println!("Albums page loaded");
     }
 
     #[inline]

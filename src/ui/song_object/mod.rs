@@ -4,6 +4,7 @@ use glib::Object;
 use gtk::{gdk, glib};
 use std::sync::Arc;
 
+use crate::cold_expression;
 use crate::library::{Library, SharedSong, library_tx};
 use crate::ui::{FilterMode, SortConfig, UpdateUI, ui_tx};
 use crate::util::CmpIsEqOr;
@@ -18,18 +19,22 @@ glib::wrapper! {
     pub struct SongObject(ObjectSubclass<imp::SongObject>);
 }
 
+pub struct InfoNotLoadedError;
+
 impl SongObject {
     #[inline]
     #[must_use]
-    pub fn new(index: u32, song: SharedSong) -> Self {
-        let (title, album, artist, year) = song.info().load_basic_and(|info| {
-            (
+    pub fn new(index: u32, song: SharedSong) -> Result<Self, InfoNotLoadedError> {
+        let (title, album, artist, year) = match &*song.info().inspect_basic() {
+            Some(info) => (
                 info.title.clone(),
                 info.album.clone(),
                 info.artist.clone(),
                 info.year as u32,
-            )
-        });
+            ),
+            None => cold_expression! { return Err(InfoNotLoadedError) },
+        };
+
         let song_object: SongObject = Object::builder()
             .property("index", index)
             .property("song", title)
@@ -38,7 +43,8 @@ impl SongObject {
             .property("year", year)
             .build();
         let _ = song_object.imp().shared_song.set(song);
-        song_object
+
+        Ok(song_object)
     }
 
     /// Loads the artwork thumbnail in a background thread

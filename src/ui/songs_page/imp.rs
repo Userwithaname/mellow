@@ -202,7 +202,17 @@ impl SongsPage {
 
         let mut song_objects = Vec::with_capacity(songs.len());
         for (index, song) in songs.iter().enumerate() {
-            song_objects.push(SongObject::new(index as u32, Arc::clone(song)));
+            match SongObject::new(index as u32, Arc::clone(song)) {
+                Ok(song_object) => song_objects.push(song_object),
+                Err(_) => {
+                    #[cfg(feature = "startup-logs")]
+                    eprintln!(
+                        "WARNING: Song info was not loaded; refusing to load on the main thread\n{}",
+                        "If another function call has succeeded afterwards, this warning can be ignored"
+                    );
+                    return;
+                }
+            }
             if async_timer.elapsed() > UI_TIMEOUT {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
@@ -266,6 +276,9 @@ impl SongsPage {
         if self.songs_grid.is_mapped() {
             self.restore_scroll_pos();
         }
+
+        #[cfg(feature = "startup-logs")]
+        println!("Songs page loaded");
     }
 
     #[inline]
