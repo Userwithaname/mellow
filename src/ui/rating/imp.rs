@@ -26,12 +26,10 @@ pub struct Rating {
     pub on_rating_set: RateFn,
 }
 
-// TODO: Add a button to toggle as favorite (to the left side)
-// TODO: Add a button/menu for adding custom tags (to the right side)
-
-// TODO: Allow keyboard navigation for changing ratings
-// - Allow the entire widget to be focused using the tab key
-// - Capture the left/right arrow keys to increase or decrease the rating
+// TODO: Implement custom tags/management (button on the right)
+// TODO: Allow keyboard navigation for changing star ratings
+// - Allow the stars widget to be focused using the tab key
+// - Capture the left/right arrow keys to increase or decrease the stars
 
 #[gtk::template_callbacks]
 impl Rating {
@@ -45,16 +43,16 @@ impl Rating {
     /// Initializes the widget controllers
     #[inline]
     fn init_stars(&self) {
-        let mut stars = Vec::new();
+        let mut star_icons = Vec::new();
         for _ in 0..NUM_STARS {
-            let star_icons = gtk::Image::builder()
+            let star_icon = gtk::Image::builder()
                 .icon_name("starred-symbolic")
                 .css_classes(["dimmed"])
                 .build();
-            self.stars.append(&star_icons);
-            stars.push(star_icons);
+            self.stars.append(&star_icon);
+            star_icons.push(star_icon);
         }
-        let _ = self.star_icons.set(stars.into());
+        let _ = self.star_icons.set(star_icons.into());
 
         let motion = gtk::EventControllerMotion::builder()
             .propagation_phase(gtk::PropagationPhase::Capture)

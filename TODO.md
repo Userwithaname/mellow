@@ -38,23 +38,23 @@ Music library:
 
 Other:
 
+- [ ] Bundle icons instead of relying on system ones
 - [x] Toast notifications
   - IDEA: Notification for an upcoming "Pause & Close Player"
     (something like: "The player will close after this song")
   > This could maybe show a 'Cancel' button to turn it into a regular stopper without closing
 
-Meta:
+People's requests (for consideration):
 
-- [ ] Offline build support
-      https://docs.flathub.org/docs/for-app-authors/requirements#no-network-access-during-build
-- [ ] Provide MetaInfo
-      https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines
-- [ ] SVG icon which meets the Flathub quality guidelines
-      (The current one might be okay if the shadow was removed, but it is poorly anti-aliased,
-       and looks stylistically inconsistent when compared to other Gnome apps)
-      https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#app-icon
-- [ ] Decide on the brand colors
-      https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#brand-colors
+- Larger play button on the album page
+  - IDEA: Display a large play icon over the album artwork when hovering with the cursor
+    (for touch devices, it could be shown on tap and disappear after some time of inactivity)
+- Automatic file/folder organization using tags (note: should be disabled by default)
+- Song file tag editing
+- Networking
+  - Fetching artworks from the internet
+  - Fetching lyrics from the internet
+  - Integration with last.fm
 
 Ideas for improvements:
 
@@ -98,12 +98,21 @@ Ideas for improvements:
   - All files could use the same extension and infer their contents based on the filename
     (`songs.…`, `queue.…`, or `shuffled_queue.…`), but this could limit their usability
 
-People's requests:
+Meta:
 
-- Larger play button on the album page
-  - IDEA: Display a large play icon over the album artwork when hovering with the cursor
-    (for touch devices, it could be shown on tap and disappear after some time of inactivity)
-- Automatic files/folders organization using tags (should be disabled by default)
-- Fetching artworks from the internet
-- Integration with last.fm
-- Tag editing
+- [ ] Offline build support
+      https://docs.flathub.org/docs/for-app-authors/requirements#no-network-access-during-build
+- [ ] Provide MetaInfo
+      https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines
+- [ ] SVG icon which meets the Flathub quality guidelines
+      (The current one might be okay if the shadow was removed, but it is poorly anti-aliased,
+       and looks stylistically inconsistent when compared to other Gnome apps)
+      https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#app-icon
+- [ ] Decide on the brand colors
+      https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#brand-colors
+
+GitHub:
+
+- Cleanup README & create a wiki page
+  - Move installation instructions to the wiki
+  - Add link shortcuts (see the Rust's README for reference: <https://github.com/rust-lang/rust/blob/main/README.md?plain=1>)
