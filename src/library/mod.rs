@@ -451,9 +451,6 @@ impl Library {
             let songs = songs.clone();
             let times_task = Arc::clone(&times_task);
             move |library| {
-                #[cfg(feature = "startup-logs")]
-                println!("Checking modification times");
-
                 library.set_missing_songs(missing);
                 library.set_songs(songs.clone());
 
@@ -609,6 +606,9 @@ impl Library {
     /// Checks the file modification times and requests a rebuild if any of them have changed
     #[inline]
     fn check_modification_times(songs: &Songs) {
+        #[cfg(feature = "startup-logs")]
+        println!("Checking modification times");
+
         let mut needs_rebuild = false;
 
         for song in songs {
@@ -646,10 +646,10 @@ impl Library {
                 }));
             })));
             println!("Modifications detected, library will rebuild shortly");
+        } else {
+            #[cfg(feature = "startup-logs")]
+            println!("Modification times were checked - nothing to do");
         }
-
-        #[cfg(feature = "startup-logs")]
-        println!("Modification times were checked - nothing to do");
     }
 
     /// Loads song info from `songs` in the background by even distributing them
