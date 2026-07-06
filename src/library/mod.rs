@@ -684,6 +684,7 @@ impl Library {
             });
         }
     }
+
     /// Ensures validity of the provided `songs`:
     /// - Sorts `songs` and resolves duplicate entries
     /// - Moves missing files from `songs` into `missing_songs`

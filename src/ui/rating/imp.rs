@@ -108,14 +108,14 @@ impl Rating {
             true => {
                 self.favorite_button.remove_css_class("dimmed");
                 self.favorite_button
-                    .set_tooltip_text(Some("Remove From Favorites"))
+                    .set_tooltip_text(Some("Remove From Favorites"));
             }
             false => {
                 self.favorite_button.add_css_class("dimmed");
                 self.favorite_button
-                    .set_tooltip_text(Some("Add To Favorites"))
+                    .set_tooltip_text(Some("Add To Favorites"));
             }
-        };
+        }
     }
 
     /// Sets the stars rating to the given value
