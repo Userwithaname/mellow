@@ -3,7 +3,7 @@ use core::{error::Error, mem};
 use rand::random_range;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, mpsc};
-use std::time::Instant;
+use std::time::{Duration, Instant};
 use std::{fs, thread};
 
 pub mod album;
@@ -468,6 +468,7 @@ impl Library {
                         Library::check_modification_times(&songs);
                         drop(times_task_lock);
 
+                        thread::sleep(Duration::from_millis(100));
                         if STATE.load(atomic::Ordering::Relaxed) == STATE_BUSY {
                             Library::load_info_in_background(songs, num_workers - 2);
                         }
