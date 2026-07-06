@@ -5,13 +5,12 @@
 
 Playback:
 
-- [ ] Pause/play/skip work as expected
-  - FIX: Holding keyboard shortcut to skip songs can overwhelm GStreamer and crash
+- [x] Pause/play/skip work as expected
 - [x] Shuffle/repeat/sequential modes work as expected
 - [x] Seeking works as expected
-  - FIX: Playback error with certain files on Fedora 44 when seeking to the beginning of the song:
-    `gst_base_parse_finish_frame: assertion 'size > 0 || frame->out_buffer' failed` (Upstream issue?)
-    (Flatpak builds are unaffected)
+  - BUG: (Flatpak is unaffected) Playback error with certain files when seeking to
+    the beginning of the song:
+    `gst_base_parse_finish_frame: assertion 'size > 0 || frame->out_buffer' failed`
   - [x] Seeking to any point in the song (click or drag)
   - [x] Seeking to the end and releasing the seek bar
   - [x] Seeking to the end and back
@@ -39,11 +38,11 @@ Music Library:
 - [x] The 'Albums' page and its subpages work as expected
 - [x] The 'Artists' page and its subpages work as expected
 - [x] Library building works in the background and doesn't affect functionality
-- [ ] Searching is quick and works as expected
-  - FIX: Items sometimes don't show up until scrolling after searching (Flatpak is unaffected)
+- [x] Searching is quick and works as expected
+  - BUG: (Flatpak is unaffected) Items sometimes don't show up until scrolling after searching
 - [x] Sort modes work as expected
-- [ ] Filtering works as expected
-  - FIX: Items sometimes don't show up until scrolling after changing filters (Flatpak is unaffected)
+- [x] Filtering works as expected
+  - BUG: (Flatpak is unaffected) Items sometimes don't show up until scrolling after changing filters
 
 User Experience:
 
