@@ -355,10 +355,20 @@ impl SongInfoLoader<'_> {
         self.user_info.lock().unwrap().play_count -= 1;
     }
 
+    /// Sets the song rating
+    ///
+    /// # Panics
+    /// The function panics if the user info `Mutex` is poisoned
+    #[inline]
+    pub fn set_rating(&self, rating: SongRating) {
+        self.user_info.lock().unwrap().rating = rating;
+    }
+
     /// Sets the song stars rating (1 to 5, or 0 to unset)
     ///
     /// # Panics
     /// The function panics if the user info `Mutex` is poisoned
+    #[inline]
     pub fn set_stars(&self, rating: u8) {
         self.user_info.lock().unwrap().rating.set_stars(rating);
     }

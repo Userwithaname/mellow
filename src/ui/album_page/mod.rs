@@ -4,6 +4,7 @@ use gtk::{Orientation, gdk, glib};
 use std::sync::{Arc, atomic::Ordering};
 
 use crate::excuses::EXP_RX;
+use crate::library::song_rating::SongRating;
 use crate::library::{Library, SharedAlbum, library_tx};
 use crate::ui::{ListRow, UpdateUI, fallback_album_image, show_queue, ui_tx};
 use crate::util::{format_duration_minutes, format_duration_ms};
@@ -56,8 +57,10 @@ impl AlbumPage {
             _ => ui.year.set_visible(false),
         }
 
-        ui.rating
-            .set_rating_silent(album_locked.average_rating(0.0).round() as u8);
+        ui.rating.set_rating_silent(SongRating::new(
+            (album_locked.average_rating(0.0).round() as u8).min(5),
+            album_locked.sort_rating(3.0) > 5.0,
+        ));
         ui.rating.connect_rating_set({
             let album = Arc::clone(album);
             move |rating| album.lock().unwrap().rate_all_songs(rating)

@@ -39,11 +39,9 @@ impl QueueSubpage {
             song_page.artist_name.set_label(&song_info.artist);
         });
 
-        song_page
-            .rating
-            .set_rating_silent(info.user().rating.stars());
+        song_page.rating.set_rating_silent(info.user().rating);
         song_page.rating.connect_rating_set(move |rating| {
-            song.info().set_stars(rating);
+            song.info().set_rating(rating);
         });
 
         self.show_song_elements(true);

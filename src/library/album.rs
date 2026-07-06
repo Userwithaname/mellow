@@ -1,5 +1,6 @@
 use std::sync::{Arc, Mutex};
 
+use crate::library::song_rating::SongRating;
 use crate::library::{SharedArtist, SharedSong, Song, SongInfo, ToQueue};
 use crate::player::QueueItem;
 
@@ -111,9 +112,9 @@ impl Album {
     }
 
     /// Sets the rating of all songs on the album to `rating`
-    pub fn rate_all_songs(&self, rating: u8) {
+    pub fn rate_all_songs(&self, rating: SongRating) {
         for song in &self.songs {
-            song.info().set_stars(rating);
+            song.info().set_rating(rating);
         }
     }
 }

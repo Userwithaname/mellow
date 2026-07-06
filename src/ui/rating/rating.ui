@@ -3,6 +3,36 @@
   <template class="MellowRating" parent="GtkBox">
     <property name="halign">center</property>
     <property name="valign">center</property>
-    <property name="spacing">8</property>
+    <property name="spacing">48</property>
+    <child>
+      <object class="GtkButton" id="favorite_button">
+        <signal name="clicked" handler="handle_toggle_favorite" swapped="true"/>
+        <property name="icon-name">emote-love-symbolic</property>
+        <style>
+          <class name="circular"/>
+          <class name="flat"/>
+        </style>
+      </object>
+    </child>
+    <child>
+      <object class="GtkBox" id="stars">
+        <property name="halign">center</property>
+        <property name="valign">center</property>
+        <property name="spacing">8</property>
+      </object>
+    </child>
+    <child>
+      <!-- TODO: Add a popup menu for managing tags -->
+      <!-- - Add a text entry box at the top for searching and creating new tags -->
+      <!-- - Display all tags currently known to the library (global list of known tags?) -->
+      <object class="GtkMenuButton">
+        <property name="icon-name">text-editor-symbolic</property>
+        <property name="tooltip-text">Custom tags will be available in a future version</property>
+        <style>
+          <class name="circular"/>
+          <class name="flat"/>
+        </style>
+      </object>
+    </child>
   </template>
 </interface>

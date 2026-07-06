@@ -55,7 +55,7 @@ impl SongRating {
 
     /// Sets the stars to the given value, keeping the previous favorite value
     ///
-    /// # Example:
+    /// # Example
     /// ```rust
     /// use mellow::library::song_rating::SongRating;
     ///
@@ -78,7 +78,7 @@ impl SongRating {
 
     /// Marks the rating as favorite or non-favorite without changing the stars
     ///
-    /// # Example:
+    /// # Example
     /// ```rust
     /// use mellow::library::song_rating::SongRating;
     ///
@@ -96,6 +96,28 @@ impl SongRating {
     #[inline]
     pub const fn set_favorite(&mut self, favorite: bool) {
         self.0 = self.0 & Self::STARS_MASK | (favorite as u8 * Self::FAVORITE_MASK);
+    }
+
+    /// Sets favorite to the opposite of the current value
+    ///
+    /// # Example
+    /// ```rust
+    /// use mellow::library::song_rating::SongRating;
+    ///
+    /// fn main() {
+    ///     let mut rating = SongRating::new(3, true);
+    ///
+    ///     rating.toggle_favorite();
+    ///     assert_eq!(rating.is_favorite(), false);
+    ///     assert_eq!(rating.stars(), 3);
+    ///
+    ///     rating.toggle_favorite();
+    ///     assert_eq!(rating.is_favorite(), true);
+    /// }
+    /// ```
+    #[inline]
+    pub const fn toggle_favorite(&mut self) {
+        self.0 ^= Self::FAVORITE_MASK;
     }
 
     /// Merges the rating from `other` into `self`
