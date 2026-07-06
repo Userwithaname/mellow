@@ -8,7 +8,7 @@ pub struct SongRating(u8);
 
 impl SongRating {
     const STARS_MASK: u8 = 0b00000111;
-    const FAVORITE_MASK: u8 = 0b10000000;
+    const FAVORITE_MASK: u8 = 0b00001000;
 
     /// Returns a new `SongRating`
     ///
