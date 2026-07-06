@@ -47,8 +47,8 @@ pub struct Library {
 
     rebuild_pending: bool,
 
-    on_build_stopped: Vec<LibraryTask>,
     on_build_succeeded: Vec<LibraryTask>,
+    on_build_stopped: Vec<LibraryTask>,
     on_songs_set: Vec<SongsTask>,
 
     tasks: Runner,
@@ -291,8 +291,8 @@ impl Library {
 
             rebuild_pending: false,
 
-            on_build_stopped: Vec::new(),
             on_build_succeeded: Vec::new(),
+            on_build_stopped: Vec::new(),
             on_songs_set: Vec::new(),
 
             tasks: Runner::new(
@@ -375,13 +375,12 @@ impl Library {
         }
     }
 
-    /// Locates song files within the configured directories, assigns
-    /// them to `self.songs`, inserts any new files into `self.songs`,
-    /// then runs `create_connections()` in a background process. If
-    /// uninitialized, the data from disk is used first. Song entries
-    /// already present in `self.songs` are preserved, and only new
-    /// songs are added.
+    /// Locates song files within the configured directories, then
+    /// runs `create_connections()` as a background task. Existing
+    /// song entries are preserved, and only new songs are added.
+    /// Missing song entries are handled in the background task.
     ///
+    /// # Note
     /// Either `STATE` should be set to `STATE_BUSY` before calling,
     /// or `start_library_build()` should be called instead
     ///
@@ -422,8 +421,7 @@ impl Library {
         });
     }
 
-    /// Creates connections between library `songs`/`albums`/`artists`, and
-    /// validates `songs` using `validate_songs()` and `merge_moved_entries()`
+    /// Creates connections between library `songs`/`albums`/`artists`
     ///
     /// # Errors
     /// Returns an error if the build was cancelled, or if the library or UI
@@ -448,8 +446,10 @@ impl Library {
         let ui_tx = ui_tx();
         let library_tx = library_tx();
 
+        let times_task = Arc::new(Mutex::new(()));
         let _ = library_tx.send(LibraryRequest::RunLibraryTask(Box::new({
             let songs = songs.clone();
+            let times_task = Arc::clone(&times_task);
             move |library| {
                 #[cfg(feature = "startup-logs")]
                 println!("Checking modification times");
@@ -457,85 +457,24 @@ impl Library {
                 library.set_missing_songs(missing);
                 library.set_songs(songs.clone());
 
-                // Check file modification times in the background
-                let mut needs_rebuild = false;
-                for song in &songs {
-                    if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
-                        return;
-                    }
+                // Correct paths in the queue if any have changed
+                (player_tx().send(PlayerRequest::ValidateFilePaths)).expect(EXP_RX);
 
-                    let mut info = song.info();
-                    let known_modification_time = info.known_modification_time();
-                    if known_modification_time == !0
-                        || known_modification_time == info.file_modification_time(|info| {
-                            eprintln!(
-                                "WARNING: Modification time could not be read: '{:?}'; skipping...",
-                                info.path()
-                            );
-                            known_modification_time
-                        })
-                    {
-                        continue;
-                    }
+                // Check file modification times and start song info loading tasks
+                Library::run_task(
+                    library_tx,
+                    Box::new(move || {
+                        let times_task_lock = times_task.lock();
+                        Library::check_modification_times(&songs);
+                        drop(times_task_lock);
 
-                    needs_rebuild |= info.take_basic().is_some();
-                    info.invalidate_thumbnail();
-                }
-
-                // If files were modified, queue another rebuild so the new info gets loaded
-                if needs_rebuild
-                    && STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_CANCEL
-                {
-                    library.cancel_library_build();
-                    library.run_on_build_stopped(Box::new(|library| {
-                        ui_tx.send(UpdateUI::Progress(Some(0.0))).expect(EXP_RX);
-                        println!("Rebuilding because files were modified");
-                        library.start_library_build();
-                    }));
-                    println!("Modifications detected, library will rebuild shortly");
-                }
-
-                #[cfg(feature = "startup-logs")]
-                println!("Modification times were checked - nothing to do");
+                        if STATE.load(atomic::Ordering::Relaxed) == STATE_BUSY {
+                            Library::load_info_in_background(songs, num_workers - 2);
+                        }
+                    }),
+                );
             }
         })));
-
-        let num_tasks = num_workers - 2;
-        Library::run_task(library_tx, {
-            let songs = songs.clone();
-            move || {
-                if STATE.load(atomic::Ordering::Relaxed) != STATE_BUSY {
-                    return;
-                }
-
-                // Prepare the songs to distribute between background tasks
-                let mut worker_songs = (0..num_tasks)
-                    .map(|_| Vec::<SharedSong>::with_capacity(songs.len() / num_tasks))
-                    .collect::<Vec<Vec<SharedSong>>>();
-                let mut target_worker = 0;
-                for song in songs {
-                    worker_songs[target_worker].push(song);
-                    target_worker += 1;
-                    if target_worker == num_tasks {
-                        target_worker = 0;
-                    }
-                }
-
-                println!("Starting {num_tasks} background tasks to load the song info");
-                for songs in worker_songs {
-                    Library::run_task(library_tx, move || {
-                        for song in songs {
-                            if STATE.load(atomic::Ordering::Relaxed) != STATE_BUSY {
-                                #[cfg(debug_assertions)]
-                                println!("Song info task was cancelled");
-                                return;
-                            }
-                            drop(song.info().try_load_basic());
-                        }
-                    });
-                }
-            }
-        });
 
         let mut albums = Vec::with_capacity(songs.len() / 16);
         let mut artists = Vec::with_capacity(songs.len() / 64);
@@ -632,22 +571,28 @@ impl Library {
 
         let state = STATE.load(atomic::Ordering::Acquire);
         library_tx.send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
-            STATE.store(STATE_CANCEL, atomic::Ordering::Release);
-
             if state != STATE_CANCEL {
                 library.set_artists(artists);
                 library.set_albums(albums);
                 // Songs were already set after validating
-
-                ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
             }
 
-            // Cancel any remaining background tasks and wait for them to stop
-            library.cancel_library_build_blocking();
+            // Wait for the modification times check to finish
+            drop(times_task.lock().unwrap());
+
+            // Cancel any remaining background tasks
+            library.cancel_library_build();
 
             if state != STATE_CANCEL {
+                // IDEA: Maybe a negative progress value could represent a failure state?
+                ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
+
                 library.build_succeeded();
-                let _ = player_tx().send(PlayerRequest::ValidateFilePaths);
+            }
+
+            // Wait for all tasks to stop before calling `build_stopped`
+            if STATE.load(atomic::Ordering::Acquire) != STATE_READY {
+                library.cancel_library_build_blocking();
             }
 
             library.build_stopped();
@@ -660,6 +605,85 @@ impl Library {
         }
     }
 
+    /// Checks the file modification times and requests a rebuild if any of them have changed
+    #[inline]
+    fn check_modification_times(songs: &Songs) {
+        let mut needs_rebuild = false;
+
+        for song in songs {
+            if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
+                return;
+            }
+
+            let mut info = song.info();
+            let known_modification_time = info.known_modification_time();
+            if known_modification_time == !0
+                || known_modification_time
+                    == info.file_modification_time(|info| {
+                        eprintln!(
+                            "WARNING: Modification time could not be read: '{:?}'; skipping...",
+                            info.path()
+                        );
+                        known_modification_time
+                    })
+            {
+                continue;
+            }
+
+            needs_rebuild |= info.take_basic().is_some();
+            info.invalidate_thumbnail();
+        }
+
+        // If files were modified, queue another rebuild so the new info gets loaded
+        if needs_rebuild && STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_CANCEL {
+            let _ = library_tx().send(LibraryRequest::RunLibraryTask(Box::new(|library| {
+                library.cancel_library_build();
+                library.run_on_build_stopped(Box::new(|library| {
+                    ui_tx().send(UpdateUI::Progress(Some(0.0))).expect(EXP_RX);
+                    println!("Rebuilding because files were modified");
+                    library.start_library_build();
+                }));
+            })));
+            println!("Modifications detected, library will rebuild shortly");
+        }
+
+        #[cfg(feature = "startup-logs")]
+        println!("Modification times were checked - nothing to do");
+    }
+
+    /// Loads song info from `songs` in the background by even distributing them
+    /// among worker tasks which run on the thread pool. The number of tasks is
+    /// determined by `num_tasks`.
+    #[inline]
+    fn load_info_in_background(songs: Songs, num_tasks: usize) {
+        let mut worker_songs = (0..num_tasks)
+            .map(|_| Vec::<SharedSong>::with_capacity(songs.len() / num_tasks))
+            .collect::<Vec<Vec<SharedSong>>>();
+        let mut target_worker = 0;
+        for song in songs {
+            worker_songs[target_worker].push(song);
+            target_worker += 1;
+            if target_worker == num_tasks {
+                target_worker = 0;
+            }
+        }
+
+        #[cfg(feature = "startup-logs")]
+        println!("Starting {num_tasks} background tasks to load song info");
+
+        for songs in worker_songs {
+            Library::run_task(library_tx(), move || {
+                for song in songs {
+                    if STATE.load(atomic::Ordering::Relaxed) != STATE_BUSY {
+                        #[cfg(feature = "startup-logs")]
+                        println!("Song info task was cancelled");
+                        return;
+                    }
+                    drop(song.info().try_load_basic());
+                }
+            });
+        }
+    }
     /// Ensures validity of the provided `songs`:
     /// - Sorts `songs` and resolves duplicate entries
     /// - Moves missing files from `songs` into `missing_songs`
