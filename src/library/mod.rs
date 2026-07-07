@@ -909,7 +909,7 @@ impl Library {
     /// and blocks the current thread until fully cancelled
     #[inline]
     pub fn cancel_library_build_blocking(&self, requested_at: Instant) {
-        if self.last_build_started < requested_at {
+        if requested_at < self.last_build_started {
             #[cfg(feature = "startup-logs")]
             println!("Cancellation request timed out; skipping");
 
