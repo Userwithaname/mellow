@@ -22,8 +22,11 @@ glib::wrapper! {
 pub struct InfoNotLoadedError;
 
 impl SongObject {
+    /// Constructs a new `SongObject`
+    ///
+    /// # Errors
+    /// Returns an error if the song info is not loaded
     #[inline]
-    #[must_use]
     pub fn new(index: u32, song: SharedSong) -> Result<Self, InfoNotLoadedError> {
         let (title, album, artist, year) = match &*song.info().inspect_basic() {
             Some(info) => (
