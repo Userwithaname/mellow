@@ -2,6 +2,9 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex, mpsc};
 use std::thread::{self, JoinHandle};
 
+#[cfg(feature = "task-counter")]
+use std::sync::atomic::AtomicU16;
+
 use crate::excuses::INIT_ERR;
 use crate::library;
 
@@ -29,9 +32,15 @@ impl Runner {
     pub fn new(count: usize) -> Self {
         debug_assert!(count > 0, "Cannot create a thread pool with no threads");
 
+        #[cfg(feature = "task-counter")]
+        let busy_count = Arc::new(AtomicU16::new(0));
+
         let (tx, rx) = mpsc::channel::<BoxedTask>();
         let rx = Arc::new(Mutex::new(rx));
         let threads = (0..count).map(|i| {
+            #[cfg(feature = "task-counter")]
+            let busy_count = Arc::clone(&busy_count);
+
             let rx = Arc::clone(&rx);
             thread::Builder::new()
                 .name(format!("worker_{i}"))
@@ -40,8 +49,20 @@ impl Runner {
                         let Ok(task) = rx.lock().unwrap().recv() else {
                             break println!("Worker #{i} has quit"); // Breaking news!!
                         };
-                        // println!("Running task on worker #{i}");
+
+                        #[cfg(feature = "task-counter")]
+                        {
+                            busy_count.fetch_add(1, Ordering::Relaxed);
+                            dbg!(busy_count.load(Ordering::Relaxed));
+                        }
+
                         task();
+
+                        #[cfg(feature = "task-counter")]
+                        {
+                            busy_count.fetch_sub(1, Ordering::Relaxed);
+                            dbg!(busy_count.load(Ordering::Relaxed));
+                        }
                     }
                 })
                 .expect(INIT_ERR)
