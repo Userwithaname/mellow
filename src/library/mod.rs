@@ -46,6 +46,8 @@ pub struct Library {
     undo_songs: Songs,
 
     rebuild_pending: bool,
+    last_build_started: Instant,
+    last_build_finished: Instant,
 
     on_build_succeeded: Vec<LibraryTask>,
     on_build_stopped: Vec<LibraryTask>,
@@ -239,10 +241,10 @@ type SongsTask = Box<dyn FnOnce(&Songs) + Send + 'static>;
 pub enum LibraryRequest {
     /// Rebuilds the library, cancelling any rebuild that might be currently running
     /// For more responsive cancellation, use `Library::rebuild` instead
-    Rebuild,
+    Rebuild(Instant),
     /// Cancels the current library build and pauses the thread pool requests
     /// until all current tasks finish running
-    CancelRebuild,
+    CancelRebuild(Instant),
 
     /// Starts a player queue using the given file or directory paths
     QueueFromPaths(Vec<PathBuf>),
@@ -265,15 +267,6 @@ pub enum LibraryRequest {
     /// Cleanly shuts down the library and thread pool, and writes the configuration data to disk
     Uninit,
 }
-impl PartialEq for LibraryRequest {
-    fn eq(&self, other: &Self) -> bool {
-        match self {
-            LibraryRequest::Rebuild => matches!(other, LibraryRequest::Rebuild),
-            LibraryRequest::CancelRebuild => matches!(other, LibraryRequest::CancelRebuild),
-            _ => false,
-        }
-    }
-}
 
 impl Library {
     /// Constructs a new instance of `Library`
@@ -290,6 +283,8 @@ impl Library {
             undo_songs: Vec::new(),
 
             rebuild_pending: false,
+            last_build_started: Instant::now(),
+            last_build_finished: Instant::now(),
 
             on_build_succeeded: Vec::new(),
             on_build_stopped: Vec::new(),
@@ -327,50 +322,28 @@ impl Library {
     /// panics if any path contains invalid unicode.
     #[inline]
     pub fn request_handler(mut self) -> Result<(), Box<dyn Error>> {
-        let mut request_queue = Vec::new();
         loop {
-            request_queue.push(self.rx.recv()?);
-            while let Ok(request) = self.rx.try_recv() {
-                // Reject duplicate rebuild and cancellation requests
-                match request {
-                    LibraryRequest::CancelRebuild
-                        if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL
-                            || request_queue.contains(&request) =>
-                    {
-                        println!("Dropped duplicate cancellation request");
-                    }
-                    LibraryRequest::Rebuild
-                        if self.rebuild_pending || request_queue.contains(&request) =>
-                    {
-                        println!("Dropped duplicate rebuild request");
-                    }
-                    _ => request_queue.push(request),
+            match self.rx.recv()? {
+                LibraryRequest::RunTask(task) => self.tasks.run(task),
+                LibraryRequest::RunLibraryTask(f) => f(&mut self),
+
+                LibraryRequest::QueueFromPaths(paths) => self.play_from_paths(
+                    paths.iter().map(|path| path.to_str().unwrap()), //
+                )?,
+
+                LibraryRequest::CancelRebuild(time) => self.cancel_library_build(time),
+                LibraryRequest::Rebuild(time) => self.start_library_build(time),
+
+                LibraryRequest::AddLibrary(dir) => self.config.add_library(dir),
+                LibraryRequest::RemoveLibrary(index) => self.config.remove_library(index),
+
+                LibraryRequest::RegisterUndoDirectory(dir) => {
+                    self.register_undo_directory(&dir);
                 }
-            }
+                LibraryRequest::UndoRemovedDirectory(dir) => self.undo_removed_directory(dir),
 
-            for request in request_queue.drain(..) {
-                match request {
-                    LibraryRequest::RunTask(task) => self.tasks.run(task),
-
-                    LibraryRequest::QueueFromPaths(paths) => self.play_from_paths(
-                        paths.iter().map(|path| path.to_str().unwrap()), //
-                    )?,
-
-                    LibraryRequest::RunLibraryTask(f) => f(&mut self),
-                    LibraryRequest::CancelRebuild => self.cancel_library_build(),
-                    LibraryRequest::Rebuild => self.start_library_build(),
-
-                    LibraryRequest::AddLibrary(dir) => self.config.add_library(dir),
-                    LibraryRequest::RemoveLibrary(index) => self.config.remove_library(index),
-
-                    LibraryRequest::RegisterUndoDirectory(dir) => {
-                        self.register_undo_directory(&dir);
-                    }
-                    LibraryRequest::UndoRemovedDirectory(dir) => self.undo_removed_directory(dir),
-
-                    #[allow(clippy::unit_arg)]
-                    LibraryRequest::Uninit => return Ok(self.shutdown()),
-                }
+                #[allow(clippy::unit_arg)]
+                LibraryRequest::Uninit => return Ok(self.shutdown()),
             }
         }
     }
@@ -407,6 +380,12 @@ impl Library {
         if STATE.load(atomic::Ordering::Acquire) == STATE_CANCEL {
             return;
         }
+
+        #[cfg(feature = "startup-logs")]
+        println!(
+            "Library song file list built in {:?}",
+            self.last_build_started.elapsed()
+        );
 
         self.tasks.run({
             let songs = self.songs.clone();
@@ -453,6 +432,12 @@ impl Library {
             move |library| {
                 library.set_missing_songs(missing);
                 library.set_songs(songs.clone());
+
+                #[cfg(feature = "startup-logs")]
+                println!(
+                    "Library songs validated in {:?}",
+                    library.last_build_started.elapsed()
+                );
 
                 // Correct paths in the queue if any have changed
                 (player_tx().send(PlayerRequest::ValidateFilePaths)).expect(EXP_RX);
@@ -580,18 +565,27 @@ impl Library {
             drop(times_task.lock().unwrap());
 
             // Cancel any remaining background tasks
-            library.cancel_library_build();
+            library.cancel_library_build(Instant::now());
 
             if state != STATE_CANCEL {
                 // IDEA: Maybe a negative progress value could represent a failure state?
                 ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
 
+                library.last_build_finished = Instant::now();
                 library.build_succeeded();
+
+                #[cfg(feature = "startup-logs")]
+                println!(
+                    "Library connections finished in {:?}",
+                    library
+                        .last_build_finished
+                        .duration_since(library.last_build_started)
+                );
             }
 
             // Wait for all tasks to stop before calling `build_stopped`
             if STATE.load(atomic::Ordering::Acquire) != STATE_READY {
-                library.cancel_library_build_blocking();
+                library.cancel_library_build_blocking(Instant::now());
             }
 
             library.build_stopped();
@@ -599,8 +593,7 @@ impl Library {
 
         match state {
             STATE_BUSY => Ok(()),
-            STATE_CANCEL => Err("Cancelled")?,
-            _ => Err(format!("Invalid `STATE`: {state}"))?,
+            _ => Err(format!("Cancelled (`STATE`: {state})"))?,
         }
     }
 
@@ -639,10 +632,10 @@ impl Library {
         // If files were modified, queue another rebuild so the new info gets loaded
         if needs_rebuild && STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_CANCEL {
             let _ = library_tx().send(LibraryRequest::RunLibraryTask(Box::new(|library| {
-                library.cancel_library_build_blocking();
+                library.cancel_library_build_blocking(Instant::now());
                 ui_tx().send(UpdateUI::Progress(Some(0.0))).expect(EXP_RX);
                 println!("Rebuilding because files were modified");
-                library.start_library_build();
+                library.start_library_build(Instant::now());
             })));
             println!("Modifications detected, library will rebuild shortly");
         } else {
@@ -845,34 +838,60 @@ impl Library {
         if STATE.load(atomic::Ordering::Acquire) == STATE_BUSY {
             STATE.store(STATE_CANCEL, atomic::Ordering::Relaxed);
             library_tx()
-                .send(LibraryRequest::CancelRebuild)
+                .send(LibraryRequest::CancelRebuild(Instant::now()))
                 .expect(EXP_RX);
         }
-        library_tx().send(LibraryRequest::Rebuild).expect(EXP_RX);
+        library_tx()
+            .send(LibraryRequest::Rebuild(Instant::now()))
+            .expect(EXP_RX);
     }
 
     /// Starts a new library build
     ///
     /// If already building, the current operation is cancelled
     /// before starting a new one
-    pub fn start_library_build(&mut self) {
+    pub fn start_library_build(&mut self, requested_at: Instant) {
+        if requested_at < self.last_build_finished {
+            #[cfg(feature = "startup-logs")]
+            println!("Rebuild request timed out; skipping");
+
+            return;
+        }
+
         match STATE.compare_exchange(
             STATE_READY,
             STATE_BUSY,
             atomic::Ordering::Acquire,
             atomic::Ordering::Relaxed,
         ) {
-            Ok(_) => self.discover_files(),
+            Ok(_) => {
+                #[cfg(feature = "startup-logs")]
+                println!("Starting rebuild");
+
+                self.last_build_started = Instant::now();
+                self.discover_files();
+            }
             Err(_) => {
                 if self.rebuild_pending {
+                    #[cfg(feature = "startup-logs")]
+                    println!("Rebuild already queued; ignoring request");
+
                     return; // Skip duplicate pending rebuild requests
                 }
                 self.rebuild_pending = true;
-                self.cancel_library_build();
+                self.cancel_library_build(Instant::now());
+
+                #[cfg(feature = "startup-logs")]
+                println!("Rebuilding when ready");
 
                 self.on_build_stopped.push(Box::new(|library| {
                     STATE.store(STATE_BUSY, atomic::Ordering::Release);
+
+                    #[cfg(feature = "startup-logs")]
+                    println!("Rebuilding now");
+
                     library.rebuild_pending = false;
+                    library.last_build_started = Instant::now();
                     library.discover_files();
                 }));
             }
@@ -881,17 +900,32 @@ impl Library {
 
     /// Cancels any currently running library build operation
     #[inline]
-    pub fn cancel_library_build(&self) {
-        STATE.store(STATE_CANCEL, atomic::Ordering::Release);
+    pub fn cancel_library_build(&self, requested_at: Instant) {
+        if requested_at < self.last_build_started {
+            #[cfg(feature = "startup-logs")]
+            println!("Cancellation request timed out; skipping");
+
+            return;
+        }
+
+        STATE.swap(STATE_CANCEL, atomic::Ordering::Release);
         self.tasks.await_all_tasks();
     }
 
     /// Cancels any currently running library build operation
     /// and blocks the current thread until fully cancelled
     #[inline]
-    pub fn cancel_library_build_blocking(&self) {
+    pub fn cancel_library_build_blocking(&self, requested_at: Instant) {
+        if self.last_build_started < requested_at {
+            #[cfg(feature = "startup-logs")]
+            println!("Cancellation request timed out; skipping");
+
+            return;
+        }
+
         STATE.store(STATE_CANCEL, atomic::Ordering::Release);
         self.tasks.await_all_tasks();
+
         let library_thread = thread::current();
         self.tasks.run(move || library_thread.unpark());
         // Parking the thread in a loop until cancellation, because
@@ -1018,7 +1052,7 @@ impl Library {
     /// Adds all songs from directory `dir` to `self.undo_songs`, so their
     /// info can be recovered using `LibraryRequest::UndoRemovedDirectory`
     fn undo_removed_directory(&mut self, dir: PathBuf) {
-        self.cancel_library_build_blocking();
+        self.cancel_library_build_blocking(Instant::now());
         self.missing_songs.extend(mem::take(&mut self.undo_songs));
         self.config.add_library(dir);
     }

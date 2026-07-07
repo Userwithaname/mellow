@@ -3,6 +3,7 @@ use gdk::{DragAction, FileList};
 use gio::Settings;
 use glib::Object;
 use gtk::{Orientation, gdk, gio, glib};
+use std::time::Instant;
 
 use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::{Library, LibraryConfig, LibraryRequest, library_tx};
@@ -106,7 +107,7 @@ impl Window {
         let remember_time = settings_page.remembers_time();
 
         let library_tx = library_tx();
-        (library_tx.send(LibraryRequest::CancelRebuild)).expect(EXP_RX);
+        (library_tx.send(LibraryRequest::CancelRebuild(Instant::now()))).expect(EXP_RX);
         Library::run_task(library_tx, move || {
             LibraryConfig::create_config_dir();
             library_tx.send(LibraryRequest::Uninit).expect(EXP_RX);
