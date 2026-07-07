@@ -47,7 +47,6 @@ pub struct Library {
 
     rebuild_pending: bool,
     last_build_started: Instant,
-    last_build_finished: Instant,
 
     on_build_succeeded: Vec<LibraryTask>,
     on_build_stopped: Vec<LibraryTask>,
@@ -284,7 +283,6 @@ impl Library {
 
             rebuild_pending: false,
             last_build_started: Instant::now(),
-            last_build_finished: Instant::now(),
 
             on_build_succeeded: Vec::new(),
             on_build_stopped: Vec::new(),
@@ -418,9 +416,6 @@ impl Library {
         num_workers: usize,
     ) -> Result<(), Box<dyn Error>> {
         Library::validate_songs(&mut songs, &mut missing, check_moved, config);
-
-        #[cfg(feature = "startup-logs")]
-        println!("Library songs validation complete");
 
         let ui_tx = ui_tx();
         let library_tx = library_tx();
@@ -571,16 +566,13 @@ impl Library {
                 // IDEA: Maybe a negative progress value could represent a failure state?
                 ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
 
-                library.last_build_finished = Instant::now();
-                library.build_succeeded();
-
                 #[cfg(feature = "startup-logs")]
                 println!(
                     "Library connections finished in {:?}",
-                    library
-                        .last_build_finished
-                        .duration_since(library.last_build_started)
+                    library.last_build_started.elapsed()
                 );
+
+                library.build_succeeded();
             }
 
             // Wait for all tasks to stop before calling `build_stopped`
@@ -851,7 +843,7 @@ impl Library {
     /// If already building, the current operation is cancelled
     /// before starting a new one
     pub fn start_library_build(&mut self, requested_at: Instant) {
-        if requested_at < self.last_build_finished {
+        if requested_at < self.last_build_started {
             #[cfg(feature = "startup-logs")]
             println!("Rebuild request timed out; skipping");
 
