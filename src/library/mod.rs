@@ -537,11 +537,12 @@ impl Library {
         #[cfg(feature = "startup-logs")]
         println!("Library connections have finished building");
 
-        if STATE.load(atomic::Ordering::Acquire) != STATE_CANCEL
-            && let Ok(check_moved) = check_moved.lock()
-            && !check_moved.is_empty()
-        {
-            Library::merge_moved_entries(&artists, check_moved);
+        if STATE.load(atomic::Ordering::Acquire) != STATE_CANCEL {
+            if let Ok(check_moved) = check_moved.lock()
+                && !check_moved.is_empty()
+            {
+                Library::merge_moved_entries(&artists, check_moved);
+            }
             (ui_tx.send(UpdateUI::SetLibrarySongs(songs))).expect(EXP_RX);
         }
 
