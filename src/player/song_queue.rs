@@ -502,17 +502,12 @@ impl SongQueue {
     pub fn validate_file_paths(&mut self) {
         let mut missing_items = Vec::new();
         for (index, item) in self.songs.iter().enumerate() {
-            let QueueItem::Song(song) = item else {
-                continue;
-            };
-            if song.path.exists() {
-                if song.is_within_library() {
-                    continue;
-                }
+            if let QueueItem::Song(song) = item
+                && (!song.is_within_library() || !song.path.exists())
+            {
                 song.set_album(None);
+                missing_items.push(index);
             }
-
-            missing_items.push(index);
         }
         if missing_items.is_empty() {
             return;

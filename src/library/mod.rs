@@ -434,9 +434,6 @@ impl Library {
                     library.last_build_started.elapsed()
                 );
 
-                // Correct paths in the queue if any have changed
-                (player_tx().send(PlayerRequest::ValidateFilePaths)).expect(EXP_RX);
-
                 // Check file modification times and start song info loading tasks
                 Library::run_task(
                     library_tx,
@@ -554,7 +551,10 @@ impl Library {
             if state != STATE_CANCEL {
                 library.set_artists(artists);
                 library.set_albums(albums);
-                // Songs were already set after validating
+                // Songs were already set before checking modification times
+
+                // Correct paths in the queue if any have changed
+                (player_tx().send(PlayerRequest::ValidateFilePaths)).expect(EXP_RX);
             }
 
             // Wait for the modification times check to finish

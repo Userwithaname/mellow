@@ -95,7 +95,7 @@ impl SortedArtistAlbums for ArtistAlbums {
     fn find_artist_album(&self, info: &SongInfo) -> Result<usize, usize> {
         self.binary_search_by(|album| {
             let album = album.lock().unwrap();
-            (album.year().cmp(&info.year)).then_with(|| album.title().cmp(&info.title))
+            (album.year().cmp(&info.year)).then_with(|| album.title().cmp(&info.album))
         })
     }
 }
