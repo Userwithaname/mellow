@@ -4,8 +4,8 @@ use std::cell::RefCell;
 use std::panic::{self, PanicHookInfo};
 use std::path::PathBuf;
 use std::sync::mpsc;
-use std::thread;
 use std::time::Duration;
+use std::{process, thread};
 use tokio::sync::mpsc as tokio_mpsc;
 
 mod imp;
@@ -225,13 +225,15 @@ impl Application {
             imp.library_handle.take().unwrap(),
             imp.player_handle.take().unwrap(),
         );
-        thread::spawn(move || {
+        let await_components = thread::spawn(move || {
             library_handle.join().unwrap();
             player_handle.join().unwrap();
             let _ = notify_done.send(());
         });
         if rx.recv_timeout(timeout).is_err() {
             eprintln!("Exiting - component timeout was reached");
+            process::exit(1);
         }
+        await_components.join().unwrap(); // Panic if a background thread crashed
     }
 }

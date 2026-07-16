@@ -81,8 +81,6 @@ pub struct Window {
     progress_bar_visible: Cell<bool>,
 
     pub songs: RefCell<Songs>,
-    // pub albums: RefCell<Albums>,
-    // pub artists: RefCell<Artists>,
 }
 
 impl Window {
@@ -297,11 +295,10 @@ impl Window {
             // If the song has moved to a new allocation, subpage should be reinitialized
             if let QueueItem::Song(current) = current
                 && let QueueItem::Song(item) = &item
-                && let current_info = current.info()
-                && current_info.matches(&item.info())
+                && current.info().matches(&item.info())
             {
                 self.queue_subpage
-                    .show_song_info(index, Arc::clone(&current));
+                    .show_song_info(index, Arc::clone(current));
                 return;
             }
         }

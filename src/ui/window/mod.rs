@@ -111,7 +111,7 @@ impl Window {
         Library::run_task(library_tx, move || {
             LibraryConfig::create_config_dir();
             library_tx.send(LibraryRequest::Uninit).expect(EXP_RX);
-            (player_tx().send(PlayerRequest::Uninit(remember_queue, remember_time))).expect(EXP_RX);
+            let _ = player_tx().send(PlayerRequest::Uninit(remember_queue, remember_time));
         });
 
         imp.artists_page.uninit();
