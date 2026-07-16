@@ -234,7 +234,7 @@ impl SongInfoLoader<'_> {
     /// Whether the two `SongInfoLoader`s are likely to belong to the same `Song`
     ///
     /// Note: if either `SongInfo` is not loaded, equality is determined using the
-    /// file URIs only. For more accurate matching, calling `load_basic` beforehand
+    /// file path only. For more accurate matching, calling `load_basic` beforehand
     /// might be preferable.
     #[inline]
     #[must_use]
