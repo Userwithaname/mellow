@@ -32,9 +32,6 @@ pub type SharedSong = Arc<Song>;
 pub trait SharedSongExt {
     fn from_path(path: PathBuf) -> SharedSong;
     fn deserialize(data: &str) -> Option<SharedSong>;
-    fn album(&self) -> MutexGuard<'_, Option<SharedAlbum>>;
-    fn get_album(&self) -> Option<SharedAlbum>;
-    fn set_album(&self, album: Option<SharedAlbum>);
 }
 impl SharedSongExt for SharedSong {
     /// Constructs a new `SharedSong` from a file path
@@ -47,37 +44,6 @@ impl SharedSongExt for SharedSong {
     #[inline]
     fn deserialize(data: &str) -> Option<SharedSong> {
         Song::deserialize(data).map_or_else(|_| None, |song| Some(Arc::new(song)))
-    }
-    /// Returns the assigned album's `MutexGuard`
-    ///
-    /// # Panics
-    /// The function panics if the `Mutex` is poisoned
-    #[inline]
-    fn album(&self) -> MutexGuard<'_, Option<SharedAlbum>> {
-        #[cfg(feature = "lock-warnings")]
-        if self.album.try_lock().is_err() {
-            eprintln!("Note: Blocking on mutex lock for `SharedAlbum::album`");
-        }
-        self.album.lock().unwrap()
-    }
-    /// Returns a cloned reference to the assigned `Option<SharedAlbum>`.
-    /// The value can be `None` if the song is not part of the library.
-    #[inline]
-    fn get_album(&self) -> Option<SharedAlbum> {
-        #[cfg(feature = "lock-warnings")]
-        if self.album.try_lock().is_err() {
-            eprintln!("Note: Blocking on mutex lock for `SharedAlbum::get_album`");
-        }
-        self.album.lock().unwrap().clone()
-    }
-    /// Sets `self.album` to the given `album`
-    #[inline]
-    fn set_album(&self, album: Option<SharedAlbum>) {
-        #[cfg(feature = "lock-warnings")]
-        if self.album.try_lock().is_err() {
-            eprintln!("Note: Blocking on mutex lock for `SharedAlbum::set_album`");
-        }
-        *self.album.lock().unwrap() = album;
     }
 }
 
@@ -201,14 +167,41 @@ impl<'s> Song {
         gio::File::for_path(&self.path).uri()
     }
 
+    /// Returns the assigned album's `MutexGuard`
+    /// The value can be `None` if the song is not part of the library.
+    ///
+    /// # Panics
+    /// This function panics if the `album`'s `Mutex` is poisoned
+    #[inline]
+    pub fn get_album(&self) -> MutexGuard<'_, Option<SharedAlbum>> {
+        #[cfg(feature = "lock-warnings")]
+        if self.album.try_lock().is_err() {
+            eprintln!("Note: Blocking on mutex lock for `Song::get_album`");
+        }
+        self.album.lock().unwrap()
+    }
+
+    /// Sets `self.album` to the given `album`
+    ///
+    /// # Panics
+    /// This function panics if the `album`'s `Mutex` is poisoned
+    #[inline]
+    pub fn set_album(&self, album: Option<SharedAlbum>) {
+        #[cfg(feature = "lock-warnings")]
+        if self.album.try_lock().is_err() {
+            eprintln!("Note: Blocking on mutex lock for `Song::set_album`");
+        }
+        *self.album.lock().unwrap() = album;
+    }
+
     /// Checks whether the song is known to the library
     ///
     /// # Panics
-    /// Panics if the `album` mutex is poisoned
+    /// The function panics if the `album`'s `Mutex` is poisoned
     #[inline]
     #[must_use]
     pub fn is_within_library(&self) -> bool {
-        self.album.lock().unwrap().is_some()
+        self.get_album().is_some()
     }
 
     /// Returns a `SongInfoLoader`, which can be used to access information

@@ -6,8 +6,8 @@ use std::sync::Arc;
 
 use crate::excuses::EXP_RX;
 use crate::library::{
-    Albums, Artists, Library, LibraryRequest, SharedSongExt, Songs, SortedArtists, ToQueue,
-    ToShuffledQueue, library_tx,
+    Albums, Artists, Library, LibraryRequest, Songs, SortedArtists, ToQueue, ToShuffledQueue,
+    library_tx,
 };
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{StartupQueueChoice, UpdateUI, ui_tx};
@@ -247,15 +247,15 @@ impl SongQueue {
                 if Arc::ptr_eq(first_item, last_item) {
                     break 'disambiguate;
                 }
-                let from_item_album_ptr = match &from_item.get_album() {
+                let from_item_album_ptr = match &*from_item.get_album() {
                     Some(album) => Arc::as_ptr(album),
                     None => break 'disambiguate,
                 };
                 match (
-                    (first_item.get_album())
-                        .is_some_and(|album| Arc::as_ptr(&album) == from_item_album_ptr),
-                    (last_item.get_album())
-                        .is_some_and(|album| Arc::as_ptr(&album) == from_item_album_ptr),
+                    (first_item.get_album().as_ref())
+                        .is_some_and(|album| Arc::as_ptr(album) == from_item_album_ptr),
+                    (last_item.get_album().as_ref())
+                        .is_some_and(|album| Arc::as_ptr(album) == from_item_album_ptr),
                 ) {
                     (true, false) => to = 0,
                     (false, true) => to = self.len() - 1,

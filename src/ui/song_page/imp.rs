@@ -5,7 +5,7 @@ use gtk::glib;
 use std::sync::Arc;
 
 use crate::excuses::{ACTION_ERR, EXP_INIT, EXP_RX};
-use crate::library::{SharedSong, SharedSongExt, ToQueue};
+use crate::library::{SharedSong, ToQueue};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{Rating, show_queue};
 use crate::ui::{UpdateUI, ui_tx};
@@ -84,15 +84,15 @@ impl SongPage {
     pub fn handle_go_to_album(&self) {
         // Do nothing if the song is not from the user's library
         // (button should be greyed out anyway)
-        if let Some(album) = self.shared_song.borrow().as_ref().unwrap().get_album() {
-            ui_tx().send(UpdateUI::AlbumPage(album)).expect(EXP_RX);
+        if let Some(album) = &*self.shared_song.borrow().as_ref().unwrap().get_album() {
+            (ui_tx().send(UpdateUI::AlbumPage(Arc::clone(album)))).expect(EXP_RX);
         }
     }
     #[template_callback]
     pub fn handle_go_to_artist(&self) {
         // Do nothing if the song is not from the user's library
         // (button should be greyed out anyway)
-        if let Some(album) = self.shared_song.borrow().as_ref().unwrap().get_album() {
+        if let Some(album) = &*self.shared_song.borrow().as_ref().unwrap().get_album() {
             (ui_tx().send(UpdateUI::ArtistPage(album.lock().unwrap().artist_cloned())))
                 .expect(EXP_RX);
         }

@@ -3,7 +3,7 @@ use gtk::glib;
 use std::cell::Ref;
 use std::sync::Arc;
 
-use crate::library::{SharedSong, SharedSongExt};
+use crate::library::SharedSong;
 use crate::player::{QueueItem, SharedStopper};
 
 mod imp;
@@ -24,7 +24,7 @@ impl QueueSubpage {
         song_page.index.set(index);
 
         let queue_item = QueueItem::from_song(&song);
-        let album = song.album().as_ref().map(Arc::clone);
+        let album = song.get_album().as_ref().map(Arc::clone);
         let is_from_library = album.is_some();
         song_page.rating.set_sensitive(is_from_library);
         song_page.go_to_album_button.set_sensitive(is_from_library);
