@@ -284,11 +284,26 @@ impl Window {
             return;
         }
 
-        let item = self.queue_subpage.item();
+        let item = self.queue_subpage.borrow_item().clone();
         let mut index = self.queue_subpage.index();
         let queue = self.queue_page.borrow_queue();
-        if queue[index] == *item {
-            return;
+
+        {
+            let current = &queue[index];
+            if *current == item {
+                return;
+            }
+
+            // If the song has moved to a new allocation, subpage should be reinitialized
+            if let QueueItem::Song(current) = current
+                && let QueueItem::Song(item) = &item
+                && let current_info = current.info()
+                && current_info.matches(&item.info())
+            {
+                self.queue_subpage
+                    .show_song_info(index, Arc::clone(&current));
+                return;
+            }
         }
 
         let (mut left, mut right) = (queue[..index].iter(), queue[index + 1..].iter());
@@ -296,8 +311,8 @@ impl Window {
         loop {
             offset += 1;
             match (left.next_back(), right.next()) {
-                (Some(left), _) if *left == *item => break index -= offset,
-                (_, Some(right)) if *right == *item => break index += offset,
+                (Some(left), _) if *left == item => break index -= offset,
+                (_, Some(right)) if *right == item => break index += offset,
                 (None, None) => return self.close_queue_subpage(),
                 _ => (),
             }

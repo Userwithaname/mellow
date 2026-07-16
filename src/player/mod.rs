@@ -317,6 +317,7 @@ impl Player {
                         }
                     }
                     self.queue.ui_update_queue();
+                    self.queue.ui_validate_queue_subpage_index();
                     self.ui_update_song_info();
                     true
                 }
@@ -337,6 +338,7 @@ impl Player {
                         self.remove_item(index);
                     }
                     self.queue.ui_update_queue();
+                    self.queue.ui_validate_queue_subpage_index();
                     continue;
                 }
                 PlayerRequest::Undo => self.queue.pefrofm_undo() == (),
