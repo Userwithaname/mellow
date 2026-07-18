@@ -72,6 +72,8 @@ pub fn serialize_list(list: &[String]) -> String {
 /// - `?` for types implementing the `FromStr` trait
 /// - All types (except `str`) can be wrapped in square brackets
 ///   (`[…]`) to parse them as lists (such as `Vec`s)
+/// - A special case exists for `[?String]`, which is the same as
+///   `[String]`, but converts the `Vec<String>` using `.into()`
 ///
 /// # Panics
 /// This macro panics when parsing invalid data for types `?` and `[?]`
@@ -146,6 +148,9 @@ macro_rules! deserialize {
     };
     (@to_value [String], $value:expr, $field:expr) => {
         unescaped_split($value, ',')
+    };
+    (@to_value [?String], $value:expr, $field:expr) => {
+        unescaped_split($value, ',').into()
     };
 }
 pub use deserialize;

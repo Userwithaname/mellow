@@ -87,9 +87,65 @@ impl TagList {
         }
     }
 
+    /// Returns a mutable reference to the inner `Vec<(String, usize)>`
+    ///
+    /// # Warning
+    /// Ensure the tags remain alphabetically sorted, or it will
+    /// cause issues with the binary search
     #[inline]
     #[must_use]
     pub(super) const fn inner_mut(&mut self) -> &mut Vec<(String, usize)> {
         &mut self.0
+    }
+}
+
+#[derive(Clone, Debug, Default)]
+pub struct Tags(Vec<String>);
+
+impl Tags {
+    /// Returns the list of user-assigned tags for this song
+    #[inline]
+    pub fn get(&self) -> &[String] {
+        &self.0
+    }
+    /// Returns a mutable reference to the inner `Vec<String>`
+    ///
+    /// # Warning
+    /// Ensure the tags remain alphabetically sorted, or it will
+    /// cause issues with the binary search
+    #[inline]
+    pub fn get_mut(&mut self) -> &mut Vec<String> {
+        &mut self.0
+    }
+
+    /// Locates the given tag using binary search, and returns its index
+    ///
+    /// # Errors
+    /// Returns an error if the tag was not found. The index from the `Err`
+    /// variant can be used to insert the item at the proper position.
+    #[inline]
+    pub fn find(&self, tag: &str) -> Result<usize, usize> {
+        self.0.binary_search_by(|cur_tag| (**cur_tag).cmp(tag))
+    }
+
+    /// Adds `tag` to the list of tags if it is not currently present
+    #[inline]
+    pub fn add(&mut self, tag: String) {
+        if let Err(index) = self.find(&tag) {
+            self.0.insert(index, tag);
+        }
+    }
+    /// Removes `tag` from the list of tags, if it is present
+    #[inline]
+    pub fn remove(&mut self, tag: &str) {
+        if let Ok(index) = self.find(tag) {
+            self.0.remove(index);
+        }
+    }
+}
+
+impl From<Vec<String>> for Tags {
+    fn from(value: Vec<String>) -> Self {
+        Tags(value)
     }
 }

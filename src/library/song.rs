@@ -14,6 +14,7 @@ use lofty::prelude::*;
 use lofty::probe::Probe;
 
 use crate::library::song_rating::SongRating;
+use crate::library::tag_list::Tags;
 use crate::library::{SharedAlbum, tag_list};
 use crate::util::hint::{cold, unlikely};
 use crate::util::{deserialize, serialize, serialize_list, unescaped_split};
@@ -86,7 +87,7 @@ impl<'s> Song {
                     0 => "modified",
                     user_info.play_count => "play_count",
                     user_info.rating => "rating",
-                    serialize_list(&user_info.tags) => "tags",
+                    serialize_list(user_info.tags.get()) => "tags",
                 }
             },
             |info| {
@@ -104,7 +105,7 @@ impl<'s> Song {
                     info.duration_ms => "duration",
                     user_info.play_count => "play_count",
                     user_info.rating => "rating",
-                    serialize_list(&user_info.tags) => "tags",
+                    serialize_list(user_info.tags.get()) => "tags",
                 }
             },
         )
@@ -139,7 +140,7 @@ impl<'s> Song {
                 "duration"<?> => info.duration_ms,
                 "play_count"<?> => user_info.play_count,
                 "rating"<?> => user_info.rating,
-                "tags"<[String]> => user_info.tags,
+                "tags"<[?String]> => user_info.tags,
             }
         }
 
@@ -874,7 +875,7 @@ pub struct UserSongInfo {
     /// User-assigned song rating
     pub rating: SongRating,
     /// User-assigned tags
-    tags: Vec<String>,
+    tags: Tags,
 }
 /// Fields which do not need to be held in memory at all times
 pub struct DetailedSongInfo {
@@ -919,7 +920,7 @@ impl Default for UserSongInfo {
             modified: 0,
             play_count: 0,
             rating: SongRating::default(),
-            tags: Vec::new(),
+            tags: Tags::default(),
         }
     }
 }
@@ -941,26 +942,26 @@ impl UserSongInfo {
 
     /// Returns the list of user-assigned tags for this song
     #[inline]
+    #[must_use]
     pub fn tags(&self) -> &[String] {
-        &self.tags
+        self.tags.get()
     }
-
     /// Adds `tag` to the list of user-assigned tags
     /// and updates the global tag list
     #[inline]
     pub fn add_tag(&mut self, tag: String) {
-        if let Err(index) = self.tags.binary_search(&tag) {
+        if let Err(index) = self.tags.find(&tag) {
             tag_list::write_global_tags().add(tag.clone());
-            self.tags.insert(index, tag);
+            self.tags.get_mut().insert(index, tag);
         }
     }
     /// Removes `tag` from the list of user-assigned tags
     /// and updates the global tag list
     #[inline]
     pub fn remove_tag(&mut self, tag: &str) {
-        if let Ok(index) = self.tags.binary_search_by(|cur_tag| (**cur_tag).cmp(tag)) {
+        if let Ok(index) = self.tags.find(tag) {
             tag_list::write_global_tags().remove(tag);
-            self.tags.remove(index);
+            self.tags.get_mut().remove(index);
         }
     }
 
@@ -976,9 +977,9 @@ impl UserSongInfo {
         self.added = self.added.min(other.added);
         self.modified = self.modified.min(other.modified);
         self.play_count = self.play_count.max(other.play_count);
-        for tag in &other.tags {
-            if let Err(index) = self.tags.binary_search(tag) {
-                self.tags.insert(index, tag.to_string());
+        for tag in other.tags.get() {
+            if let Err(index) = self.tags.find(tag) {
+                self.tags.get_mut().insert(index, tag.to_string());
             }
         }
     }
