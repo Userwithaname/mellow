@@ -648,6 +648,23 @@ impl WidgetImpl for Window {
     fn size_allocate(&self, width: i32, height: i32, baseline: i32) {
         self.parent_size_allocate(width, height, baseline);
         self.main_player.update_spacing(height - 48);
+
+        // IDEA: When the width is over 2/3rds of the height (and wider than N pixels),
+        // use `width - height` of the width to show the lyrics on the side
+
+        // IDEA: Redesign:
+        // - Move the entire bottom sheet to a collapsible sidebar
+        // - Add a lyrics tab instead of the settings, move settings to a popup window
+        //   (but where would the settings be accessed from?)
+        // - If sidebar is on the right, arrange tabs as such: Lyrics, Queue, Library
+        //   (based on distance from and relevance to the main player)
+        //
+        // Benefits:
+        // - Improves usability when using a wide window
+        //
+        // Downsides:
+        // - Less separation between the main player and the overlay
+        // - More buttons would need to be added to the main player
     }
 }
 impl ApplicationWindowImpl for Window {}
