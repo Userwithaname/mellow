@@ -25,24 +25,15 @@ Music library:
   - TODO: Add filters for artists as well
   - [ ] Filter by user-assigned tags
 - [ ] **User-assigned custom tags**
-  - TODO: UI for managing tags (select/deselect/add tags from the button/menu on the rating widget)
-  - TODO: UI for selecting tag filters
-  - TODO: Keep track of all available tags
-    - List of tags needs to be accessible by the UI
-      - From each rating widget (can also add new tags)
-      - From the songs/albums page filters dropdown
-    - The UI should be able to manage the list of tags
-    - Removing the last instance of a tag should remove it from the list (reference counting?)
-    Implementation idea:
-      - Build the initial list of tags after deserializing songs
-      - Use a `TagList` wrapper type for `Vec<(String, usize)>`, with `add`/`remove` helper functions,
-        which increment/decrement the integer, or remove the element if the count reaches 0. Items
-        should always be sorted, so binary search can be used.
-      - Store the list as a static `Mutex<TagList>` on `Library`
-      - All further management can be done by the rating widget in the UI
-        - IDEA: The list of tags could be a `RwLock`, and only accessible in read mode outside of the
-          `library` module. The list would instead be managed indirectly through `SongInfoLoader`
-          functions for adding/removing song tags.
+  - [ ] UI for managing tags (select/deselect/add tags from the button/menu on the rating widget)
+  - [ ] UI for selecting tag filters
+  - [x] Keep track of all assigned tags
+      - [x] Build the initial list of tags after deserializing songs
+      - [x] Use a `TagList` wrapper type for `Vec<(String, usize)>`, with `add`/`remove` helper functions,
+            which increment/decrement the integer, or remove the element if the count reaches 0. Items
+            should always be sorted, so binary search can be used.
+      - [x] Store the list as a static `RwLock<TagList>` on `Library`
+      - [x] Manage global tags using `UserSongInfo` helper functions
 - [x] Artists page
   - [x] Artist subpage, accessed from each item
     - IDEA: Display average rating

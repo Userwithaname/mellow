@@ -13,8 +13,8 @@ use lofty::file::TaggedFile;
 use lofty::prelude::*;
 use lofty::probe::Probe;
 
-use crate::library::SharedAlbum;
 use crate::library::song_rating::SongRating;
+use crate::library::{SharedAlbum, tag_list};
 use crate::util::hint::{cold, unlikely};
 use crate::util::{deserialize, serialize, serialize_list, unescaped_split};
 use crate::{cache_dir, cold_expression};
@@ -874,7 +874,7 @@ pub struct UserSongInfo {
     /// User-assigned song rating
     pub rating: SongRating,
     /// User-assigned tags
-    pub tags: Vec<String>,
+    tags: Vec<String>,
 }
 /// Fields which do not need to be held in memory at all times
 pub struct DetailedSongInfo {
@@ -936,6 +936,31 @@ impl UserSongInfo {
                 .map_or_else(|_| 0, |time| time.as_secs()),
             modified: !0,
             ..Self::default()
+        }
+    }
+
+    /// Returns the list of user-assigned tags for this song
+    #[inline]
+    pub fn tags(&self) -> &[String] {
+        &self.tags
+    }
+
+    /// Adds `tag` to the list of user-assigned tags
+    /// and updates the global tag list
+    #[inline]
+    pub fn add_tag(&mut self, tag: String) {
+        if let Err(index) = self.tags.binary_search(&tag) {
+            tag_list::write_global_tags().add(tag.clone());
+            self.tags.insert(index, tag);
+        }
+    }
+    /// Removes `tag` from the list of user-assigned tags
+    /// and updates the global tag list
+    #[inline]
+    pub fn remove_tag(&mut self, tag: &str) {
+        if let Ok(index) = self.tags.binary_search_by(|cur_tag| (**cur_tag).cmp(tag)) {
+            tag_list::write_global_tags().remove(tag);
+            self.tags.remove(index);
         }
     }
 

@@ -11,7 +11,7 @@ use tokio::sync::mpsc as tokio_mpsc;
 mod imp;
 
 use crate::excuses::{EXP_INIT, EXP_RX};
-use crate::library::{Library, LibraryConfig, LibraryRequest, library_tx};
+use crate::library::{Library, LibraryConfig, LibraryRequest, library_tx, tag_list};
 use crate::player::{Player, PlayerRequest, SongQueue};
 use crate::shortcuts::Shortcuts;
 use crate::ui::{UpdateUI, Window, actions::Actions, ui_tx};
@@ -126,6 +126,9 @@ impl Application {
                     SongQueue::init_queue(&library, startup_queue.into()).unwrap();
                     #[cfg(feature = "startup-logs")]
                     println!("Queue was sent to the player");
+
+                    library.build_global_tag_list();
+                    dbg!(&*tag_list::read_global_tags());
 
                     // `STATE` does not need to be set here,
                     // because it defaults to `STATE_BUSY`

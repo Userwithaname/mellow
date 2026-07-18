@@ -11,6 +11,7 @@ pub mod artist;
 pub mod config;
 pub mod song;
 pub mod song_rating;
+pub mod tag_list;
 
 pub use album::{Album, SharedAlbum, SortedAlbumSongs};
 pub use artist::{Artist, SharedArtist, SortedArtistAlbums};
@@ -1182,6 +1183,21 @@ impl Library {
                 .filter_map(SharedSong::deserialize)
                 .collect(),
             Err(_) => Vec::with_capacity(512), // Estimate to reduce reallocations
+        }
+    }
+
+    /// Loops through all library songs, and adds their
+    /// user-assigned tags to the global tag list
+    ///
+    /// Call this after deserializing songs
+    #[inline]
+    pub fn build_global_tag_list(&self) {
+        let mut global_tags_writer = tag_list::write_global_tags();
+        global_tags_writer.inner_mut().clear();
+        for song in &self.songs {
+            for tag in song.info().user().tags() {
+                global_tags_writer.add(tag.to_owned());
+            }
         }
     }
 
