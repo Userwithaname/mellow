@@ -2,9 +2,9 @@ use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, OnceCell, RefCell};
 use core::cmp;
 use core::sync::atomic::Ordering;
+use fastrand;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib};
-use rand::random_range;
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -358,7 +358,7 @@ impl AlbumsPage {
                 let shared_album = album.shared_album();
                 let album_locked = shared_album.lock().unwrap();
 
-                album.set_random(random_range(0..=u64::MAX));
+                album.set_random(fastrand::u64(0..u64::MAX));
                 album.set_played(album_locked.average_play_count());
                 album.set_stars(album_locked.average_rating(0.0));
                 album.set_rating(album_locked.sort_rating(3.0));

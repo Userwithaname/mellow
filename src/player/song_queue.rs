@@ -1,6 +1,6 @@
 use core::error::Error;
+use fastrand;
 use gst::ClockTime;
-use rand::random_range;
 use std::fs;
 use std::sync::Arc;
 
@@ -192,7 +192,7 @@ impl SongQueue {
     fn new_shuffled_queue(&mut self) {
         self.shuffled = (0..self.len()).collect();
         for i in 0..self.shuffled.len() {
-            let rand_index = random_range(0..self.shuffled.len());
+            let rand_index = fastrand::usize(0..self.shuffled.len());
             self.shuffled.swap(i, rand_index);
         }
     }
@@ -214,7 +214,7 @@ impl SongQueue {
             _ => 0,
         };
         for i in start..self.shuffled.len() {
-            let rand_index = random_range(start..self.shuffled.len());
+            let rand_index = fastrand::usize(start..self.shuffled.len());
             self.shuffled.swap(i, rand_index);
         }
     }

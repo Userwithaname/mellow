@@ -1,6 +1,6 @@
 use core::sync::atomic::{self, AtomicI8};
 use core::{error::Error, mem};
-use rand::random_range;
+use fastrand;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, mpsc};
 use std::time::{Duration, Instant};
@@ -122,7 +122,7 @@ impl ToShuffledQueue for Albums {
         let mut queue = Vec::with_capacity(self.len() * 8);
         let mut shuffled: Vec<usize> = (0..self.len()).collect();
         for i in 0..shuffled.len() {
-            let rand_index = random_range(0..shuffled.len());
+            let rand_index = fastrand::usize(0..shuffled.len());
             shuffled.swap(i, rand_index);
         }
         for index in shuffled {
@@ -199,7 +199,7 @@ impl ToShuffledQueue for Artists {
         let mut queue = Vec::with_capacity(self.len() * 16);
         let mut shuffled: Vec<usize> = (0..self.len()).collect();
         for i in 0..shuffled.len() {
-            let rand_index = random_range(0..shuffled.len());
+            let rand_index = fastrand::usize(0..shuffled.len());
             shuffled.swap(i, rand_index);
         }
         for index in shuffled {
