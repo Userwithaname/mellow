@@ -193,7 +193,7 @@ impl SongsPage {
             }
 
             // Update filters when toggling them in the UI
-            let tag = tag.to_string();
+            let tag = tag.to_owned();
             toggle_button.connect_active_notify(glib::clone!(
                 #[weak(rename_to = page)]
                 self,

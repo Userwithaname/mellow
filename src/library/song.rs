@@ -387,6 +387,9 @@ impl SongInfoLoader<'_> {
 
     /// Adds `tag` to the list of user-assigned tags
     /// and updates the global tag list
+    ///
+    /// # Panics
+    /// The function panics if the user info `Mutex` is poisoned
     #[inline]
     pub fn add_tag(&mut self, tag: String) {
         let mut user_info = self.user();
@@ -400,6 +403,9 @@ impl SongInfoLoader<'_> {
     }
     /// Removes `tag` from the list of user-assigned tags
     /// and updates the global tag list
+    ///
+    /// # Panics
+    /// The function panics if the user info `Mutex` is poisoned
     #[inline]
     pub fn remove_tag(&mut self, tag: &str) {
         let mut user_info = self.user();

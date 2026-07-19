@@ -138,7 +138,7 @@ pub struct UserAlbumInfo {
 
 impl UserAlbumInfo {
     #[inline]
-    fn new_with_tags(tags: TagList) -> UserAlbumInfo {
+    const fn new_with_tags(tags: TagList) -> UserAlbumInfo {
         UserAlbumInfo { tags }
     }
 }

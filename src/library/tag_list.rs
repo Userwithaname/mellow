@@ -116,7 +116,7 @@ impl Tags {
     /// Ensure the tags remain alphabetically sorted, or it will
     /// cause issues with the binary search
     #[inline]
-    pub fn get_mut(&mut self) -> &mut Vec<String> {
+    pub const fn get_mut(&mut self) -> &mut Vec<String> {
         &mut self.0
     }
 
