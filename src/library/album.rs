@@ -15,7 +15,7 @@ pub struct Album {
     /// `songs` is never empty to prevent undefined behavior
     songs: AlbumSongs, // Private to enforce safety requirement
     pub(super) artist: SharedArtist,
-    pub user_info: UserAlbumInfo,
+    pub(super) user_info: UserAlbumInfo,
 }
 
 impl Album {
