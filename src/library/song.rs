@@ -375,7 +375,7 @@ impl SongInfoLoader<'_> {
     /// Sets the song rating
     ///
     /// # Panics
-    /// The function panics if the user info `Mutex` is poisoned
+    /// The function panics if the user info or the album `Mutex` is poisoned
     #[inline]
     pub fn set_rating(&self, rating: SongRating) {
         #[cfg(feature = "lock-warnings")]
@@ -389,7 +389,7 @@ impl SongInfoLoader<'_> {
     /// and updates the global tag list
     ///
     /// # Panics
-    /// The function panics if the user info `Mutex` is poisoned
+    /// The function panics if the user info or the album `Mutex` is poisoned
     #[inline]
     pub fn add_tag(&mut self, tag: String) {
         let mut user_info = self.user();
