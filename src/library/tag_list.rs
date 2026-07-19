@@ -1,3 +1,4 @@
+use std::ops::Deref;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
 static GLOBAL_TAGS: RwLock<TagList> = RwLock::new(TagList::default());
@@ -103,11 +104,6 @@ impl TagList {
 pub struct Tags(Vec<String>);
 
 impl Tags {
-    /// Returns the list of user-assigned tags for this song
-    #[inline]
-    pub fn get(&self) -> &[String] {
-        &self.0
-    }
     /// Returns a mutable reference to the inner `Vec<String>`
     ///
     /// # Warning
@@ -144,7 +140,17 @@ impl Tags {
     }
 }
 
+impl Deref for Tags {
+    type Target = [String];
+
+    #[inline]
+    fn deref(&self) -> &Self::Target {
+        &self.0
+    }
+}
+
 impl From<Vec<String>> for Tags {
+    #[inline]
     fn from(value: Vec<String>) -> Self {
         Tags(value)
     }

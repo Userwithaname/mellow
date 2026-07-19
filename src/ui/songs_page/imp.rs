@@ -11,7 +11,8 @@ use std::time::{Duration, Instant};
 
 use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_INIT, EXP_RX};
-use crate::library::{Songs, ToQueue};
+use crate::library::tag_list::Tags;
+use crate::library::{Songs, ToQueue, tag_list};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::song_object::SongFilters;
 use crate::ui::{FilterMode, ItemRow, SongObject, SongOrdering, SortConfig};
@@ -33,6 +34,8 @@ pub struct SongsPage {
 
     #[template_child]
     filter_mode: TemplateChild<adw::ToggleGroup>,
+    #[template_child]
+    filtered_tags: TemplateChild<adw::WrapBox>,
 
     #[template_child]
     rating_checkbox: TemplateChild<gtk::CheckButton>,
@@ -169,6 +172,51 @@ impl SongsPage {
         ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
     }
 
+    pub fn update_tag_filter_list(&self) {
+        self.filtered_tags.remove_all();
+
+        let mut song_filters = self.song_filters.borrow_mut();
+        let mut new_tags = Vec::with_capacity(song_filters.tags.len());
+
+        // TODO: When there are no tags available in the library, either show a message
+        // or hide the tag filters section in the interface entirely
+        for tag in tag_list::read_global_tags().tag_names() {
+            let toggle_button = gtk::ToggleButton::builder().label(tag).build();
+
+            // Re-select items which were previously selected
+            for (i, selected_tag) in song_filters.tags.iter().enumerate() {
+                if selected_tag == tag {
+                    toggle_button.set_active(true);
+                    new_tags.push(song_filters.tags.get_mut().remove(i));
+                    break;
+                }
+            }
+
+            // Update filters when toggling them in the UI
+            let tag = tag.to_string();
+            toggle_button.connect_active_notify(glib::clone!(
+                #[weak(rename_to = page)]
+                self,
+                move |toggle| {
+                    match toggle.is_active() {
+                        true => page.song_filters.borrow_mut().tags.add(tag.clone()),
+                        false => page.song_filters.borrow_mut().tags.remove(&tag),
+                    }
+
+                    glib::idle_add_local_once(move || {
+                        page.remember_scroll_pos();
+                        page.filter.borrow().changed(gtk::FilterChange::Different);
+                        page.restore_scroll_pos();
+                    });
+                }
+            ));
+
+            self.filtered_tags.append(&toggle_button);
+        }
+
+        song_filters.tags = Tags::from(new_tags);
+    }
+
     #[inline]
     pub fn set_shuffle(&self, shuffle: bool) {
         self.shuffle.set(shuffle);
@@ -194,6 +242,9 @@ impl SongsPage {
         }
         self.view_stack.set_visible_child_name("songs");
         self.remember_scroll_pos();
+
+        // TODO: Add a proper callback for when library tags are updated instead of calling this here
+        self.update_tag_filter_list();
 
         // The timers are used to reduce major UI stutters
         // by turning them into multiple smaller ones
@@ -320,6 +371,7 @@ impl SongsPage {
                 });
                 song.set_modified(info.modified);
                 song.set_added(info.added);
+                song.set_tags(info.tags().to_vec());
             }
             drop(item);
 

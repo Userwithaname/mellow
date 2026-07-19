@@ -87,7 +87,7 @@ impl<'s> Song {
                     0 => "modified",
                     user_info.play_count => "play_count",
                     user_info.rating => "rating",
-                    serialize_list(user_info.tags.get()) => "tags",
+                    serialize_list(&user_info.tags) => "tags",
                 }
             },
             |info| {
@@ -105,7 +105,7 @@ impl<'s> Song {
                     info.duration_ms => "duration",
                     user_info.play_count => "play_count",
                     user_info.rating => "rating",
-                    serialize_list(user_info.tags.get()) => "tags",
+                    serialize_list(&user_info.tags) => "tags",
                 }
             },
         )
@@ -944,7 +944,7 @@ impl UserSongInfo {
     #[inline]
     #[must_use]
     pub fn tags(&self) -> &[String] {
-        self.tags.get()
+        &self.tags
     }
     /// Adds `tag` to the list of user-assigned tags
     /// and updates the global tag list
@@ -977,7 +977,7 @@ impl UserSongInfo {
         self.added = self.added.min(other.added);
         self.modified = self.modified.min(other.modified);
         self.play_count = self.play_count.max(other.play_count);
-        for tag in other.tags.get() {
+        for tag in &*other.tags {
             if let Err(index) = self.tags.find(tag) {
                 self.tags.get_mut().insert(index, tag.to_string());
             }
