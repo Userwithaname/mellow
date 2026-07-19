@@ -4,6 +4,7 @@ use glib::{Object, object::ObjectExt};
 use gtk::{gdk, glib};
 use std::sync::Arc;
 
+use crate::library::tag_list::Tags;
 use crate::library::{Library, SharedAlbum, library_tx};
 use crate::ui::{FilterMode, SortConfig, UpdateUI, ui_tx};
 use crate::util::CmpIsEqOr;
@@ -168,6 +169,7 @@ pub struct AlbumData {
     modified: u64,
     added: u64,
     random: u64,
+    tags: Vec<String>,
 }
 
 #[derive(Clone, Copy)]
@@ -218,6 +220,7 @@ pub struct AlbumFilters {
     pub rating: Option<(cmp::Ordering, u8)>,
     pub play_count: Option<(cmp::Ordering, u64)>,
     pub year: Option<(cmp::Ordering, u32)>,
+    pub tags: Tags,
 }
 
 impl AlbumFilters {
@@ -234,15 +237,19 @@ impl AlbumFilters {
         }) && self.play_count.is_none_or(|play_count| {
             (album_object.played().total_cmp(&(play_count.1 as f64))).is_eq_or(play_count.0)
         }) && (self.year).is_none_or(|year| album_object.year().cmp(&year.1).is_eq_or(year.0))
+            && (self.tags.is_empty()
+                || (self.tags.iter()).any(|tag| album_object.tags().contains(tag)))
     }
     pub fn filter_inclusive(&self, album_object: &AlbumObject) -> bool {
-        (self.rating.is_none() && self.play_count.is_none() && self.year.is_none())
+        ((self.rating.is_none() && self.play_count.is_none() && self.year.is_none())
             || self.rating.is_some_and(|rating| {
                 (album_object.stars().total_cmp(&(rating.1 as f64))).is_eq_or(rating.0)
             })
             || self.play_count.is_some_and(|play_count| {
                 (album_object.played().total_cmp(&(play_count.1 as f64))).is_eq_or(play_count.0)
             })
-            || (self.year).is_some_and(|year| album_object.year().cmp(&year.1).is_eq_or(year.0))
+            || (self.year).is_some_and(|year| album_object.year().cmp(&year.1).is_eq_or(year.0)))
+            && (self.tags.is_empty()
+                || (self.tags.iter()).any(|tag| album_object.tags().contains(tag)))
     }
 }

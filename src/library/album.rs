@@ -1,6 +1,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::library::song_rating::SongRating;
+use crate::library::tag_list::TagList;
 use crate::library::{SharedArtist, SharedSong, Song, SongInfo, ToQueue};
 use crate::player::QueueItem;
 
@@ -14,6 +15,7 @@ pub struct Album {
     /// `songs` is never empty to prevent undefined behavior
     songs: AlbumSongs, // Private to enforce safety requirement
     pub(super) artist: SharedArtist,
+    pub user_info: UserAlbumInfo,
 }
 
 impl Album {
@@ -38,6 +40,9 @@ impl Album {
     /// Adds a song to the list of album songs
     #[inline]
     pub fn add_song(&mut self, song: SharedSong, sort_info: &SongInfo) {
+        for tag in song.info().user().tags() {
+            self.user_info.tags.add(tag.clone());
+        }
         match self.songs.find_album_song(sort_info) {
             Err(index) | Ok(index) => self.songs.insert(index, song),
         }
@@ -60,6 +65,12 @@ impl Album {
     pub fn first_song(&self) -> &SharedSong {
         // SAFETY: An album with no songs cannot be constructed
         unsafe { self.songs.get_unchecked(0) }
+    }
+
+    #[inline]
+    #[must_use]
+    pub const fn user_info(&self) -> &UserAlbumInfo {
+        &self.user_info
     }
 
     /// Loops through all album songs and returns the average rating,
@@ -119,6 +130,19 @@ impl Album {
     }
 }
 
+pub struct UserAlbumInfo {
+    pub tags: TagList,
+    // IDEA: Keep the average/sort ratings and play counts in memory as well,
+    // so that they can be passed onto `Artist` and used for sort/filter modes
+}
+
+impl UserAlbumInfo {
+    #[inline]
+    fn new_with_tags(tags: TagList) -> UserAlbumInfo {
+        UserAlbumInfo { tags }
+    }
+}
+
 impl ToQueue for Album {
     fn to_queue(&self) -> Vec<QueueItem> {
         self.songs.to_queue()
@@ -133,11 +157,23 @@ impl NewSharedAlbum for SharedAlbum {
     /// Creates and returns a new `SharedAlbum` using the provided arguments
     #[inline]
     fn new_album(info: &SongInfo, song: SharedSong, artist: SharedArtist) -> SharedAlbum {
+        let mut tags = TagList::default();
+        let song_info = song.info();
+        let user_song_info = song_info.user();
+        let song_tags = user_song_info.tags();
+        tags.inner_mut().reserve(song_tags.len());
+        for tag in song_tags {
+            tags.inner_mut().push((tag.to_string(), 1));
+        }
+        drop(user_song_info);
+        drop(song_info);
+
         Arc::new(Mutex::new(Album {
             title: info.album.clone(),
             year: info.year,
             songs: vec![song],
             artist,
+            user_info: UserAlbumInfo::new_with_tags(tags),
         }))
     }
 }

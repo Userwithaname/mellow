@@ -217,6 +217,7 @@ impl<'s> Song {
             user_info: &self.user_info,
             detailed_info: &self.detailed_info,
             thumbnail: &self.thumbnail,
+            album: &self.album,
             tagged: None,
         }
     }
@@ -228,6 +229,7 @@ pub struct SongInfoLoader<'i> {
     user_info: &'i Mutex<UserSongInfo>,
     detailed_info: &'i RwLock<Option<DetailedSongInfo>>,
     thumbnail: &'i RwLock<Option<gdk::Texture>>,
+    album: &'i Mutex<Option<SharedAlbum>>,
     tagged: Option<TaggedFile>,
 }
 
@@ -381,6 +383,33 @@ impl SongInfoLoader<'_> {
             eprintln!("Note: Blocking on mutex lock for `set_rating`");
         }
         self.user_info.lock().unwrap().rating = rating;
+    }
+
+    /// Adds `tag` to the list of user-assigned tags
+    /// and updates the global tag list
+    #[inline]
+    pub fn add_tag(&mut self, tag: String) {
+        let mut user_info = self.user();
+        if let Err(index) = user_info.tags.find(&tag) {
+            tag_list::write_global_tags().add(tag.clone());
+            user_info.tags.get_mut().insert(index, tag.clone());
+            if let Some(album) = self.album.lock().unwrap().as_mut() {
+                album.lock().unwrap().user_info.tags.add(tag);
+            }
+        }
+    }
+    /// Removes `tag` from the list of user-assigned tags
+    /// and updates the global tag list
+    #[inline]
+    pub fn remove_tag(&mut self, tag: &str) {
+        let mut user_info = self.user();
+        if let Ok(index) = user_info.tags.find(tag) {
+            tag_list::write_global_tags().remove(tag);
+            user_info.tags.get_mut().remove(index);
+            if let Some(album) = self.album.lock().unwrap().as_mut() {
+                album.lock().unwrap().user_info.tags.remove(tag);
+            }
+        }
     }
 
     /// Returns the basic song info if loaded, but does not load it
@@ -945,24 +974,6 @@ impl UserSongInfo {
     #[must_use]
     pub fn tags(&self) -> &[String] {
         &self.tags
-    }
-    /// Adds `tag` to the list of user-assigned tags
-    /// and updates the global tag list
-    #[inline]
-    pub fn add_tag(&mut self, tag: String) {
-        if let Err(index) = self.tags.find(&tag) {
-            tag_list::write_global_tags().add(tag.clone());
-            self.tags.get_mut().insert(index, tag);
-        }
-    }
-    /// Removes `tag` from the list of user-assigned tags
-    /// and updates the global tag list
-    #[inline]
-    pub fn remove_tag(&mut self, tag: &str) {
-        if let Ok(index) = self.tags.find(tag) {
-            tag_list::write_global_tags().remove(tag);
-            self.tags.get_mut().remove(index);
-        }
     }
 
     /// Copies info from `other` and merges into `self`:

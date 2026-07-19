@@ -19,7 +19,7 @@ pub(super) fn write_global_tags() -> RwLockWriteGuard<'static, TagList> {
     GLOBAL_TAGS.write().unwrap()
 }
 
-#[derive(Debug)]
+#[derive(Debug, Default)]
 pub struct TagList(Vec<(String, usize)>);
 
 impl TagList {
@@ -43,6 +43,12 @@ impl TagList {
     #[inline]
     pub fn tag_names(&self) -> impl Iterator<Item = &str> {
         self.0.iter().map(|(tag, _)| &**tag)
+    }
+    /// Returns an iterator over owned strings of all
+    /// currently assigned tag names, by cloning them
+    #[inline]
+    pub fn tag_names_owned(&self) -> impl Iterator<Item = String> {
+        self.0.iter().map(|(tag, _)| tag.clone())
     }
     /// Locates the given tag using binary search, and returns its index
     ///

@@ -11,8 +11,8 @@ use std::time::{Duration, Instant};
 
 use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_INIT, EXP_RX};
-use crate::library::tag_list::Tags;
-use crate::library::{Songs, ToQueue, tag_list};
+use crate::library::tag_list::{self, Tags};
+use crate::library::{Songs, ToQueue};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::song_object::SongFilters;
 use crate::ui::{FilterMode, ItemRow, SongObject, SongOrdering, SortConfig};
