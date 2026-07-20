@@ -459,7 +459,7 @@ impl ObjectImpl for SongsPage {
             (ui_tx().send(UpdateUI::SongPageByIndex(index as usize))).expect(EXP_RX);
         });
 
-        // Restore the previous scroll position after reload
+        // Restore the previous scroll position if pending, and update sort fields
         // Setting the scroll position must be done when mapped; if it wasn't
         // set in `load_songs`, it is restored in `connect_map` instead.
         self.songs_grid.connect_map(glib::clone!(

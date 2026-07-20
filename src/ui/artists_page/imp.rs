@@ -337,13 +337,25 @@ impl ObjectImpl for ArtistsPage {
             ui_tx().send(UpdateUI::ArtistPage(artist)).expect(EXP_RX);
         });
 
-        // Restore the previous scroll position after reload
+        // Restore the previous scroll position if pending, and update sort fields
         // Setting the scroll position must be done when mapped; if it wasn't
         // set in `load_artists`, it is restored in `connect_map` instead.
         self.artists_grid.connect_map(glib::clone!(
             #[weak(rename_to=artists_page)]
             self,
-            move |_| artists_page.restore_scroll_pos()
+            move |_| {
+                artists_page.restore_scroll_pos();
+                glib::spawn_future_local(async move {
+                    artists_page
+                        .update_sort_fields(
+                            &artists_page.artists_grid.model().expect(EXP_INIT),
+                            artists_page.contents_id.get(),
+                        )
+                        .await;
+                    // artists_page.update_tag_filter_list();
+                    // artists_page.handle_filters_changed();
+                });
+            }
         ));
 
         // let fallback_image = fallback_artist_image();
