@@ -154,12 +154,19 @@ impl ArtistsPage {
         }
         let model = gio::ListStore::new::<ArtistObject>();
         model.extend_from_slice(&artist_objects);
-        self.update_sort_fields(&model, id).await;
-        if self.contents_id.get() != id {
-            #[cfg(feature = "startup-logs")]
-            println!("Artists page contents ID changed - stopping");
-            return;
+
+        // Restore the previous scroll position and update sort fields if already mapped,
+        // otherwise it will happen when mapped (see `connect_map` in `constructed`)
+        if self.artists_grid.is_mapped() {
+            self.update_sort_fields(&model, id).await;
+            if self.contents_id.get() != id {
+                #[cfg(feature = "startup-logs")]
+                println!("Artists page contents ID changed - stopping");
+                return;
+            }
+            self.restore_scroll_pos();
         }
+
         self.artists.replace(artist_objects);
 
         let query = Rc::clone(&self.search_query);
@@ -186,12 +193,6 @@ impl ArtistsPage {
 
         self.artists_grid
             .set_model(Some(&gtk::NoSelection::new(Some(sort_model))));
-
-        // Restore the previous scroll position if already mapped, otherwise it
-        // will be restored when mapped (see `connect_map` in `constructed`)
-        if self.artists_grid.is_mapped() {
-            self.restore_scroll_pos();
-        }
 
         #[cfg(feature = "startup-logs")]
         println!("Artists page loaded");

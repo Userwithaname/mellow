@@ -215,16 +215,6 @@ impl SongsPage {
         }
 
         song_filters.tags = Tags::from(new_tags);
-
-        let songs_page = self.to_owned();
-        glib::spawn_future_local(async move {
-            songs_page
-                .update_sort_fields(
-                    &songs_page.songs_grid.model().expect(EXP_INIT),
-                    songs_page.contents_id.get(),
-                )
-                .await
-        });
     }
 
     #[inline]
@@ -285,12 +275,19 @@ impl SongsPage {
         }
         let model = gio::ListStore::new::<SongObject>();
         model.extend_from_slice(&song_objects);
-        self.update_sort_fields(&model, id).await;
-        if self.contents_id.get() != id {
-            #[cfg(feature = "startup-logs")]
-            println!("Songs page contents ID changed - stopping");
-            return;
+
+        // Restore the previous scroll position and update sort fields if already mapped,
+        // otherwise it will happen when mapped (see `connect_map` in `constructed`)
+        if self.songs_grid.is_mapped() {
+            self.update_sort_fields(&model, id).await;
+            if self.contents_id.get() != id {
+                #[cfg(feature = "startup-logs")]
+                println!("Songs page contents ID changed - stopping");
+                return;
+            }
+            self.restore_scroll_pos();
         }
+
         self.songs.replace(song_objects);
 
         let query = Rc::clone(&self.search_query);
@@ -317,12 +314,6 @@ impl SongsPage {
 
         self.songs_grid
             .set_model(Some(&gtk::NoSelection::new(Some(sort_model))));
-
-        // Restore the previous scroll position if already mapped, otherwise it
-        // will be restored when mapped (see `connect_map` in `constructed`)
-        if self.songs_grid.is_mapped() {
-            self.restore_scroll_pos();
-        }
 
         #[cfg(feature = "startup-logs")]
         println!("Songs page loaded");
@@ -474,19 +465,25 @@ impl ObjectImpl for SongsPage {
         self.songs_grid.connect_map(glib::clone!(
             #[weak(rename_to=songs_page)]
             self,
-            move |_| songs_page.restore_scroll_pos()
+            move |_| {
+                songs_page.restore_scroll_pos();
+                glib::spawn_future_local(async move {
+                    songs_page
+                        .update_sort_fields(
+                            &songs_page.songs_grid.model().expect(EXP_INIT),
+                            songs_page.contents_id.get(),
+                        )
+                        .await;
+                    songs_page.update_tag_filter_list();
+                    songs_page.handle_filters_changed();
+                });
+            }
         ));
 
         self.filter_mode.connect_active_notify(glib::clone!(
             #[weak(rename_to=songs_page)]
             self,
             move |_| songs_page.handle_filters_changed()
-        ));
-
-        self.filtered_tags.connect_map(glib::clone!(
-            #[weak(rename_to=songs_page)]
-            self,
-            move |_| songs_page.update_tag_filter_list()
         ));
 
         let fallback_image = fallback_song_image();

@@ -216,16 +216,6 @@ impl AlbumsPage {
         }
 
         album_filters.tags = Tags::from(new_tags);
-
-        let albums_page = self.to_owned();
-        glib::spawn_future_local(async move {
-            albums_page
-                .update_sort_fields(
-                    &albums_page.albums_grid.model().expect(EXP_INIT),
-                    albums_page.contents_id.get(),
-                )
-                .await
-        });
     }
 
     #[inline]
@@ -296,6 +286,19 @@ impl AlbumsPage {
             println!("Albums page contents ID changed - stopping");
             return;
         }
+
+        // Restore the previous scroll position and update sort fields if already mapped,
+        // otherwise it will happen when mapped (see `connect_map` in `constructed`)
+        if self.albums_grid.is_mapped() {
+            self.update_sort_fields(&model, id).await;
+            if self.contents_id.get() != id {
+                #[cfg(feature = "startup-logs")]
+                println!("Albums page contents ID changed - stopping");
+                return;
+            }
+            self.restore_scroll_pos();
+        }
+
         self.albums.replace(album_objects);
 
         let query = Rc::clone(&self.search_query);
@@ -484,7 +487,19 @@ impl ObjectImpl for AlbumsPage {
         self.albums_grid.connect_map(glib::clone!(
             #[weak(rename_to=albums_page)]
             self,
-            move |_| albums_page.restore_scroll_pos()
+            move |_| {
+                albums_page.restore_scroll_pos();
+                glib::spawn_future_local(async move {
+                    albums_page
+                        .update_sort_fields(
+                            &albums_page.albums_grid.model().expect(EXP_INIT),
+                            albums_page.contents_id.get(),
+                        )
+                        .await;
+                    albums_page.update_tag_filter_list();
+                    albums_page.handle_filters_changed();
+                });
+            }
         ));
 
         self.filter_mode.connect_active_notify(glib::clone!(
