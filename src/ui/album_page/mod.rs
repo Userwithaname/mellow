@@ -37,7 +37,7 @@ impl AlbumPage {
     /// Initializes the album page using the information from `album`
     ///
     /// # Panics
-    /// The function panics if any of the `album`'s `Mutex` or the `album.songs`'
+    /// The function panics if any of the `album`'s `Mutex`es or the `album.songs`'
     /// `RwLock`s are in a poisoned state. It may also panic at runtime upon
     /// interaction if the UI channel is closed.
     #[inline]

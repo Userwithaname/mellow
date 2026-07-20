@@ -39,9 +39,7 @@ impl SongPage {
     #[inline]
     pub fn init_page(&self, index: usize, song: SharedSong, to_queue: Box<dyn ToQueue + Send>) {
         let ui = self.imp();
-
         ui.index.set(index);
-        ui.shared_song.replace(Some(Arc::clone(&song)));
 
         song.info().load_basic_and(|song_info| {
             self.set_title(&["Song: ", &song_info.title].concat());
@@ -51,6 +49,7 @@ impl SongPage {
             ui.context.replace(Some(to_queue));
         });
 
+        ui.shared_song.replace(Some(Arc::clone(&song)));
         ui.rating.set_item(Box::new(song));
     }
 
