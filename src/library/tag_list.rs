@@ -19,6 +19,12 @@ pub(super) fn write_global_tags() -> RwLockWriteGuard<'static, TagList> {
     GLOBAL_TAGS.write().unwrap()
 }
 
+pub trait Taggable {
+    fn get_tags(&self) -> Box<[String]>;
+    fn add_tag(&self, tag: String);
+    fn remove_tag(&self, tag: &str);
+}
+
 #[derive(Debug, Default)]
 pub struct TagList(Vec<(String, usize)>);
 

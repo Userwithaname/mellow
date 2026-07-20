@@ -13,9 +13,9 @@ use lofty::file::TaggedFile;
 use lofty::prelude::*;
 use lofty::probe::Probe;
 
-use crate::library::song_rating::SongRating;
-use crate::library::tag_list::Tags;
-use crate::library::{SharedAlbum, tag_list};
+use crate::library::song_rating::{Ratable, SongRating};
+use crate::library::tag_list::{Taggable, Tags};
+use crate::library::{Album, SharedAlbum, tag_list};
 use crate::util::hint::{cold, unlikely};
 use crate::util::{deserialize, serialize, serialize_list, unescaped_split};
 use crate::{cache_dir, cold_expression};
@@ -45,6 +45,37 @@ impl SharedSongExt for SharedSong {
     #[inline]
     fn deserialize(data: &str) -> Option<SharedSong> {
         Song::deserialize(data).map_or_else(|_| None, |song| Some(Arc::new(song)))
+    }
+}
+impl Ratable for SharedSong {
+    fn get_rating(&self) -> SongRating {
+        self.info().user().rating
+    }
+    fn set_rating(&self, rating: SongRating) {
+        self.info().set_rating(rating);
+    }
+}
+impl Taggable for SharedSong {
+    fn get_tags(&self) -> Box<[String]> {
+        self.info().user().tags().into()
+    }
+    fn add_tag(&self, tag: String) {
+        self.info().add_tag(
+            tag,
+            &mut (self.album.lock().unwrap().as_ref())
+                .unwrap() // Panic if `album` is not assigned on `self`
+                .lock()
+                .unwrap(),
+        );
+    }
+    fn remove_tag(&self, tag: &str) {
+        self.info().remove_tag(
+            tag,
+            &mut (self.album.lock().unwrap().as_ref())
+                .unwrap() // Panic if `album` is not assigned on `self`
+                .lock()
+                .unwrap(),
+        );
     }
 }
 
@@ -217,7 +248,6 @@ impl<'s> Song {
             user_info: &self.user_info,
             detailed_info: &self.detailed_info,
             thumbnail: &self.thumbnail,
-            album: &self.album,
             tagged: None,
         }
     }
@@ -229,7 +259,6 @@ pub struct SongInfoLoader<'i> {
     user_info: &'i Mutex<UserSongInfo>,
     detailed_info: &'i RwLock<Option<DetailedSongInfo>>,
     thumbnail: &'i RwLock<Option<gdk::Texture>>,
-    album: &'i Mutex<Option<SharedAlbum>>,
     tagged: Option<TaggedFile>,
 }
 
@@ -386,35 +415,25 @@ impl SongInfoLoader<'_> {
     }
 
     /// Adds `tag` to the list of user-assigned tags
-    /// and updates the global tag list
-    ///
-    /// # Panics
-    /// The function panics if the user info or the album `Mutex` is poisoned
+    /// and updates the album tags and global tag list
     #[inline]
-    pub fn add_tag(&mut self, tag: String) {
+    pub fn add_tag(&mut self, tag: String, album: &mut Album) {
         let mut user_info = self.user();
         if let Err(index) = user_info.tags.find(&tag) {
             tag_list::write_global_tags().add(tag.clone());
             user_info.tags.get_mut().insert(index, tag.clone());
-            if let Some(album) = self.album.lock().unwrap().as_mut() {
-                album.lock().unwrap().user_info.tags.add(tag);
-            }
+            album.user_info.tags.add(tag);
         }
     }
     /// Removes `tag` from the list of user-assigned tags
-    /// and updates the global tag list
-    ///
-    /// # Panics
-    /// The function panics if the user info `Mutex` is poisoned
+    /// and updates the album tags and global tag list
     #[inline]
-    pub fn remove_tag(&mut self, tag: &str) {
+    pub fn remove_tag(&mut self, tag: &str, album: &mut Album) {
         let mut user_info = self.user();
         if let Ok(index) = user_info.tags.find(tag) {
             tag_list::write_global_tags().remove(tag);
             user_info.tags.get_mut().remove(index);
-            if let Some(album) = self.album.lock().unwrap().as_mut() {
-                album.lock().unwrap().user_info.tags.remove(tag);
-            }
+            album.user_info.tags.remove(tag);
         }
     }
 

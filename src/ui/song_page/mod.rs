@@ -43,8 +43,7 @@ impl SongPage {
         ui.index.set(index);
         ui.shared_song.replace(Some(Arc::clone(&song)));
 
-        let mut info = song.info();
-        info.load_basic_and(|song_info| {
+        song.info().load_basic_and(|song_info| {
             self.set_title(&["Song: ", &song_info.title].concat());
             ui.song_title.set_label(&song_info.title);
             ui.album_title.set_label(&song_info.album);
@@ -52,10 +51,7 @@ impl SongPage {
             ui.context.replace(Some(to_queue));
         });
 
-        ui.rating.set_rating_silent(info.user().rating);
-        ui.rating.connect_rating_set(move |rating| {
-            song.info().set_rating(rating);
-        });
+        ui.rating.set_item(Box::new(song));
     }
 
     /// Refreshes the song page by reinitializing it

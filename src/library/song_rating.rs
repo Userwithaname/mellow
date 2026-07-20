@@ -2,6 +2,11 @@ use std::fmt::Display;
 use std::num::ParseIntError;
 use std::str::FromStr;
 
+pub trait Ratable {
+    fn get_rating(&self) -> SongRating;
+    fn set_rating(&self, rating: SongRating);
+}
+
 /// A type for storing star ratings and marking as favorite
 #[derive(Default, Debug, Clone, Copy)]
 pub struct SongRating(u8);

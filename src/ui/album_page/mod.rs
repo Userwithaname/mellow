@@ -4,7 +4,6 @@ use gtk::{Orientation, gdk, glib};
 use std::sync::{Arc, atomic::Ordering};
 
 use crate::excuses::EXP_RX;
-use crate::library::song_rating::SongRating;
 use crate::library::{Library, SharedAlbum, library_tx};
 use crate::ui::{ListRow, UpdateUI, fallback_album_image, show_queue, ui_tx};
 use crate::util::{format_duration_minutes, format_duration_ms};
@@ -46,6 +45,7 @@ impl AlbumPage {
         let ui = self.imp();
 
         ui.album.replace(Some(Arc::clone(album)));
+        ui.rating.set_item(Box::new(Arc::clone(album)));
 
         let album_locked = album.lock().unwrap();
         self.set_title(&["Album: ", album_locked.title()].concat());
@@ -57,19 +57,6 @@ impl AlbumPage {
             _ => ui.year.set_visible(false),
         }
 
-        ui.rating.set_rating_silent(SongRating::new(
-            (album_locked.average_rating(0.0).round() as u8).min(5),
-            album_locked.sort_rating(3.0) > 5.0,
-        ));
-        ui.rating.connect_rating_set({
-            let album = Arc::clone(album);
-            move |rating| album.lock().unwrap().rate_all_songs(rating)
-        });
-
-        let mut disc_number = !0;
-        let mut duration_total_ms = 0;
-        let mut album_group = adw::PreferencesGroup::new();
-
         // NOTE: The below values must to be manually updated when changing the .ui file
         let mut album_group_index = 1_i32; // The index at which new groups are inserted
         let default_group_count = 2; // Number of groups of an empty page (counting from 1)
@@ -79,6 +66,10 @@ impl AlbumPage {
             ui.album_pref_page
                 .remove(&ui.album_pref_page.group(album_group_index as u32).unwrap());
         }
+
+        let mut disc_number = !0;
+        let mut duration_total_ms = 0;
+        let mut album_group = adw::PreferencesGroup::new();
 
         for (i, song) in album_locked.songs().iter().enumerate() {
             let song_row = ListRow::new();

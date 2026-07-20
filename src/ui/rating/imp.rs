@@ -4,14 +4,13 @@ use gtk::CompositeTemplate;
 use gtk::glib;
 
 use crate::excuses::EXP_INIT;
+use crate::library::RatableAndTaggable;
 use crate::library::song_rating::SongRating;
 
 const NUM_STARS: u8 = 5;
 const DEFAULT_STAR_SIZE: i32 = 16;
 const SMALL_STAR_SIZE: i32 = 14;
 const SMALL_STAR_MARGIN: i32 = (DEFAULT_STAR_SIZE - SMALL_STAR_SIZE) / 2;
-
-type RateFn = RefCell<Option<Box<dyn Fn(SongRating)>>>;
 
 #[derive(Default, CompositeTemplate)]
 #[template(file = "rating.ui")]
@@ -20,10 +19,15 @@ pub struct Rating {
     stars: TemplateChild<gtk::Box>,
     #[template_child]
     favorite_button: TemplateChild<gtk::Button>,
+    #[template_child]
+    tags_list: TemplateChild<adw::WrapBox>,
+    #[template_child]
+    add_tag_entry: TemplateChild<adw::EntryRow>,
 
     star_icons: OnceCell<Box<[gtk::Image]>>,
-    pub rating: Cell<SongRating>,
-    pub on_rating_set: RateFn,
+
+    pub(super) rating: Cell<SongRating>,
+    pub item: RefCell<Option<Box<dyn RatableAndTaggable>>>,
 }
 
 // TODO: Implement custom tags/management (button on the right)
@@ -38,6 +42,18 @@ impl Rating {
         let mut rating = self.rating.get();
         rating.toggle_favorite();
         self.set_rating(rating);
+    }
+
+    #[template_callback]
+    pub fn handle_add_tag(&self) {
+        if let Some(item) = &*self.item.borrow() {
+            let tag = self.add_tag_entry.text().to_string();
+            self.add_tag_entry.set_text("");
+            if !tag.is_empty() {
+                item.add_tag(tag);
+                self.refresh_tags();
+            }
+        }
     }
 
     /// Initializes the widget controllers
@@ -97,8 +113,8 @@ impl Rating {
         self.rating.set(rating);
         self.show_stars(rating.stars());
         self.update_favorite_button(rating.is_favorite());
-        if let Some(on_rating_set) = self.on_rating_set.borrow().as_ref() {
-            on_rating_set(rating);
+        if let Some(item) = &*self.item.borrow() {
+            item.set_rating(rating);
         }
     }
 
@@ -193,6 +209,49 @@ impl Rating {
             stars => Ok(stars),
         }
     }
+
+    #[inline]
+    pub fn set_item(&self, item: Box<dyn RatableAndTaggable>) {
+        self.item.replace(Some(item));
+
+        if self.stars.is_mapped() {
+            self.refresh_rating();
+        }
+    }
+
+    fn refresh_rating(&self) {
+        if let Some(item) = &*self.item.borrow() {
+            let rating = item.get_rating();
+            self.rating.set(rating);
+            self.show_stars(rating.stars());
+            self.update_favorite_button(rating.is_favorite());
+        }
+    }
+    fn refresh_tags(&self) {
+        if let Some(item) = &*self.item.borrow() {
+            self.tags_list.remove_all();
+            for tag in item.get_tags() {
+                let tag_box = gtk::Box::builder().build();
+                tag_box.append(&gtk::Label::new(Some(&tag)));
+                let remove_tag_button = gtk::Button::builder()
+                    .icon_name("window-close-symbolic")
+                    .css_classes(["flat", "circular"])
+                    .build();
+                tag_box.append(&remove_tag_button);
+
+                self.tags_list.append(&tag_box);
+
+                remove_tag_button.connect_clicked(glib::clone!(
+                    #[weak(rename_to = this)]
+                    self,
+                    move |_| {
+                        this.tags_list.remove(&tag_box);
+                        (this.item.borrow().as_ref()).inspect(|item| item.remove_tag(&tag));
+                    }
+                ));
+            }
+        }
+    }
 }
 
 #[glib::object_subclass]
@@ -214,6 +273,18 @@ impl ObjectImpl for Rating {
     fn constructed(&self) {
         self.init_stars();
         self.stars.set_cursor_from_name(Some("pointer"));
+
+        self.stars.connect_map(glib::clone!(
+            #[weak(rename_to = this)]
+            self,
+            move |_| this.refresh_rating()
+        ));
+
+        self.tags_list.connect_map(glib::clone!(
+            #[weak(rename_to = this)]
+            self,
+            move |_| this.refresh_tags()
+        ));
     }
 }
 impl WidgetImpl for Rating {}

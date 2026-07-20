@@ -22,27 +22,21 @@ impl QueueSubpage {
     pub fn show_song_info(&self, index: usize, song: SharedSong) {
         let song_page = self.imp();
         song_page.index.set(index);
-
-        let queue_item = QueueItem::from_song(&song);
-        let album = song.get_album().as_ref().map(Arc::clone);
-        let is_from_library = album.is_some();
-        song_page.rating.set_sensitive(is_from_library);
-        song_page.go_to_album_button.set_sensitive(is_from_library);
-        song_page.go_to_artist_button.set_sensitive(is_from_library);
-        song_page.queue_item.replace(queue_item);
-        song_page.album.replace(album);
-
-        let mut info = song.info();
-        info.load_basic_and(|song_info| {
+        song.info().load_basic_and(|song_info| {
             song_page.song_title.set_label(&song_info.title);
             song_page.album_title.set_label(&song_info.album);
             song_page.artist_name.set_label(&song_info.artist);
         });
 
-        song_page.rating.set_rating_silent(info.user().rating);
-        song_page.rating.connect_rating_set(move |rating| {
-            song.info().set_rating(rating);
-        });
+        let queue_item = QueueItem::from_song(&song);
+        let album = song.get_album().as_ref().map(Arc::clone);
+        let is_from_library = album.is_some();
+        song_page.album.replace(album);
+        song_page.rating.set_item(Box::new(song));
+        song_page.rating.set_sensitive(is_from_library);
+        song_page.go_to_album_button.set_sensitive(is_from_library);
+        song_page.go_to_artist_button.set_sensitive(is_from_library);
+        song_page.queue_item.replace(queue_item);
 
         self.show_song_elements(true);
     }

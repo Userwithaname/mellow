@@ -24,36 +24,34 @@ Music library:
 - [-] Songs/albums/artists filtering
   - TODO: Add filters for artists as well
   - [ ] Filter by user-assigned tags
-- [ ] **User-assigned custom tags**
-  - [ ] UI for managing tags (select/deselect/add tags from the button/menu on the rating widget)
-  - [ ] UI for selecting tag filters
-  - [ ] Keep track of all assigned tags
+- [-] **User-assigned custom tags**
+  - [x] UI for managing tags (select/deselect/add tags from the button/menu on the rating widget)
+  - [x] UI for selecting tag filters
+  - [-] Keep track of all assigned tags
     - [x] Build the initial list of tags after deserializing songs
     - [x] Use a `TagList` wrapper type for `Vec<(String, usize)>`, with `add`/`remove` helper functions,
           which increment/decrement the integer, or remove the element if the count reaches 0. Items
           should always be sorted, so binary search can be used.
     - [x] Store the list as a static `RwLock<TagList>` on `Library`
-    - [-] Manage global tags using `UserSongInfo`/`UserAlbumInfo` helper functions
+    - [x] Manage global tags using `UserSongInfo` helper functions
     - [ ] `TagList` should have a callback when a tag is first added or the last instance of it is removed,
           so the tag list in the UI can be updated when that happens (maybe an `on_changed` closure field,
           so the type can still be used for other (non-global) use-cases?)
-    - [ ] Keep track of tags on `Song`/`AlbumObject`s so they can be filtered
-  - [ ] Handle album tags
-    - [ ] Add a `UserAlbumInfo` struct and a `tags` field to `Album`
-    - [ ] Initialize `Album::tags` during `create_connections`
-    - [ ] Add helper functions:
-      - [ ] `add`/`remove_tag`: adds or removes the given tag from all album songs, as well as `tags`
-      - [ ] `reload_tags`: reinitializes the entire list of tags using the album songs
-    - [ ] Setting the tags on a `Song` should update the `Album::tags` as well)
+    - [x] Keep track of tags on `Song`/`AlbumObject`s so they can be filtered
+  - [x] Handle album tags
+    - [x] Add a `UserAlbumInfo` struct and a `tags` field to `Album`
+    - [x] Initialize `Album::tags` during `create_connections`
+    - [x] Add helper functions:
+      - [x] `add`/`remove_tag`: adds or removes the given tag from all album songs, as well as `tags`
+      - [x] `reload_tags`: reinitializes the entire list of tags using the album songs
+    - [x] Setting the tags on a `Song` should update the `Album::tags` as well)
 - [x] Artists page
   - [x] Artist subpage, accessed from each item
     - IDEA: Display average rating
 - [x] Albums page
-  - [-] Album subpage, accessed from each item
-    - TODO: Tag management (user-specified album tags (inferred from songs?))
+  - [x] Album subpage, accessed from each item
 - [x] Songs page
-  - [-] Song subpage, accessed from each item
-    - TODO: Tag management (user-specified song tags)
+  - [x] Song subpage, accessed from each item
 - [x] Play counting
 > Works, but the counting logic could be improved
 

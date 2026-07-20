@@ -1,6 +1,7 @@
 use adw::subclass::prelude::*;
 use gtk::glib;
 
+use crate::library::RatableAndTaggable;
 use crate::library::song_rating::SongRating;
 
 mod imp;
@@ -20,27 +21,15 @@ impl Rating {
         self.imp().rating.get()
     }
 
-    /// Sets the rating and runs the `on_rating_set` closure
+    /// Sets the rating to the given `rating`
     #[inline]
     pub fn set_rating(&self, rating: SongRating) {
         self.imp().set_rating(rating);
     }
 
-    /// Sets the rating without running the `on_rating_set` closure
+    /// Sets the item which the rating and tag changes will be forwarded to
     #[inline]
-    pub fn set_rating_silent(&self, rating: SongRating) {
-        let ui = self.imp();
-        ui.rating.set(rating);
-        ui.show_stars(rating.stars());
-        ui.update_favorite_button(rating.is_favorite());
-    }
-
-    /// Connects a closure to run when a new rating is set
-    #[inline]
-    pub fn connect_rating_set<F>(&self, f: F)
-    where
-        F: Fn(SongRating) + Into<Box<F>> + 'static,
-    {
-        self.imp().on_rating_set.replace(Some(f.into()));
+    pub fn set_item(&self, item: Box<dyn RatableAndTaggable>) {
+        self.imp().set_item(item);
     }
 }

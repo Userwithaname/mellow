@@ -1,7 +1,7 @@
 use std::sync::{Arc, Mutex};
 
-use crate::library::song_rating::SongRating;
-use crate::library::tag_list::TagList;
+use crate::library::song_rating::{Ratable, SongRating};
+use crate::library::tag_list::{TagList, Taggable};
 use crate::library::{SharedArtist, SharedSong, Song, SongInfo, ToQueue};
 use crate::player::QueueItem;
 
@@ -128,6 +128,27 @@ impl Album {
             song.info().set_rating(rating);
         }
     }
+
+    /// Adds the given tag to all album songs
+    pub fn add_tag_to_songs(&mut self, tag: &str) {
+        let songs = self.songs.clone(); // Borrow checker wasn't happy passing `&mut self`
+        for song in songs {
+            song.info().add_tag(tag.to_owned(), self);
+        }
+    }
+    /// Removes the given tag from all album songs
+    pub fn remove_tag_from_songs(&mut self, tag: &str) {
+        let songs = self.songs.clone(); // Borrow checker wasn't happy passing `&mut self`
+        for song in songs {
+            song.info().remove_tag(tag, self);
+        }
+    }
+}
+
+impl ToQueue for Album {
+    fn to_queue(&self) -> Vec<QueueItem> {
+        self.songs.to_queue()
+    }
 }
 
 pub struct UserAlbumInfo {
@@ -140,12 +161,6 @@ impl UserAlbumInfo {
     #[inline]
     const fn new_with_tags(tags: TagList) -> UserAlbumInfo {
         UserAlbumInfo { tags }
-    }
-}
-
-impl ToQueue for Album {
-    fn to_queue(&self) -> Vec<QueueItem> {
-        self.songs.to_queue()
     }
 }
 
@@ -202,5 +217,29 @@ impl SortedAlbumSongs for AlbumSongs {
                 (new_info.disc.cmp(&info.disc)).then_with(|| new_info.track.cmp(&info.track))
             })
         })
+    }
+}
+
+impl Ratable for SharedAlbum {
+    fn set_rating(&self, rating: SongRating) {
+        self.lock().unwrap().rate_all_songs(rating);
+    }
+    fn get_rating(&self) -> SongRating {
+        let album_locked = self.lock().unwrap();
+        SongRating::new(
+            (album_locked.average_rating(0.0).round() as u8).min(5),
+            album_locked.sort_rating(3.0) > 5.0,
+        )
+    }
+}
+impl Taggable for SharedAlbum {
+    fn get_tags(&self) -> Box<[String]> {
+        (self.lock().unwrap().user_info.tags.tag_names_owned()).collect()
+    }
+    fn add_tag(&self, tag: String) {
+        self.lock().unwrap().add_tag_to_songs(&tag);
+    }
+    fn remove_tag(&self, tag: &str) {
+        self.lock().unwrap().remove_tag_from_songs(tag);
     }
 }

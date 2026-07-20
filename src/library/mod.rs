@@ -20,6 +20,8 @@ pub use song::{SharedSong, SharedSongExt, Song, SongInfo, SongInfoLoader};
 
 use crate::UI_TIMEOUT;
 use crate::excuses::EXP_RX;
+use crate::library::song_rating::Ratable;
+use crate::library::tag_list::Taggable;
 use crate::library::{album::NewSharedAlbum, artist::NewSharedArtist};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{UpdateUI, ui_tx};
@@ -57,6 +59,9 @@ pub struct Library {
     pub config: LibraryConfig,
     rx: mpsc::Receiver<LibraryRequest>,
 }
+
+pub trait RatableAndTaggable: Ratable + Taggable {}
+impl<T: Ratable + Taggable> RatableAndTaggable for T {}
 
 pub trait ToQueue {
     fn to_queue(&self) -> Vec<QueueItem>;
