@@ -144,7 +144,10 @@ impl ArtistsPage {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
                 if self.contents_id.get() != id {
-                    println!("Library page contents ID changed - stopping");
+                    #[cfg(feature = "startup-logs")]
+                    println!(
+                        "Artists page contents ID changed during objects construction - stopping"
+                    );
                     return;
                 }
             }
@@ -153,15 +156,11 @@ impl ArtistsPage {
         model.extend_from_slice(&artist_objects);
         self.update_sort_fields(&model, id).await;
         if self.contents_id.get() != id {
-            println!("Library page contents ID changed - stopping");
+            #[cfg(feature = "startup-logs")]
+            println!("Artists page contents ID changed - stopping");
             return;
         }
         self.artists.replace(artist_objects);
-        glib::timeout_future(wait).await;
-        if self.contents_id.get() != id {
-            println!("Library page contents ID changed - stopping");
-            return;
-        }
 
         let query = Rc::clone(&self.search_query);
         let filter = gtk::CustomFilter::new(move |object| {
@@ -175,11 +174,6 @@ impl ArtistsPage {
         });
         let filter_model = gtk::FilterListModel::new(Some(model), Some(filter.clone()));
         self.filter.replace(filter);
-        glib::timeout_future(wait).await;
-        if self.contents_id.get() != id {
-            println!("Library page contents ID changed - stopping");
-            return;
-        }
 
         let sort_mode = *self.sort_mode.get().unwrap();
         let sorter = gtk::CustomSorter::new(move |object_a, object_b| {
@@ -189,11 +183,6 @@ impl ArtistsPage {
         });
         let sort_model = gtk::SortListModel::new(Some(filter_model), Some(sorter.clone()));
         self.sorter.replace(sorter);
-        glib::timeout_future(wait).await;
-        if self.contents_id.get() != id {
-            println!("Library page contents ID changed - stopping");
-            return;
-        }
 
         self.artists_grid
             .set_model(Some(&gtk::NoSelection::new(Some(sort_model))));
@@ -243,7 +232,10 @@ impl ArtistsPage {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
                 if self.contents_id.get() != id {
-                    println!("Library page contents ID changed - stopping");
+                    #[cfg(feature = "startup-logs")]
+                    println!(
+                        "Artists page contents ID changed while updating sort fields - stopping"
+                    );
                     return;
                 }
             }
