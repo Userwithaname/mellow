@@ -216,6 +216,16 @@ impl AlbumsPage {
         }
 
         album_filters.tags = Tags::from(new_tags);
+
+        let albums_page = self.to_owned();
+        glib::spawn_future_local(async move {
+            albums_page
+                .update_sort_fields(
+                    &albums_page.albums_grid.model().expect(EXP_INIT),
+                    albums_page.contents_id.get(),
+                )
+                .await
+        });
     }
 
     #[inline]
@@ -243,9 +253,6 @@ impl AlbumsPage {
         }
         self.view_stack.set_visible_child_name("albums");
         self.remember_scroll_pos();
-
-        // TODO: Add a proper callback for when library tags are updated instead of calling this here
-        self.update_tag_filter_list();
 
         // The timers are used to reduce major UI stutters
         // by turning them into multiple smaller ones
@@ -484,6 +491,12 @@ impl ObjectImpl for AlbumsPage {
             #[weak(rename_to=songs_page)]
             self,
             move |_| songs_page.handle_filters_changed()
+        ));
+
+        self.filtered_tags.connect_map(glib::clone!(
+            #[weak(rename_to=albums_page)]
+            self,
+            move |_| albums_page.update_tag_filter_list()
         ));
 
         let fallback_image = fallback_album_image();
