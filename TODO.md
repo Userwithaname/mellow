@@ -5,7 +5,7 @@ Song queue:
     - IDEA: Also pan if dragging onto the pan button, once panning is implemented
 - [-] Multi-selection mode
   - IDEA: Shift+click to select everything between the last selected item and the clicked item
-  - IDEA: Click+drag to select multiple items
+  - IDEA: Long-press+drag to select multiple items
   - [x] Removing multiple items at once
   - [ ] Rating multiple items at once
 - [x] Display a landing page
@@ -21,11 +21,12 @@ Music library:
   - IDEA: Remember if sort order was reversed(?)
 - [x] Search/filtering for songs/albums/artists pages
 - [x] Songs/albums/artists sort modes
-- [-] Songs/albums/artists filtering
-  - TODO: Add filters for artists as well
-  - [ ] Filter by user-assigned tags
+- [x] Songs/albums/artists filtering
+  - [x] Filter by user-assigned tags
+    - IDEA: Add a button to select/deselect all toggles
+    - IDEA: Add an "untagged" toggle for showing only items with no tags
 - [-] User-assigned custom tags
-  - TODO: Show suggestions when adding tags
+  - TODO: **Show suggestions when adding tags**
 - [x] Artists page
   - [x] Artist subpage, accessed from each item
     - IDEA: Display average rating
@@ -34,10 +35,14 @@ Music library:
 - [x] Songs page
   - [x] Song subpage, accessed from each item
 - [x] Play counting
-> Works, but the counting logic could be improved
 
 Other:
 
+- [ ] Redesign the library directory settings
+  > For example, opening a separate "Directory Settings" popup window and requiring the user
+  > to apply all changes at once could work around the [Flatpak freezing issue #21](https://github.com/Userwithaname/mellow/issues/21))
+  > and also present an opportunity to add "Import"/"Export" buttons to more easily merge
+  > library data from different systems
 - [ ] Bundle icons instead of relying on system ones
 - [x] Toast notifications
   - IDEA: Notification for an upcoming "Pause & Close Player"

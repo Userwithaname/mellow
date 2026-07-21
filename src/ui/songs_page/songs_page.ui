@@ -297,8 +297,6 @@
                               </object>
                             </child>
 
-                            <!-- TODO: Add a button to select/deselect all tag filters -->
-
                             <child>
                               <object class="AdwWrapBox" id="filtered_tags">
                                 <property name="child-spacing">6</property>

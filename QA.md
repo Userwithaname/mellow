@@ -29,7 +29,8 @@ Song Queue:
 - [x] Selection mode works as expected
   - [x] Removing multiple items at once works as expected
 - [x] Stoppers work and behave as expected
-  - TODO: Improvement: Stoppers should not shift when toggling shuffle mode
+  - IDEA: Improvement: Stoppers could stay at the same relative position in the queue
+    when toggling shuffle mode (for example, 5 songs ahead)
 - [x] The landing page is shown for empty queues and works without issues
 
 Music Library:
