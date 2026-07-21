@@ -4,6 +4,7 @@ use glib::Object;
 use gtk::{gdk, glib};
 
 use crate::library::SharedArtist;
+use crate::library::tag_list::Tags;
 use crate::ui::{FilterMode, SortConfig};
 use crate::util::CmpIsEqOr;
 
@@ -98,8 +99,6 @@ impl ArtistObject {
     #[inline]
     #[must_use]
     fn cmp_added_newer(&self, other: &Self) -> cmp::Ordering {
-        // NOTE: Comparing added time using the oldest
-        // album's first song is not necessarily correct
         (other.added().cmp(&self.added())).then_with(|| self.index().cmp(&other.index()))
     }
     #[inline]
@@ -129,6 +128,7 @@ pub struct ArtistData {
     modified: u64,
     added: u64,
     random: u64,
+    tags: Vec<String>,
 }
 
 #[derive(Clone, Copy)]
@@ -175,6 +175,7 @@ pub struct ArtistFilters {
     pub filter_mode: FilterMode,
     pub rating: Option<(cmp::Ordering, u8)>,
     pub play_count: Option<(cmp::Ordering, u64)>,
+    pub tags: Tags,
 }
 
 impl ArtistFilters {
@@ -190,9 +191,8 @@ impl ArtistFilters {
             (artist_object.stars().total_cmp(&(rating.1 as f64))).is_eq_or(rating.0)
         }) && self.play_count.is_none_or(|play_count| {
             (artist_object.played().total_cmp(&(play_count.1 as f64))).is_eq_or(play_count.0)
-        })
-        // && (self.tags.is_empty()
-        //     || (self.tags.iter()).any(|tag| artist_object.tags().contains(tag)))
+        }) && (self.tags.is_empty()
+            || (self.tags.iter()).any(|tag| artist_object.tags().contains(tag)))
     }
     pub fn filter_inclusive(&self, artist_object: &ArtistObject) -> bool {
         (self.rating.is_none() && self.play_count.is_none())
@@ -201,8 +201,7 @@ impl ArtistFilters {
             })
             || self.play_count.is_some_and(|play_count| {
                 (artist_object.played().total_cmp(&(play_count.1 as f64))).is_eq_or(play_count.0)
-            })
-        // && (self.tags.is_empty()
-        //     || (self.tags.iter()).any(|tag| artist_object.tags().contains(tag)))
+            }) && (self.tags.is_empty()
+                || (self.tags.iter()).any(|tag| artist_object.tags().contains(tag)))
     }
 }

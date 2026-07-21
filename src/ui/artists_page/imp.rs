@@ -10,6 +10,7 @@ use std::time::{Duration, Instant};
 
 use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_INIT, EXP_RX};
+use crate::library::tag_list::{self, Tags};
 use crate::library::{Artists, ToQueue, ToShuffledQueue};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::artist_object::ArtistFilters;
@@ -32,6 +33,8 @@ pub struct ArtistsPage {
 
     #[template_child]
     filter_mode: TemplateChild<adw::ToggleGroup>,
+    #[template_child]
+    filtered_tags: TemplateChild<adw::WrapBox>,
 
     #[template_child]
     rating_checkbox: TemplateChild<gtk::CheckButton>,
@@ -118,6 +121,51 @@ impl ArtistsPage {
         self.remember_scroll_pos();
         self.filter.borrow().changed(gtk::FilterChange::Different);
         self.restore_scroll_pos();
+    }
+
+    pub fn update_tag_filter_list(&self) {
+        self.filtered_tags.remove_all();
+
+        let mut artist_filters = self.artist_filters.borrow_mut();
+        let mut new_tags = Vec::with_capacity(artist_filters.tags.len());
+
+        // TODO: When there are no tags available in the library, either show a message
+        // or hide the tag filters section in the interface entirely
+        for tag in tag_list::read_global_tags().tag_names() {
+            let toggle_button = gtk::ToggleButton::builder().label(tag).build();
+
+            // Re-select items which were previously selected
+            for (i, selected_tag) in artist_filters.tags.iter().enumerate() {
+                if selected_tag == tag {
+                    toggle_button.set_active(true);
+                    new_tags.push(artist_filters.tags.get_mut().remove(i));
+                    break;
+                }
+            }
+
+            // Update filters when toggling them in the UI
+            let tag = tag.to_owned();
+            toggle_button.connect_active_notify(glib::clone!(
+                #[weak(rename_to = page)]
+                self,
+                move |toggle| {
+                    match toggle.is_active() {
+                        true => page.artist_filters.borrow_mut().tags.add(tag.clone()),
+                        false => page.artist_filters.borrow_mut().tags.remove(&tag),
+                    }
+
+                    glib::idle_add_local_once(move || {
+                        page.remember_scroll_pos();
+                        page.filter.borrow().changed(gtk::FilterChange::Different);
+                        page.restore_scroll_pos();
+                    });
+                }
+            ));
+
+            self.filtered_tags.append(&toggle_button);
+        }
+
+        artist_filters.tags = Tags::from(new_tags);
     }
 
     #[template_callback]
@@ -280,15 +328,33 @@ impl ArtistsPage {
 
                 artist.set_stars(artist_locked.average_rating(0.0));
                 artist.set_rating(artist_locked.sort_rating(3.0));
-
-                let album_locked = artist_locked.newest_album().lock().unwrap();
-                let song = album_locked.first_song();
-                let info = song.info();
-                let info = info.user();
-
                 artist.set_random(fastrand::u64(0..u64::MAX));
-                artist.set_modified(info.modified);
-                artist.set_added(info.added);
+
+                let mut added = u64::MAX;
+                let mut modified = 0;
+                let mut artist_tags = Tags::default();
+                for album in artist_locked.albums() {
+                    let album_locked = album.lock().unwrap();
+
+                    // NOTE: It would be more efficient to manage tags on `ArtistUserInfo`
+                    for tag in album_locked.user_info().tags.tag_names_owned() {
+                        artist_tags.add(tag);
+                    }
+
+                    let song = album_locked.first_song();
+                    let info = song.info();
+                    let info = info.user();
+
+                    if info.added < added {
+                        artist.set_added(info.added);
+                        added = info.added;
+                    }
+                    if info.modified > modified {
+                        artist.set_modified(info.modified);
+                        modified = info.modified;
+                    }
+                }
+                artist.set_tags(artist_tags.to_vec());
             }
             drop(item);
 
@@ -415,7 +481,7 @@ impl ObjectImpl for ArtistsPage {
                             artists_page.contents_id.get(),
                         )
                         .await;
-                    // artists_page.update_tag_filter_list();
+                    artists_page.update_tag_filter_list();
                     artists_page.handle_filters_changed();
                 });
             }

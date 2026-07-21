@@ -233,24 +233,23 @@
                           </object>
                         </child>
 
-                        <!-- TODO: Add tag filtering for artists as well -->
-                        <!-- <child> -->
-                          <!-- <object class="AdwPreferencesGroup"> -->
-                            <!-- <property name="title" translatable="yes">Filter By Tags</property> -->
+                        <child>
+                          <object class="AdwPreferencesGroup">
+                            <property name="title" translatable="yes">Filter By Tags</property>
 
-                            <!-- <child> -->
-                              <!-- <object class="AdwWrapBox" id="filtered_tags"> -->
-                                <!-- <property name="child-spacing">6</property> -->
-                                <!-- <property name="line-spacing">6</property> -->
-                                <!-- <style> -->
-                                  <!-- <class name="round"/> -->
-                                  <!-- <class name="compact"/> -->
-                                <!-- </style> -->
-                              <!-- </object> -->
-                            <!-- </child> -->
+                            <child>
+                              <object class="AdwWrapBox" id="filtered_tags">
+                                <property name="child-spacing">6</property>
+                                <property name="line-spacing">6</property>
+                                <style>
+                                  <class name="round"/>
+                                  <class name="compact"/>
+                                </style>
+                              </object>
+                            </child>
 
-                          <!-- </object> -->
-                        <!-- </child> -->
+                          </object>
+                        </child>
 
                       </object>
 
