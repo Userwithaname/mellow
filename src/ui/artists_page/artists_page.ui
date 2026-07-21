@@ -22,6 +22,16 @@
         <attribute name='target' type='s'>"Default"</attribute>
       </item>
       <item>
+        <attribute name="label" translatable="yes">Rating</attribute>
+        <attribute name='action'>menu.artists_sort_mode</attribute>
+        <attribute name='target' type='s'>"Rating"</attribute>
+      </item>
+      <item>
+        <attribute name="label" translatable="yes">Play Count</attribute>
+        <attribute name='action'>menu.artists_sort_mode</attribute>
+        <attribute name='target' type='s'>"Play Count"</attribute>
+      </item>
+      <item>
         <attribute name="label" translatable="yes">Added</attribute>
         <attribute name='action'>menu.artists_sort_mode</attribute>
         <attribute name='target' type='s'>"Added"</attribute>

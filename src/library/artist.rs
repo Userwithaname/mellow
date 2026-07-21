@@ -39,6 +39,39 @@ impl Artist {
         // SAFETY: An artist with no albums cannot be constructed
         unsafe { self.albums.last().unwrap_unchecked() }
     }
+
+    /// Loops through all artist's albums and returns the average rating,
+    /// or returns `fallback` if no songs have a rating assigned. Albums
+    /// with no rating assigned do not contribute to the average.
+    #[inline]
+    #[must_use]
+    pub fn average_rating(&self, fallback: f64) -> f64 {
+        let mut rating_total = 0.0;
+        let mut num_albums = 0;
+        for album in &self.albums {
+            // NOTE: It would be more efficient to cache the average ratings on `UserAlbumInfo`
+            rating_total += album.lock().unwrap().average_rating(fallback);
+            num_albums += 1;
+        }
+        match num_albums {
+            0 => fallback,
+            n => rating_total / n as f64,
+        }
+    }
+
+    /// Loops through all artist's albums and returns the average rating,
+    /// defaulting to `fallback` for songs which do not have a rating
+    /// assigned
+    #[inline]
+    #[must_use]
+    pub fn sort_rating(&self, fallback: f64) -> f64 {
+        let mut rating_total = 0.0;
+        for album in &self.albums {
+            // NOTE: It would be more efficient to cache the sort ratings on `UserAlbumInfo`
+            rating_total += album.lock().unwrap().sort_rating(fallback);
+        }
+        rating_total / self.albums.len() as f64
+    }
 }
 
 impl ToQueue for Artist {

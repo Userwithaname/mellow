@@ -155,15 +155,16 @@ impl ArtistsPage {
         let model = gio::ListStore::new::<ArtistObject>();
         model.extend_from_slice(&artist_objects);
 
+        self.update_sort_fields(&model, id).await;
+        if self.contents_id.get() != id {
+            #[cfg(feature = "startup-logs")]
+            println!("Artists page contents ID changed - stopping");
+            return;
+        }
+
         // Restore the previous scroll position and update sort fields if already mapped,
         // otherwise it will happen when mapped (see `connect_map` in `constructed`)
         if self.artists_grid.is_mapped() {
-            self.update_sort_fields(&model, id).await;
-            if self.contents_id.get() != id {
-                #[cfg(feature = "startup-logs")]
-                println!("Artists page contents ID changed - stopping");
-                return;
-            }
             self.restore_scroll_pos();
         }
 
@@ -218,6 +219,10 @@ impl ArtistsPage {
                 let artist = item.downcast_ref::<ArtistObject>().unwrap();
                 let shared_artist = artist.shared_artist();
                 let artist_locked = shared_artist.lock().unwrap();
+
+                artist.set_stars(artist_locked.average_rating(0.0));
+                artist.set_rating(artist_locked.sort_rating(3.0));
+
                 let album_locked = artist_locked.newest_album().lock().unwrap();
                 let song = album_locked.first_song();
                 let info = song.info();

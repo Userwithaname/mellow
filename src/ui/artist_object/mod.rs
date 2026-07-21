@@ -4,7 +4,7 @@ use glib::Object;
 use gtk::{gdk, glib};
 
 use crate::library::SharedArtist;
-use crate::ui::SortConfig;
+use crate::ui::{FilterMode, SortConfig};
 
 mod imp;
 
@@ -66,6 +66,8 @@ impl ArtistObject {
         let ord = match other.rank().total_cmp(&self.rank()) {
             cmp::Ordering::Equal => match order_by.ordering.get() {
                 ArtistOrdering::Default => self.cmp_artist(other),
+                ArtistOrdering::PlayCount => self.cmp_most_played(other),
+                ArtistOrdering::Rating => self.cmp_best_rating(other),
                 ArtistOrdering::Added => self.cmp_added_newer(other),
                 ArtistOrdering::Modified => self.cmp_modified_newer(other),
                 ArtistOrdering::Random => self.cmp_random(other),
@@ -81,6 +83,16 @@ impl ArtistObject {
     #[must_use]
     fn cmp_artist(&self, other: &Self) -> cmp::Ordering {
         self.artist().cmp(&other.artist())
+    }
+    #[inline]
+    #[must_use]
+    fn cmp_most_played(&self, other: &Self) -> cmp::Ordering {
+        (other.played().total_cmp(&self.played())).then_with(|| self.index().cmp(&other.index()))
+    }
+    #[inline]
+    #[must_use]
+    fn cmp_best_rating(&self, other: &Self) -> cmp::Ordering {
+        (other.rating().total_cmp(&self.rating())).then_with(|| self.cmp_most_played(other))
     }
     #[inline]
     #[must_use]
@@ -108,6 +120,11 @@ pub struct ArtistData {
     albums: u64,
     artwork: Option<gdk::Paintable>,
     rank: f64,
+    /// Stars rating (0 if unassigned)
+    stars: f64,
+    /// Rating with a fallback value (3 if unassigned, used for sorting)
+    rating: f64,
+    played: f64,
     modified: u64,
     added: u64,
     random: u64,
@@ -115,9 +132,9 @@ pub struct ArtistData {
 
 #[derive(Clone, Copy)]
 pub enum ArtistOrdering {
-    // IDEA: Sort by average play count
-    // IDEA: Sort by best average rating
     Default,
+    Rating,
+    PlayCount,
     Added,
     Modified,
     Random,
@@ -129,6 +146,8 @@ impl ArtistOrdering {
     pub const fn to_str(self) -> &'static str {
         match self {
             ArtistOrdering::Default => "Default",
+            ArtistOrdering::Rating => "Rating",
+            ArtistOrdering::PlayCount => "Play Count",
             ArtistOrdering::Added => "Added",
             ArtistOrdering::Modified => "Modified",
             ArtistOrdering::Random => "Random",
@@ -140,6 +159,8 @@ impl From<&str> for ArtistOrdering {
     fn from(value: &str) -> Self {
         match value {
             "Default" => ArtistOrdering::Default,
+            "Rating" => ArtistOrdering::Rating,
+            "Play Count" => ArtistOrdering::PlayCount,
             "Added" => ArtistOrdering::Added,
             "Modified" => ArtistOrdering::Modified,
             "Random" => ArtistOrdering::Random,
