@@ -102,36 +102,26 @@
                             <property name="title" translatable="yes">Filter Artists</property>
 
                             <child type="header-suffix">
-                              <object class="GtkBox">
+                              <object class="AdwToggleGroup" id="filter_mode">
+                                <property name="homogeneous">true</property>
+                                <property name="active-name">All</property>
                                 <child>
-                                  <object class="GtkLabel">
-                                    <property name="label">Require</property>
-                                    <property name="margin-end">8</property>
+                                  <object class="AdwToggle">
+                                    <property name="name" translatable="yes">Any</property>
+                                    <property name="label" translatable="yes">Any</property>
+                                    <property name="tooltip" translatable="yes">Show items which match any of the selected filters</property>
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="AdwToggleGroup" id="filter_mode">
-                                    <property name="homogeneous">true</property>
-                                    <property name="active-name">All</property>
-                                    <child>
-                                      <object class="AdwToggle">
-                                        <property name="name" translatable="yes">Any</property>
-                                        <property name="label" translatable="yes">Any</property>
-                                        <property name="tooltip" translatable="yes">Show items which match any of the selected filters</property>
-                                      </object>
-                                    </child>
-                                    <child>
-                                      <object class="AdwToggle">
-                                        <property name="name" translatable="yes">All</property>
-                                        <property name="label" translatable="yes">All</property>
-                                        <property name="tooltip" translatable="yes">Only show items which match all of the selected filters</property>
-                                      </object>
-                                    </child>
-                                    <style>
-                                      <class name="round"/>
-                                    </style>
+                                  <object class="AdwToggle">
+                                    <property name="name" translatable="yes">All</property>
+                                    <property name="label" translatable="yes">All</property>
+                                    <property name="tooltip" translatable="yes">Only show items which match all of the selected filters</property>
                                   </object>
                                 </child>
+                                <style>
+                                  <class name="round"/>
+                                </style>
                               </object>
                             </child>
 
