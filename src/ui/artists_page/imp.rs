@@ -1,5 +1,6 @@
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, OnceCell, RefCell};
+use core::cmp;
 use fastrand;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib};
@@ -11,7 +12,8 @@ use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::{Artists, ToQueue, ToShuffledQueue};
 use crate::player::{PlayerRequest, player_tx};
-use crate::ui::{ArtistObject, ArtistOrdering, ItemTile, SortConfig};
+use crate::ui::artist_object::ArtistFilters;
+use crate::ui::{ArtistObject, ArtistOrdering, FilterMode, ItemTile, SortConfig};
 use crate::ui::{UpdateUI, ui_tx};
 use crate::util::search;
 
@@ -29,6 +31,23 @@ pub struct ArtistsPage {
     artists_grid: TemplateChild<gtk::GridView>,
 
     #[template_child]
+    filter_mode: TemplateChild<adw::ToggleGroup>,
+
+    #[template_child]
+    rating_checkbox: TemplateChild<gtk::CheckButton>,
+    #[template_child]
+    rating_spin_row: TemplateChild<adw::SpinRow>,
+    #[template_child]
+    rating_condition: TemplateChild<gtk::DropDown>,
+
+    #[template_child]
+    play_count_checkbox: TemplateChild<gtk::CheckButton>,
+    #[template_child]
+    play_count_spin_row: TemplateChild<adw::SpinRow>,
+    #[template_child]
+    play_count_condition: TemplateChild<gtk::DropDown>,
+
+    #[template_child]
     pub search_entry: TemplateChild<gtk::SearchEntry>,
     search_query: Rc<RefCell<String>>,
 
@@ -38,6 +57,7 @@ pub struct ArtistsPage {
     sorter: RefCell<gtk::CustomSorter>,
 
     sort_mode: OnceCell<SortConfig<ArtistOrdering>>,
+    artist_filters: Rc<RefCell<ArtistFilters>>,
 
     shuffle: Cell<bool>,
     pending_scroll_pos: Cell<Option<f64>>,
@@ -61,6 +81,43 @@ impl ArtistsPage {
         self.search_entry.set_text("");
         self.search_query.take();
         self.artists_grid.grab_focus();
+    }
+    #[template_callback]
+    pub fn handle_filters_changed(&self) {
+        let mut filters = self.artist_filters.borrow_mut();
+
+        filters.filter_mode = match self.filter_mode.active() {
+            0 => FilterMode::Inclusive,
+            1 => FilterMode::Exclusive,
+            _ => unimplemented!(),
+        };
+        filters.rating = match self.rating_checkbox.is_active() {
+            true => Some((
+                match self.rating_condition.selected() {
+                    0 => cmp::Ordering::Greater,
+                    1 => cmp::Ordering::Less,
+                    _ => unimplemented!(),
+                },
+                self.rating_spin_row.value() as u8,
+            )),
+            false => None,
+        };
+        filters.play_count = match self.play_count_checkbox.is_active() {
+            true => Some((
+                match self.play_count_condition.selected() {
+                    0 => cmp::Ordering::Greater,
+                    1 => cmp::Ordering::Less,
+                    _ => unimplemented!(),
+                },
+                self.play_count_spin_row.value() as u64,
+            )),
+            false => None,
+        };
+
+        drop(filters);
+        self.remember_scroll_pos();
+        self.filter.borrow().changed(gtk::FilterChange::Different);
+        self.restore_scroll_pos();
     }
 
     #[template_callback]
@@ -171,6 +228,7 @@ impl ArtistsPage {
         self.artists.replace(artist_objects);
 
         let query = Rc::clone(&self.search_query);
+        let artist_filters = Rc::clone(&self.artist_filters);
         let filter = gtk::CustomFilter::new(move |object| {
             let artist_object = object.downcast_ref::<ArtistObject>().unwrap();
             let score = search::query_score(
@@ -178,7 +236,7 @@ impl ArtistsPage {
                 &artist_object.artist().to_lowercase(),
             );
             artist_object.set_rank(score);
-            score > 0.01
+            score > 0.01 && artist_filters.borrow().filter(artist_object)
         });
         let filter_model = gtk::FilterListModel::new(Some(model), Some(filter.clone()));
         self.filter.replace(filter);
@@ -358,7 +416,7 @@ impl ObjectImpl for ArtistsPage {
                         )
                         .await;
                     // artists_page.update_tag_filter_list();
-                    // artists_page.handle_filters_changed();
+                    artists_page.handle_filters_changed();
                 });
             }
         ));

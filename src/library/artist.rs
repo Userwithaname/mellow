@@ -50,8 +50,11 @@ impl Artist {
         let mut num_albums = 0;
         for album in &self.albums {
             // NOTE: It would be more efficient to cache the average ratings on `UserAlbumInfo`
-            rating_total += album.lock().unwrap().average_rating(fallback);
-            num_albums += 1;
+            let average_album_rating = album.lock().unwrap().average_rating(-1.0);
+            if average_album_rating > 0.0 {
+                rating_total += average_album_rating;
+                num_albums += 1;
+            }
         }
         match num_albums {
             0 => fallback,

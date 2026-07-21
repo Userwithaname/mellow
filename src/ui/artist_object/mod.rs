@@ -5,6 +5,7 @@ use gtk::{gdk, glib};
 
 use crate::library::SharedArtist;
 use crate::ui::{FilterMode, SortConfig};
+use crate::util::CmpIsEqOr;
 
 mod imp;
 
@@ -166,5 +167,42 @@ impl From<&str> for ArtistOrdering {
             "Random" => ArtistOrdering::Random,
             _ => unimplemented!(),
         }
+    }
+}
+
+#[derive(Default)]
+pub struct ArtistFilters {
+    pub filter_mode: FilterMode,
+    pub rating: Option<(cmp::Ordering, u8)>,
+    pub play_count: Option<(cmp::Ordering, u64)>,
+}
+
+impl ArtistFilters {
+    #[inline]
+    pub fn filter(&self, song_object: &ArtistObject) -> bool {
+        match self.filter_mode {
+            FilterMode::Exclusive => self.filter_exclusive(song_object),
+            FilterMode::Inclusive => self.filter_inclusive(song_object),
+        }
+    }
+    pub fn filter_exclusive(&self, artist_object: &ArtistObject) -> bool {
+        self.rating.is_none_or(|rating| {
+            (artist_object.stars().total_cmp(&(rating.1 as f64))).is_eq_or(rating.0)
+        }) && self.play_count.is_none_or(|play_count| {
+            (artist_object.played().total_cmp(&(play_count.1 as f64))).is_eq_or(play_count.0)
+        })
+        // && (self.tags.is_empty()
+        //     || (self.tags.iter()).any(|tag| artist_object.tags().contains(tag)))
+    }
+    pub fn filter_inclusive(&self, artist_object: &ArtistObject) -> bool {
+        (self.rating.is_none() && self.play_count.is_none())
+            || self.rating.is_some_and(|rating| {
+                (artist_object.stars().total_cmp(&(rating.1 as f64))).is_eq_or(rating.0)
+            })
+            || self.play_count.is_some_and(|play_count| {
+                (artist_object.played().total_cmp(&(play_count.1 as f64))).is_eq_or(play_count.0)
+            })
+        // && (self.tags.is_empty()
+        //     || (self.tags.iter()).any(|tag| artist_object.tags().contains(tag)))
     }
 }

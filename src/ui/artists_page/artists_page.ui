@@ -85,6 +85,180 @@
               </object>
             </child>
 
+            <child type="end">
+              <!-- TODO: Move this button into the search bar instead (like Nautilus does) -->
+              <object class="GtkMenuButton">
+                <property name="tooltip-text" translatable="yes">Filter Artists</property>
+                <property name="icon-name">radio-mixed-symbolic</property>
+                <property name="popover">
+                  <object class="GtkPopover">
+                    <property name="width-request">480</property>
+                    <property name="autohide">true</property>
+
+                    <child type="content">
+                      <object class="AdwPreferencesPage">
+                        <child>
+                          <object class="AdwPreferencesGroup">
+                            <property name="title" translatable="yes">Filter Artists</property>
+
+                            <child type="header-suffix">
+                              <object class="GtkBox">
+                                <child>
+                                  <object class="GtkLabel">
+                                    <property name="label">Require</property>
+                                    <property name="margin-end">8</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="AdwToggleGroup" id="filter_mode">
+                                    <property name="homogeneous">true</property>
+                                    <property name="active-name">All</property>
+                                    <child>
+                                      <object class="AdwToggle">
+                                        <property name="name" translatable="yes">Any</property>
+                                        <property name="label" translatable="yes">Any</property>
+                                        <property name="tooltip" translatable="yes">Show items which match any of the selected filters</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="AdwToggle">
+                                        <property name="name" translatable="yes">All</property>
+                                        <property name="label" translatable="yes">All</property>
+                                        <property name="tooltip" translatable="yes">Only show items which match all of the selected filters</property>
+                                      </object>
+                                    </child>
+                                    <style>
+                                      <class name="round"/>
+                                    </style>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+
+                            <child>
+                              <object class="AdwSpinRow" id="rating_spin_row">
+                                <signal name="notify::value" handler="handle_filters_changed" swapped="true"/>
+                                <property name="title" translatable="yes">Rating</property>
+                                <property name="adjustment">
+                                  <object class="GtkAdjustment">
+                                    <property name="step-increment">1</property>
+                                    <property name="lower">0</property>
+                                    <property name="upper">5</property>
+                                    <property name="value">3</property>
+                                  </object>
+                                </property>
+                                <child type="prefix">
+                                  <object class="GtkCheckButton" id="rating_checkbox">
+                                    <signal name="toggled" handler="handle_filters_changed" swapped="true"/>
+                                  </object>
+                                </child>
+                                <child type="suffix">
+                                  <object class="GtkBox">
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="label" translatable="yes">stars</property>
+                                        <property name="margin-end">8</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkDropDown" id="rating_condition">
+                                        <signal name="notify::selected" handler="handle_filters_changed" swapped="true"/>
+                                        <property name="vexpand">false</property>
+                                        <property name="hexpand">false</property>
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <property name="model">
+                                          <object class="GtkStringList">
+                                            <items>
+                                              <item translatable="yes">or more</item>
+                                              <item translatable="yes">or less</item>
+                                            </items>
+                                          </object>
+                                        </property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+
+                            <child>
+                              <object class="AdwSpinRow" id="play_count_spin_row">
+                                <signal name="notify::value" handler="handle_filters_changed" swapped="true"/>
+                                <property name="title" translatable="yes">Played</property>
+                                <property name="adjustment">
+                                  <object class="GtkAdjustment">
+                                    <property name="page-increment">10</property>
+                                    <property name="step-increment">1</property>
+                                    <property name="lower">0</property>
+                                    <property name="upper">9999</property>
+                                    <property name="value">0</property>
+                                  </object>
+                                </property>
+                                <child type="prefix">
+                                  <object class="GtkCheckButton" id="play_count_checkbox">
+                                    <signal name="toggled" handler="handle_filters_changed" swapped="true"/>
+                                  </object>
+                                </child>
+                                <child type="suffix">
+                                  <object class="GtkBox">
+                                    <child>
+                                      <object class="GtkLabel">
+                                        <property name="label" translatable="yes">times</property>
+                                        <property name="margin-end">8</property>
+                                      </object>
+                                    </child>
+                                    <child>
+                                      <object class="GtkDropDown" id="play_count_condition">
+                                        <signal name="notify::selected" handler="handle_filters_changed" swapped="true"/>
+                                        <property name="vexpand">false</property>
+                                        <property name="hexpand">false</property>
+                                        <property name="valign">center</property>
+                                        <property name="halign">center</property>
+                                        <property name="model">
+                                          <object class="GtkStringList">
+                                            <items>
+                                              <item translatable="yes">or more</item>
+                                              <item translatable="yes">or less</item>
+                                            </items>
+                                          </object>
+                                        </property>
+                                      </object>
+                                    </child>
+                                  </object>
+                                </child>
+                              </object>
+                            </child>
+
+                          </object>
+                        </child>
+
+                        <!-- TODO: Add tag filtering for artists as well -->
+                        <!-- <child> -->
+                          <!-- <object class="AdwPreferencesGroup"> -->
+                            <!-- <property name="title" translatable="yes">Filter By Tags</property> -->
+
+                            <!-- <child> -->
+                              <!-- <object class="AdwWrapBox" id="filtered_tags"> -->
+                                <!-- <property name="child-spacing">6</property> -->
+                                <!-- <property name="line-spacing">6</property> -->
+                                <!-- <style> -->
+                                  <!-- <class name="round"/> -->
+                                  <!-- <class name="compact"/> -->
+                                <!-- </style> -->
+                              <!-- </object> -->
+                            <!-- </child> -->
+
+                          <!-- </object> -->
+                        <!-- </child> -->
+
+                      </object>
+
+                    </child>
+                  </object>
+                </property>
+              </object>
+            </child>
           </object>
         </child>
 
