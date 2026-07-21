@@ -276,15 +276,16 @@ impl SongsPage {
         let model = gio::ListStore::new::<SongObject>();
         model.extend_from_slice(&song_objects);
 
+        self.update_sort_fields(&model, id).await;
+        if self.contents_id.get() != id {
+            #[cfg(feature = "startup-logs")]
+            println!("Songs page contents ID changed - stopping");
+            return;
+        }
+
         // Restore the previous scroll position and update sort fields if already mapped,
         // otherwise it will happen when mapped (see `connect_map` in `constructed`)
         if self.songs_grid.is_mapped() {
-            self.update_sort_fields(&model, id).await;
-            if self.contents_id.get() != id {
-                #[cfg(feature = "startup-logs")]
-                println!("Songs page contents ID changed - stopping");
-                return;
-            }
             self.restore_scroll_pos();
         }
 

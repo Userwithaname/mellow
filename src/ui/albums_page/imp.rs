@@ -290,12 +290,6 @@ impl AlbumsPage {
         // Restore the previous scroll position and update sort fields if already mapped,
         // otherwise it will happen when mapped (see `connect_map` in `constructed`)
         if self.albums_grid.is_mapped() {
-            self.update_sort_fields(&model, id).await;
-            if self.contents_id.get() != id {
-                #[cfg(feature = "startup-logs")]
-                println!("Albums page contents ID changed - stopping");
-                return;
-            }
             self.restore_scroll_pos();
         }
 
