@@ -466,6 +466,12 @@ impl ObjectImpl for ArtistsPage {
             ui_tx().send(UpdateUI::ArtistPage(artist)).expect(EXP_RX);
         });
 
+        self.filter_mode.connect_active_notify(glib::clone!(
+            #[weak(rename_to = albums_page)]
+            self,
+            move |_| albums_page.handle_filters_changed()
+        ));
+
         // Restore the previous scroll position if pending, and update sort fields
         // Setting the scroll position must be done when mapped; if it wasn't
         // set in `load_artists`, it is restored in `connect_map` instead.
