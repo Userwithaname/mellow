@@ -283,6 +283,31 @@
                         <child>
                           <object class="AdwPreferencesGroup">
                             <property name="title" translatable="yes">Filter By Tags</property>
+                            <child type="header-suffix">
+                              <object class="AdwToggleGroup" id="tag_filter_mode">
+                                <property name="homogeneous">true</property>
+                                <property name="active-name">Any</property>
+                                <child>
+                                  <object class="AdwToggle">
+                                    <property name="name" translatable="yes">Any</property>
+                                    <property name="label" translatable="yes">Any</property>
+                                    <property name="tooltip" translatable="yes">Show items which match any of the selected tags</property>
+                                  </object>
+                                </child>
+                                <child>
+                                  <object class="AdwToggle">
+                                    <property name="name" translatable="yes">All</property>
+                                    <property name="label" translatable="yes">All</property>
+                                    <property name="tooltip" translatable="yes">Only show items which match all of the selected tags</property>
+                                  </object>
+                                </child>
+                                <style>
+                                  <class name="round"/>
+                                </style>
+                              </object>
+                            </child>
+
+                            <!-- TODO: Add a button to select/deselect all tag filters -->
 
                             <child>
                               <object class="AdwWrapBox" id="filtered_tags">

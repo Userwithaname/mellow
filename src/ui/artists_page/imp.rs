@@ -34,6 +34,8 @@ pub struct ArtistsPage {
     #[template_child]
     filter_mode: TemplateChild<adw::ToggleGroup>,
     #[template_child]
+    tag_filter_mode: TemplateChild<adw::ToggleGroup>,
+    #[template_child]
     filtered_tags: TemplateChild<adw::WrapBox>,
 
     #[template_child]
@@ -115,6 +117,11 @@ impl ArtistsPage {
                 self.play_count_spin_row.value() as u64,
             )),
             false => None,
+        };
+        filters.tag_filter_mode = match self.tag_filter_mode.active() {
+            0 => FilterMode::Inclusive,
+            1 => FilterMode::Exclusive,
+            _ => unimplemented!(),
         };
 
         drop(filters);
@@ -467,9 +474,15 @@ impl ObjectImpl for ArtistsPage {
         });
 
         self.filter_mode.connect_active_notify(glib::clone!(
-            #[weak(rename_to = albums_page)]
+            #[weak(rename_to = artists_page)]
             self,
-            move |_| albums_page.handle_filters_changed()
+            move |_| artists_page.handle_filters_changed()
+        ));
+
+        self.tag_filter_mode.connect_active_notify(glib::clone!(
+            #[weak(rename_to = artists_page)]
+            self,
+            move |_| artists_page.handle_filters_changed()
         ));
 
         // Restore the previous scroll position if pending, and update sort fields
@@ -548,7 +561,7 @@ impl ObjectImpl for ArtistsPage {
             let artist_object = list_item
                 .item()
                 .and_downcast::<ArtistObject>()
-                .expect("Needs to be AlbumObject");
+                .expect("Needs to be ArtistObject");
             let artist_tile = list_item
                 .downcast_ref::<gtk::ListItem>()
                 .expect("Needs to be ListItem")

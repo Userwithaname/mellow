@@ -175,6 +175,7 @@ pub struct ArtistFilters {
     pub filter_mode: FilterMode,
     pub rating: Option<(cmp::Ordering, u8)>,
     pub play_count: Option<(cmp::Ordering, u64)>,
+    pub tag_filter_mode: FilterMode,
     pub tags: Tags,
 }
 
@@ -191,8 +192,7 @@ impl ArtistFilters {
             (artist_object.stars().total_cmp(&(rating.1 as f64))).is_eq_or(rating.0)
         }) && self.play_count.is_none_or(|play_count| {
             (artist_object.played().total_cmp(&(play_count.1 as f64))).is_eq_or(play_count.0)
-        }) && (self.tags.is_empty()
-            || (self.tags.iter()).any(|tag| artist_object.tags().contains(tag)))
+        }) && (self.tags.is_empty() || self.filter_tags(artist_object))
     }
     pub fn filter_inclusive(&self, artist_object: &ArtistObject) -> bool {
         (self.rating.is_none() && self.play_count.is_none())
@@ -201,7 +201,21 @@ impl ArtistFilters {
             })
             || self.play_count.is_some_and(|play_count| {
                 (artist_object.played().total_cmp(&(play_count.1 as f64))).is_eq_or(play_count.0)
-            }) && (self.tags.is_empty()
-                || (self.tags.iter()).any(|tag| artist_object.tags().contains(tag)))
+            }) && (self.tags.is_empty() || self.filter_tags(artist_object))
+    }
+    pub fn filter_tags(&self, artist_object: &ArtistObject) -> bool {
+        let mut artist_tags = Tags::from(artist_object.tags());
+        match self.tag_filter_mode {
+            FilterMode::Exclusive => {
+                for tag in &*self.tags {
+                    if !artist_tags.contains(tag) {
+                        artist_tags.remove(&tag);
+                        return false;
+                    }
+                }
+                true
+            }
+            FilterMode::Inclusive => self.tags.iter().any(|tag| artist_tags.contains(tag)),
+        }
     }
 }

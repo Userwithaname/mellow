@@ -35,6 +35,8 @@ pub struct AlbumsPage {
     #[template_child]
     filter_mode: TemplateChild<adw::ToggleGroup>,
     #[template_child]
+    tag_filter_mode: TemplateChild<adw::ToggleGroup>,
+    #[template_child]
     filtered_tags: TemplateChild<adw::WrapBox>,
 
     #[template_child]
@@ -134,6 +136,11 @@ impl AlbumsPage {
                 self.year_spin_row.value() as u32,
             )),
             false => None,
+        };
+        filters.tag_filter_mode = match self.tag_filter_mode.active() {
+            0 => FilterMode::Inclusive,
+            1 => FilterMode::Exclusive,
+            _ => unimplemented!(),
         };
 
         drop(filters);
@@ -479,7 +486,7 @@ impl ObjectImpl for AlbumsPage {
         // Setting the scroll position must be done when mapped; if it wasn't
         // set in `load_albums`, it is restored in `connect_map` instead.
         self.albums_grid.connect_map(glib::clone!(
-            #[weak(rename_to=albums_page)]
+            #[weak(rename_to = albums_page)]
             self,
             move |_| {
                 albums_page.restore_scroll_pos();
@@ -497,13 +504,19 @@ impl ObjectImpl for AlbumsPage {
         ));
 
         self.filter_mode.connect_active_notify(glib::clone!(
-            #[weak(rename_to=songs_page)]
+            #[weak(rename_to = albums_page)]
             self,
-            move |_| songs_page.handle_filters_changed()
+            move |_| albums_page.handle_filters_changed()
+        ));
+
+        self.tag_filter_mode.connect_active_notify(glib::clone!(
+            #[weak(rename_to = albums_page)]
+            self,
+            move |_| albums_page.handle_filters_changed()
         ));
 
         self.filtered_tags.connect_map(glib::clone!(
-            #[weak(rename_to=albums_page)]
+            #[weak(rename_to = albums_page)]
             self,
             move |_| albums_page.update_tag_filter_list()
         ));

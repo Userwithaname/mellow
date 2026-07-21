@@ -223,7 +223,8 @@ pub struct SongFilters {
     pub rating: Option<(cmp::Ordering, u8)>,
     pub play_count: Option<(cmp::Ordering, u64)>,
     pub year: Option<(cmp::Ordering, u32)>,
-    pub tags: Tags, // IDEA: Add a separate `FilterMode` field for `tags` as well
+    pub tag_filter_mode: FilterMode,
+    pub tags: Tags,
 }
 
 impl SongFilters {
@@ -241,8 +242,7 @@ impl SongFilters {
                 (song_object.played().cmp(&play_count.1)).is_eq_or(play_count.0)
             })
             && (self.year).is_none_or(|year| song_object.year().cmp(&year.1).is_eq_or(year.0))
-            && (self.tags.is_empty()
-                || (self.tags.iter()).any(|tag| song_object.tags().contains(tag)))
+            && (self.tags.is_empty() || self.filter_tags(song_object))
     }
     pub fn filter_inclusive(&self, song_object: &SongObject) -> bool {
         ((self.rating.is_none() && self.play_count.is_none() && self.year.is_none())
@@ -255,7 +255,21 @@ impl SongFilters {
             || self
                 .year
                 .is_some_and(|year| song_object.year().cmp(&year.1) == year.0))
-            && (self.tags.is_empty()
-                || (self.tags.iter()).any(|tag| song_object.tags().contains(tag)))
+            && (self.tags.is_empty() || self.filter_tags(song_object))
+    }
+    pub fn filter_tags(&self, song_object: &SongObject) -> bool {
+        let mut artist_tags = Tags::from(song_object.tags());
+        match self.tag_filter_mode {
+            FilterMode::Exclusive => {
+                for tag in &*self.tags {
+                    if !artist_tags.contains(tag) {
+                        artist_tags.remove(&tag);
+                        return false;
+                    }
+                }
+                true
+            }
+            FilterMode::Inclusive => self.tags.iter().any(|tag| artist_tags.contains(tag)),
+        }
     }
 }

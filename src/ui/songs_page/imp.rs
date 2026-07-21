@@ -35,6 +35,8 @@ pub struct SongsPage {
     #[template_child]
     filter_mode: TemplateChild<adw::ToggleGroup>,
     #[template_child]
+    tag_filter_mode: TemplateChild<adw::ToggleGroup>,
+    #[template_child]
     filtered_tags: TemplateChild<adw::WrapBox>,
 
     #[template_child]
@@ -134,6 +136,11 @@ impl SongsPage {
                 self.year_spin_row.value() as u32,
             )),
             false => None,
+        };
+        filters.tag_filter_mode = match self.tag_filter_mode.active() {
+            0 => FilterMode::Inclusive,
+            1 => FilterMode::Exclusive,
+            _ => unimplemented!(),
         };
 
         drop(filters);
@@ -464,7 +471,7 @@ impl ObjectImpl for SongsPage {
         // Setting the scroll position must be done when mapped; if it wasn't
         // set in `load_songs`, it is restored in `connect_map` instead.
         self.songs_grid.connect_map(glib::clone!(
-            #[weak(rename_to=songs_page)]
+            #[weak(rename_to = songs_page)]
             self,
             move |_| {
                 songs_page.restore_scroll_pos();
@@ -482,7 +489,13 @@ impl ObjectImpl for SongsPage {
         ));
 
         self.filter_mode.connect_active_notify(glib::clone!(
-            #[weak(rename_to=songs_page)]
+            #[weak(rename_to = songs_page)]
+            self,
+            move |_| songs_page.handle_filters_changed()
+        ));
+
+        self.tag_filter_mode.connect_active_notify(glib::clone!(
+            #[weak(rename_to = songs_page)]
             self,
             move |_| songs_page.handle_filters_changed()
         ));
@@ -532,7 +545,7 @@ impl ObjectImpl for SongsPage {
             let song_object = list_item
                 .item()
                 .and_downcast::<SongObject>()
-                .expect("Needs to be AlbumObject");
+                .expect("Needs to be SongObject");
             let song_row = list_item
                 .downcast_ref::<gtk::ListItem>()
                 .expect("Needs to be ListItem")
