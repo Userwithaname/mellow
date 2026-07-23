@@ -112,7 +112,7 @@ impl Window {
             match ui_rx.recv().await.unwrap() {
                 UpdateUI::SongInfo { item, pause_after } => {
                     self.update_song_info(&item, pause_after, &mut song_duration_ms);
-                    (mpris_tx().send(UpdateMPRIS::SongInfo(item)).await).expect(EXP_RX);
+                    let _ = mpris_tx().send(UpdateMPRIS::SongInfo(item)).await;
                 }
                 UpdateUI::PlayerTime { time } => {
                     self.main_player.set_time(time, song_duration_ms as f64);
@@ -122,7 +122,7 @@ impl Window {
                     interactive,
                 } => {
                     self.main_player.set_state(playing, interactive);
-                    (mpris_tx().send(UpdateMPRIS::PlayState(playing)).await).expect(EXP_RX);
+                    let _ = mpris_tx().send(UpdateMPRIS::PlayState(playing)).await;
                 }
 
                 UpdateUI::SetQueue {
