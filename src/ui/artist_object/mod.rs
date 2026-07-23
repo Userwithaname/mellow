@@ -209,7 +209,7 @@ impl ArtistFilters {
             FilterMode::Exclusive => {
                 for tag in &*self.tags {
                     if !artist_tags.contains(tag) {
-                        artist_tags.remove(&tag);
+                        artist_tags.remove(tag);
                         return false;
                     }
                 }

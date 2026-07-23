@@ -43,6 +43,9 @@ impl Artist {
     /// Loops through all artist's albums and returns the average rating,
     /// or returns `fallback` if no songs have a rating assigned. Albums
     /// with no rating assigned do not contribute to the average.
+    ///
+    /// # Panics
+    /// Panics if the album `Mutex` is poisoned
     #[inline]
     #[must_use]
     pub fn average_rating(&self, fallback: f64) -> f64 {
@@ -65,6 +68,9 @@ impl Artist {
     /// Loops through all artist's albums and returns the average rating,
     /// defaulting to `fallback` for songs which do not have a rating
     /// assigned
+    ///
+    /// # Panics
+    /// Panics if the album `Mutex` is poisoned
     #[inline]
     #[must_use]
     pub fn sort_rating(&self, fallback: f64) -> f64 {
