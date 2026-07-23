@@ -468,10 +468,10 @@ impl Library {
             if timer.elapsed() > UI_TIMEOUT {
                 timer = Instant::now();
                 if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
-                    let _ = ui_tx.send(UpdateUI::Progress(None));
+                    let _ = ui_tx.send_blocking(UpdateUI::Progress(None));
                     break;
                 }
-                let _ = ui_tx.send(UpdateUI::Progress(Some(progress)));
+                let _ = ui_tx.send_blocking(UpdateUI::Progress(Some(progress)));
             }
 
             song.info().load_basic_and(|song_info| {
@@ -546,7 +546,7 @@ impl Library {
             {
                 Library::merge_moved_entries(&artists, check_moved);
             }
-            (ui_tx.send(UpdateUI::SetLibrarySongs(songs))).expect(EXP_RX);
+            (ui_tx.send_blocking(UpdateUI::SetLibrarySongs(songs))).expect(EXP_RX);
         }
 
         #[cfg(feature = "startup-logs")]
@@ -571,7 +571,7 @@ impl Library {
 
             if state != STATE_CANCEL {
                 // IDEA: Maybe a negative progress value could represent a failure state?
-                ui_tx.send(UpdateUI::Progress(None)).expect(EXP_RX);
+                ui_tx.send_blocking(UpdateUI::Progress(None)).expect(EXP_RX);
 
                 #[cfg(feature = "startup-logs")]
                 println!(
@@ -632,7 +632,7 @@ impl Library {
         if needs_rebuild && STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_CANCEL {
             let _ = library_tx().send(LibraryRequest::RunLibraryTask(Box::new(|library| {
                 library.cancel_library_build_blocking(Instant::now());
-                ui_tx().send(UpdateUI::Progress(Some(0.0))).expect(EXP_RX);
+                (ui_tx().send_blocking(UpdateUI::Progress(Some(0.0)))).expect(EXP_RX);
                 println!("Rebuilding because files were modified");
                 library.start_library_build(Instant::now());
             })));
@@ -824,7 +824,7 @@ impl Library {
                 if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
                     return;
                 }
-                let _ = ui_tx.send(UpdateUI::Progress(Some(progress)));
+                let _ = ui_tx.send_blocking(UpdateUI::Progress(Some(progress)));
             }
         }
     }
@@ -979,7 +979,7 @@ impl Library {
     /// The function panics if the UI channel receiver is closed
     #[inline]
     fn set_albums(&mut self, albums: Albums) {
-        (ui_tx().send(UpdateUI::SetLibraryAlbums(albums.clone()))).expect(EXP_RX);
+        (ui_tx().send_blocking(UpdateUI::SetLibraryAlbums(albums.clone()))).expect(EXP_RX);
         self.albums = albums;
     }
 
@@ -995,7 +995,7 @@ impl Library {
     /// The function panics if the UI channel receiver is closed
     #[inline]
     fn set_artists(&mut self, artists: Artists) {
-        (ui_tx().send(UpdateUI::SetLibraryArtists(artists.clone()))).expect(EXP_RX);
+        (ui_tx().send_blocking(UpdateUI::SetLibraryArtists(artists.clone()))).expect(EXP_RX);
         self.artists = artists;
     }
     /// Replaces `self.missing_songs` with `missing_songs`
@@ -1077,8 +1077,8 @@ impl Library {
         })?;
         player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
         let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::OpenSheet(false))?;
-        ui_tx.send(UpdateUI::FocusPlaying)?;
+        ui_tx.send_blocking(UpdateUI::OpenSheet(false))?;
+        ui_tx.send_blocking(UpdateUI::FocusPlaying)?;
         Ok(())
     }
 

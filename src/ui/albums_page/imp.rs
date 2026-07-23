@@ -176,8 +176,8 @@ impl AlbumsPage {
             .expect(EXP_RX);
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::OpenSheet(false)).expect(EXP_RX);
-        ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
+        (ui_tx.send_blocking(UpdateUI::OpenSheet(false))).expect(EXP_RX);
+        ui_tx.send_blocking(UpdateUI::FocusPlaying).expect(EXP_RX);
     }
 
     pub fn update_tag_filter_list(&self) {
@@ -479,7 +479,7 @@ impl ObjectImpl for AlbumsPage {
                     .unwrap()
                     .shared_album(),
             );
-            ui_tx().send(UpdateUI::AlbumPage(album)).expect(EXP_RX);
+            (ui_tx().send_blocking(UpdateUI::AlbumPage(album))).expect(EXP_RX);
         });
 
         // Restore the previous scroll position if pending, and update sort fields

@@ -4,20 +4,19 @@ use gio::prelude::FileExt;
 use gtk::{gio, glib};
 use mpris_server::{self, LoopStatus, Metadata, PlaybackStatus, zbus};
 use std::sync::OnceLock;
-use tokio::sync::mpsc as tokio_mpsc;
 
 use crate::about::app_id;
 use crate::excuses::EXP_RX;
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{UpdateUI, ui_tx};
 
-static MPRIS_TX: OnceLock<tokio_mpsc::UnboundedSender<UpdateMPRIS>> = OnceLock::new();
+static MPRIS_TX: OnceLock<async_channel::Sender<UpdateMPRIS>> = OnceLock::new();
 /// Returns the channel sender for sending requests to the MPRIS interface using `UpdateMPRIS`
 ///
 /// # Safety
 /// Causes undefined behavior if called before `init_channels`
 #[inline]
-pub fn mpris_tx() -> &'static tokio_mpsc::UnboundedSender<UpdateMPRIS> {
+pub fn mpris_tx() -> &'static async_channel::Sender<UpdateMPRIS> {
     // SAFETY: `init_channels` runs in `Application::run`, before starting any threads
     unsafe { MPRIS_TX.get().unwrap_unchecked() }
 }
@@ -27,8 +26,8 @@ pub fn mpris_tx() -> &'static tokio_mpsc::UnboundedSender<UpdateMPRIS> {
 /// The function returns an error if `MPRIS_TX` has already been initialized
 #[inline]
 pub fn init_mpris_tx(
-    mpris_tx: tokio_mpsc::UnboundedSender<UpdateMPRIS>,
-) -> Result<(), tokio_mpsc::UnboundedSender<UpdateMPRIS>> {
+    mpris_tx: async_channel::Sender<UpdateMPRIS>,
+) -> Result<(), async_channel::Sender<UpdateMPRIS>> {
     MPRIS_TX.set(mpris_tx)
 }
 
@@ -47,7 +46,7 @@ pub enum UpdateMPRIS {
 ///
 /// # Panics
 /// May panic if the player or UI channel is closed
-pub async fn controller(mut rx: tokio_mpsc::UnboundedReceiver<UpdateMPRIS>) -> zbus::Result<()> {
+pub async fn controller(rx: async_channel::Receiver<UpdateMPRIS>) -> zbus::Result<()> {
     let mpris_player = mpris_server::Player::builder(app_id())
         .identity("Mellow")
         .can_play(true)
@@ -66,11 +65,11 @@ pub async fn controller(mut rx: tokio_mpsc::UnboundedReceiver<UpdateMPRIS>) -> z
     });
     mpris_player.connect_previous(|_| player_tx().send(PlayerRequest::SkipPrevious).expect(EXP_RX));
     mpris_player.connect_next(|_| player_tx().send(PlayerRequest::SkipNext).expect(EXP_RX));
-    mpris_player.connect_quit(|_| ui_tx().send(UpdateUI::RunAction("app.quit")).expect(EXP_RX));
+    mpris_player.connect_quit(|_| {
+        (ui_tx().send_blocking(UpdateUI::RunAction("app.quit"))).expect(EXP_RX);
+    });
     mpris_player.connect_raise(|_| {
-        ui_tx()
-            .send(UpdateUI::RunAction("app.show_window"))
-            .expect(EXP_RX);
+        (ui_tx().send_blocking(UpdateUI::RunAction("app.show_window"))).expect(EXP_RX);
     });
 
     glib::spawn_future_local(mpris_player.run());

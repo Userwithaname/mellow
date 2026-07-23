@@ -23,7 +23,7 @@ impl LibraryConfig {
     #[must_use]
     pub fn new(directories: Vec<PathBuf>) -> Self {
         let config = LibraryConfig { directories };
-        let _ = ui_tx().send(UpdateUI::SetLibraryDirs(config.directories_string()));
+        let _ = ui_tx().send_blocking(UpdateUI::SetLibraryDirs(config.directories_string()));
         config
     }
 
@@ -62,10 +62,10 @@ impl LibraryConfig {
         // Using `!dir.iter().any(|_| true)` because `Path::is_empty` is unstable
         if self.directories.contains(&dir) || !dir.iter().any(|_| true) {
             // Needed to re-activate the directory settings UI
-            let _ = ui_tx().send(UpdateUI::SetLibraryDirs(self.directories_string()));
+            let _ = ui_tx().send_blocking(UpdateUI::SetLibraryDirs(self.directories_string()));
             return;
         }
-        let _ = ui_tx().send(UpdateUI::Progress(Some(0.0)));
+        let _ = ui_tx().send_blocking(UpdateUI::Progress(Some(0.0)));
         self.directories.push(dir);
         self.directories.sort();
         println!("Added a new library\nLibraries: {:?}", self.directories);
@@ -75,7 +75,7 @@ impl LibraryConfig {
     /// Removes the configured directory at `index`
     pub fn remove_library(&mut self, index: usize) {
         let ui_tx = ui_tx();
-        let _ = ui_tx.send(UpdateUI::Progress(Some(0.0)));
+        let _ = ui_tx.send_blocking(UpdateUI::Progress(Some(0.0)));
 
         let removed_dir = self.directories.remove(index);
 
@@ -85,7 +85,7 @@ impl LibraryConfig {
 
         println!("Removed a library\nLibraries: {:?}", self.directories);
 
-        let _ = ui_tx.send(UpdateUI::Notification(
+        let _ = ui_tx.send_blocking(UpdateUI::Notification(
             format!("Removed a library directory: {removed_dir:?}"),
             Some(Box::new((
                 "Undo",
@@ -96,12 +96,12 @@ impl LibraryConfig {
                 }),
             ))),
         ));
-        let _ = ui_tx.send(UpdateUI::SetLibraryDirs(self.directories_string()));
+        let _ = ui_tx.send_blocking(UpdateUI::SetLibraryDirs(self.directories_string()));
     }
 
     /// Requests a library rebuild and updates the directory list in the UI
     fn update_library(&self) {
-        let _ = ui_tx().send(UpdateUI::SetLibraryDirs(self.directories_string()));
+        let _ = ui_tx().send_blocking(UpdateUI::SetLibraryDirs(self.directories_string()));
         Library::rebuild();
     }
 

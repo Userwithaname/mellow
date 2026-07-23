@@ -2,7 +2,6 @@ use glib::{UserDirectory, home_dir, user_cache_dir, user_config_dir, user_specia
 use gtk::glib;
 use std::sync::{OnceLock, mpsc};
 use std::time::Duration;
-use tokio::sync::mpsc as tokio_mpsc;
 
 use crate::library::{LibraryRequest, init_library_tx};
 use crate::mpris::{UpdateMPRIS, init_mpris_tx};
@@ -42,8 +41,8 @@ pub fn init_globals() {
 type ChannelReceivers = (
     mpsc::Receiver<PlayerRequest>,
     mpsc::Receiver<LibraryRequest>,
-    tokio_mpsc::UnboundedReceiver<UpdateUI>,
-    tokio_mpsc::UnboundedReceiver<UpdateMPRIS>,
+    async_channel::Receiver<UpdateUI>,
+    async_channel::Receiver<UpdateMPRIS>,
 );
 #[derive(Debug)]
 pub struct AlreadyInitializedError;
@@ -59,8 +58,8 @@ pub struct AlreadyInitializedError;
 pub fn init_channels() -> Result<ChannelReceivers, AlreadyInitializedError> {
     let (player_tx, player_rx) = mpsc::channel::<PlayerRequest>();
     let (library_tx, library_rx) = mpsc::channel::<LibraryRequest>();
-    let (ui_tx, ui_rx) = tokio_mpsc::unbounded_channel::<UpdateUI>();
-    let (mpris_tx, mpris_rx) = tokio_mpsc::unbounded_channel::<UpdateMPRIS>();
+    let (ui_tx, ui_rx) = async_channel::unbounded::<UpdateUI>();
+    let (mpris_tx, mpris_rx) = async_channel::unbounded::<UpdateMPRIS>();
 
     init_player_tx(player_tx).map_err(|_| AlreadyInitializedError)?;
     let _ = init_library_tx(library_tx);

@@ -99,7 +99,7 @@ impl Window {
     /// # Panics
     /// The function panics if either the library or player channel is closed
     pub fn save_and_uninit(&self) -> Result<(), glib::error::BoolError> {
-        let _ = ui_tx().send(UpdateUI::Uninit);
+        let _ = ui_tx().send_blocking(UpdateUI::Uninit);
 
         let imp = self.imp();
         let settings_page = &imp.settings_page;

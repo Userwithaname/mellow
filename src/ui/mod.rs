@@ -1,7 +1,6 @@
 use core::cell::Cell;
 use gtk::gdk;
 use std::sync::OnceLock;
-use tokio::sync::mpsc as tokio_mpsc;
 
 mod actions;
 mod album_object;
@@ -55,13 +54,13 @@ use crate::library::{Albums, Artists, Songs, ToQueue};
 use crate::library::{SharedAlbum, SharedArtist, SharedSong};
 use crate::player::QueueItem;
 
-static UI_TX: OnceLock<tokio_mpsc::UnboundedSender<UpdateUI>> = OnceLock::new();
+static UI_TX: OnceLock<async_channel::Sender<UpdateUI>> = OnceLock::new();
 /// Returns the channel sender for sending requests to the UI using `UpdateUI`
 ///
 /// # Safety
 /// Causes undefined behavior if called before `init_channels`
 #[inline]
-pub fn ui_tx() -> &'static tokio_mpsc::UnboundedSender<UpdateUI> {
+pub fn ui_tx() -> &'static async_channel::Sender<UpdateUI> {
     // SAFETY: `init_channels` runs in `Application::run`, before starting any threads
     unsafe { UI_TX.get().unwrap_unchecked() }
 }
@@ -71,8 +70,8 @@ pub fn ui_tx() -> &'static tokio_mpsc::UnboundedSender<UpdateUI> {
 /// The function returns an error if `UI_TX` has already been initialized
 #[inline]
 pub fn init_ui_tx(
-    ui_tx: tokio_mpsc::UnboundedSender<UpdateUI>,
-) -> Result<(), tokio_mpsc::UnboundedSender<UpdateUI>> {
+    ui_tx: async_channel::Sender<UpdateUI>,
+) -> Result<(), async_channel::Sender<UpdateUI>> {
     UI_TX.set(ui_tx)
 }
 
@@ -201,15 +200,15 @@ pub enum UpdateUI {
 /// The function panics if the UI channel is closed
 pub fn show_queue() {
     let ui_tx = ui_tx();
-    ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
+    ui_tx.send_blocking(UpdateUI::FocusPlaying).expect(EXP_RX);
 
     // NOTE: This will not close the lyrics page, if open
-    let _ = ui_tx.send(UpdateUI::CloseQueueSubpage);
+    let _ = ui_tx.send_blocking(UpdateUI::CloseQueueSubpage);
 
     // IDEA: Also scroll to a specified item in the queue
 
     // Re-open the overlay in case it was closed
-    let _ = ui_tx.send(UpdateUI::OpenSheet(true));
+    let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(true));
 }
 
 // IDEA: The fallback images could be cached somehow

@@ -6,7 +6,6 @@ use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time::Duration;
 use std::{process, thread};
-use tokio::sync::mpsc as tokio_mpsc;
 
 mod imp;
 
@@ -52,7 +51,7 @@ impl Application {
                     info.payload_as_str().unwrap_or_default()
                 );
                 eprintln!("{info}\n");
-                let _ = ui_tx().send(UpdateUI::CrashNotice(info));
+                let _ = ui_tx().send_blocking(UpdateUI::CrashNotice(info));
 
                 // IDEA: Create a crash file on disk and attempt to correct the issue
                 // on next launch (for example, if the `library` thread crashed, it
@@ -81,7 +80,7 @@ impl Application {
 
     /// Initializes the application window
     #[inline]
-    fn init_window(&self, settings: gio::Settings, ui_rx: tokio_mpsc::UnboundedReceiver<UpdateUI>) {
+    fn init_window(&self, settings: gio::Settings, ui_rx: async_channel::Receiver<UpdateUI>) {
         self.create_window(settings, ui_rx);
 
         self.setup_actions();
@@ -177,11 +176,7 @@ impl Application {
 
     /// Creates a new `Window` and presents it
     #[inline]
-    fn create_window(
-        &self,
-        settings: gio::Settings,
-        ui_rx: tokio_mpsc::UnboundedReceiver<UpdateUI>,
-    ) {
+    fn create_window(&self, settings: gio::Settings, ui_rx: async_channel::Receiver<UpdateUI>) {
         let window = Window::new(self, settings);
         #[cfg(feature = "startup-logs")]
         println!("Window created");

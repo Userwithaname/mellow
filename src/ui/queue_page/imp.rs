@@ -92,7 +92,7 @@ impl QueuePage {
     }
     #[template_callback]
     pub fn handle_open_library(&self) {
-        ui_tx().send(UpdateUI::FocusLibrary).expect(EXP_RX);
+        ui_tx().send_blocking(UpdateUI::FocusLibrary).expect(EXP_RX);
     }
     #[template_callback]
     pub fn handle_exit_selection(&self) {
@@ -101,7 +101,7 @@ impl QueuePage {
     #[template_callback]
     pub fn handle_remove_selected(&self) {
         if let Some(selected_items) = self.selections.take() {
-            (ui_tx().send(UpdateUI::Notification(
+            (ui_tx().send_blocking(UpdateUI::Notification(
                 format!("Removed {} items from the queue", selected_items.len()),
                 Some(Box::new((
                     "Undo",
@@ -639,7 +639,8 @@ impl QueuePage {
                 #[weak]
                 queue_item_object,
                 move |_| match &mut *selections.borrow_mut() {
-                    None => (ui_tx().send(UpdateUI::OpenQueueSubpage(queue_index))).expect(EXP_RX),
+                    None => (ui_tx().send_blocking(UpdateUI::OpenQueueSubpage(queue_index)))
+                        .expect(EXP_RX),
                     Some(selections) => {
                         let selected = queue_page.toggle_selected_item(
                             (
@@ -684,9 +685,7 @@ impl QueuePage {
         impl SetDragState for DragState {
             fn set_drag_state(&self, dragging: bool) {
                 self.set(dragging);
-                ui_tx()
-                    .send(UpdateUI::CanCloseSheet(!dragging))
-                    .expect(EXP_RX);
+                (ui_tx().send_blocking(UpdateUI::CanCloseSheet(!dragging))).expect(EXP_RX);
             }
         }
         let dragging: DragState = Rc::new(Cell::new(false));

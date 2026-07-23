@@ -20,7 +20,7 @@ pub struct LibraryPage {
 impl LibraryPage {
     #[template_callback]
     pub fn handle_open_settings(&self) {
-        let _ = ui_tx().send(UpdateUI::FocusSettings);
+        let _ = ui_tx().send_blocking(UpdateUI::FocusSettings);
     }
 }
 

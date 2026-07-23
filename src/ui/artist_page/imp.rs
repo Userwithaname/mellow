@@ -50,8 +50,8 @@ impl ArtistPage {
         });
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
-        let _ = ui_tx.send(UpdateUI::OpenSheet(false));
-        let _ = ui_tx.send(UpdateUI::FocusPlaying);
+        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
+        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
     }
     #[template_callback]
     pub fn play_shuffled(&self) {
@@ -63,17 +63,17 @@ impl ArtistPage {
         });
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
-        let _ = ui_tx.send(UpdateUI::OpenSheet(false));
-        let _ = ui_tx.send(UpdateUI::FocusPlaying);
+        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
+        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
     }
     #[inline]
     pub fn add_to_queue(&self) {
         let ui_tx = ui_tx();
-        let _ = ui_tx.send(UpdateUI::RunAction("ui.library_nav_pop"));
+        let _ = ui_tx.send_blocking(UpdateUI::RunAction("ui.library_nav_pop"));
         let _ = player_tx().send(PlayerRequest::AppendQueue(
             self.artist.borrow().as_ref().unwrap().to_queue(),
         ));
-        let _ = ui_tx.send(UpdateUI::Notification(
+        let _ = ui_tx.send_blocking(UpdateUI::Notification(
             format!(
                 "Artist \"{}\" has been added to queue",
                 self.artist_name.label()

@@ -42,8 +42,8 @@ impl SongPage {
         .expect(EXP_RX);
         (player_tx.send(PlayerRequest::TogglePlay(Some(true)))).expect(EXP_RX);
         let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::OpenSheet(false)).expect(EXP_RX);
-        ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
+        (ui_tx.send_blocking(UpdateUI::OpenSheet(false))).expect(EXP_RX);
+        ui_tx.send_blocking(UpdateUI::FocusPlaying).expect(EXP_RX);
     }
     #[template_callback]
     pub fn handle_play_next(&self) {
@@ -55,7 +55,7 @@ impl SongPage {
             QueueItem::Song(Arc::clone(song)),
         )))))
         .expect(EXP_RX);
-        let _ = ui_tx().send(UpdateUI::Notification(
+        let _ = ui_tx().send_blocking(UpdateUI::Notification(
             format!(
                 "Song \"{}\" will play next in the queue",
                 song.info().inspect_basic().as_ref().unwrap().title
@@ -72,7 +72,7 @@ impl SongPage {
         player_tx
             .send(PlayerRequest::Append(QueueItem::Song(Arc::clone(song))))
             .expect(EXP_RX);
-        let _ = ui_tx().send(UpdateUI::Notification(
+        let _ = ui_tx().send_blocking(UpdateUI::Notification(
             format!(
                 "Song \"{}\" has been added to queue",
                 song.info().inspect_basic().as_ref().unwrap().title
@@ -85,7 +85,7 @@ impl SongPage {
         // Do nothing if the song is not from the user's library
         // (button should be greyed out anyway)
         if let Some(album) = &*self.shared_song.borrow().as_ref().unwrap().get_album() {
-            (ui_tx().send(UpdateUI::AlbumPage(Arc::clone(album)))).expect(EXP_RX);
+            (ui_tx().send_blocking(UpdateUI::AlbumPage(Arc::clone(album)))).expect(EXP_RX);
         }
     }
     #[template_callback]
@@ -93,7 +93,7 @@ impl SongPage {
         // Do nothing if the song is not from the user's library
         // (button should be greyed out anyway)
         if let Some(album) = &*self.shared_song.borrow().as_ref().unwrap().get_album() {
-            (ui_tx().send(UpdateUI::ArtistPage(album.lock().unwrap().artist_cloned())))
+            (ui_tx().send_blocking(UpdateUI::ArtistPage(album.lock().unwrap().artist_cloned())))
                 .expect(EXP_RX);
         }
     }

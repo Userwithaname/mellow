@@ -54,7 +54,7 @@ impl QueueSubpage {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
 
         let index = self.index.get();
-        (ui_tx().send(UpdateUI::RecenterQueue(index as isize))).expect(EXP_RX);
+        (ui_tx().send_blocking(UpdateUI::RecenterQueue(index as isize))).expect(EXP_RX);
 
         let player_tx = player_tx();
         (player_tx.send(PlayerRequest::SkipTo(index))).expect(EXP_RX);
@@ -81,7 +81,7 @@ impl QueueSubpage {
             .send(PlayerRequest::RemoveItem(index))
             .expect(EXP_RX);
 
-        (ui_tx().send(UpdateUI::Notification(
+        (ui_tx().send_blocking(UpdateUI::Notification(
             format!("Removed from the queue: \"{}\"", self.song_title.label()),
             Some(Box::new((
                 "Undo",
@@ -115,8 +115,8 @@ impl QueueSubpage {
             None => return, // Early-return for non-library songs
         };
         let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::FocusLibrary).expect(EXP_RX);
-        let _ = ui_tx.send(UpdateUI::AlbumPage(album));
+        ui_tx.send_blocking(UpdateUI::FocusLibrary).expect(EXP_RX);
+        let _ = ui_tx.send_blocking(UpdateUI::AlbumPage(album));
     }
     #[template_callback]
     pub fn handle_go_to_artist(&self) {
@@ -125,15 +125,15 @@ impl QueueSubpage {
             None => return, // Early-return for non-library songs
         };
         let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::FocusLibrary).expect(EXP_RX);
-        let _ = ui_tx.send(UpdateUI::ArtistPage(artist));
+        ui_tx.send_blocking(UpdateUI::FocusLibrary).expect(EXP_RX);
+        let _ = ui_tx.send_blocking(UpdateUI::ArtistPage(artist));
     }
     #[template_callback]
     pub fn handle_stopper_closes_player(&self) {
         let stopper = self.queue_item.borrow().as_stopper().clone();
         stopper.set_close_player(self.stopper_closes_player.is_active());
         self.obj().show_stopper_info(self.index.get(), &stopper);
-        let _ = ui_tx().send(UpdateUI::RedrawQueue);
+        let _ = ui_tx().send_blocking(UpdateUI::RedrawQueue);
     }
 }
 

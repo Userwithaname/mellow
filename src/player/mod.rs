@@ -395,7 +395,7 @@ impl Player {
             }
             QueueItem::Stopper(_) => {
                 if (self.queue.remove_current().as_stopper()).should_close_player() {
-                    let _ = ui_tx().send(UpdateUI::RunAction("app.quit"));
+                    let _ = ui_tx().send_blocking(UpdateUI::RunAction("app.quit"));
                 }
                 self.queue.ui_update_queue();
                 self.queue.ui_validate_queue_subpage_index();
@@ -434,7 +434,7 @@ impl Player {
             None => &queue[index],
             Some(shuffled) => &queue[shuffled[index]],
         });
-        (ui_tx().send(UpdateUI::SongInfo {
+        (ui_tx().send_blocking(UpdateUI::SongInfo {
             item: QueueItem::clone(&queue_item),
             pause_after: queue.get(index + 1).is_some_and(QueueItem::is_stopper),
         }))
@@ -453,7 +453,7 @@ impl Player {
             info.load_detailed();
         });
 
-        let _ = ui_tx().send(UpdateUI::ExitQueueSelection);
+        let _ = ui_tx().send_blocking(UpdateUI::ExitQueueSelection);
         self.queue.ui_update_queue();
     }
 
@@ -749,7 +749,7 @@ impl Player {
         let playing = state.0.is_ok() && matches!(state.1, State::Playing);
         #[cfg(debug_assertions)]
         println!("ui_set_state(playing: {playing}, interactive: {interactive})");
-        (ui_tx().send(UpdateUI::PlayerState {
+        (ui_tx().send_blocking(UpdateUI::PlayerState {
             playing,
             interactive,
         }))
@@ -766,20 +766,20 @@ impl Player {
             true => QueueItem::new_stopper(false),
         };
         let pause_after = self.queue.next().is_some_and(QueueItem::is_stopper);
-        (ui_tx().send(UpdateUI::SongInfo { item, pause_after })).expect(EXP_RX);
+        (ui_tx().send_blocking(UpdateUI::SongInfo { item, pause_after })).expect(EXP_RX);
     }
 
     /// Sends the current playback time to the UI receiver
     fn ui_set_time(&self) {
         let time = self.current_time().map(ClockTime::mseconds);
-        ui_tx().send(UpdateUI::PlayerTime { time }).expect(EXP_RX);
+        (ui_tx().send_blocking(UpdateUI::PlayerTime { time })).expect(EXP_RX);
     }
 
     /// Requests the UI to open the music library
     fn ui_open_playing() {
         let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
-        ui_tx.send(UpdateUI::OpenSheet(true)).expect(EXP_RX);
+        ui_tx.send_blocking(UpdateUI::FocusPlaying).expect(EXP_RX);
+        (ui_tx.send_blocking(UpdateUI::OpenSheet(true))).expect(EXP_RX);
     }
 
     fn wait_for_gstreamer_state(&mut self) {
@@ -857,12 +857,12 @@ impl Player {
         self.next_song_loaded = false;
 
         let ui_tx = ui_tx();
-        let _ = ui_tx.send(UpdateUI::PlayerState {
+        let _ = ui_tx.send_blocking(UpdateUI::PlayerState {
             playing: false,
             interactive: true,
         });
-        let _ = ui_tx.send(UpdateUI::DismissNotifications);
-        let _ = ui_tx.send(UpdateUI::Notification(
+        let _ = ui_tx.send_blocking(UpdateUI::DismissNotifications);
+        let _ = ui_tx.send_blocking(UpdateUI::Notification(
             "A playback error has occurred".to_owned(),
             None, // IDEA: "Details" button to show the full error message in a pop-up window
         ));

@@ -66,8 +66,8 @@ impl AlbumPage {
         });
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
-        let _ = ui_tx.send(UpdateUI::OpenSheet(false));
-        let _ = ui_tx.send(UpdateUI::FocusPlaying);
+        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
+        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
     }
     #[inline]
     pub fn play_disc(&self, disc_number: u32) {
@@ -80,7 +80,7 @@ impl AlbumPage {
     #[inline]
     pub fn add_disc_to_queue(&self, disc_number: u32) {
         Self::add_to_queue(self.songs_from_disc(disc_number));
-        let _ = ui_tx().send(UpdateUI::Notification(
+        let _ = ui_tx().send_blocking(UpdateUI::Notification(
             format!(
                 "Disc {disc_number} \"{}\" has been added to queue",
                 self.album_title.label()
@@ -102,7 +102,7 @@ impl AlbumPage {
     }
     #[template_callback]
     pub fn handle_go_to_artist(&self) {
-        (ui_tx().send(UpdateUI::ArtistPage(
+        (ui_tx().send_blocking(UpdateUI::ArtistPage(
             (self.album.borrow().as_ref().unwrap().lock().unwrap()).artist_cloned(),
         )))
         .expect(EXP_RX);

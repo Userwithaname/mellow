@@ -7,7 +7,6 @@ use gtk::{CompositeTemplate, gio, glib};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
-use tokio::sync::mpsc as tokio_mpsc;
 
 use crate::excuses::{ACTION_ERR, EXP_RX};
 use crate::library::{Albums, Artists, SharedAlbum, SharedArtist, SharedSong, Songs, ToQueue};
@@ -107,13 +106,13 @@ impl Window {
     }
 
     #[allow(clippy::future_not_send)]
-    pub async fn event_handler(&self, mut ui_rx: tokio_mpsc::UnboundedReceiver<UpdateUI>) -> ! {
+    pub async fn event_handler(&self, ui_rx: async_channel::Receiver<UpdateUI>) -> ! {
         let mut song_duration_ms = 0;
         loop {
             match ui_rx.recv().await.unwrap() {
                 UpdateUI::SongInfo { item, pause_after } => {
                     self.update_song_info(&item, pause_after, &mut song_duration_ms);
-                    (mpris_tx().send(UpdateMPRIS::SongInfo(item))).expect(EXP_RX);
+                    (mpris_tx().send(UpdateMPRIS::SongInfo(item)).await).expect(EXP_RX);
                 }
                 UpdateUI::PlayerTime { time } => {
                     self.main_player.set_time(time, song_duration_ms as f64);
@@ -123,7 +122,7 @@ impl Window {
                     interactive,
                 } => {
                     self.main_player.set_state(playing, interactive);
-                    (mpris_tx().send(UpdateMPRIS::PlayState(playing))).expect(EXP_RX);
+                    (mpris_tx().send(UpdateMPRIS::PlayState(playing)).await).expect(EXP_RX);
                 }
 
                 UpdateUI::SetQueue {
@@ -229,7 +228,7 @@ impl Window {
                 let item = QueueItem::clone(item);
                 Library::run_task(library_tx(), move || {
                     song.info().load_detailed();
-                    let _ = ui_tx().send(UpdateUI::SongInfo { item, pause_after });
+                    let _ = ui_tx().send_blocking(UpdateUI::SongInfo { item, pause_after });
                 });
                 (None, false)
             }
@@ -423,7 +422,7 @@ impl Window {
             // println!("⚠️ {index}: library song thumbnail would block; retrying later...");
             // Library::run_task(library_tx(), move || {
             //     thread::sleep(Duration::from_millis(30));
-            //     let _ = ui_tx().send(UpdateUI::LibrarySongLoaded(index, song));
+            //     let _ = ui_tx().send_blocking(UpdateUI::LibrarySongLoaded(index, song));
             // });
             return;
         };
@@ -443,7 +442,7 @@ impl Window {
             // println!("⚠️ {index}: library album thumbnail would block; retrying later...");
             // Library::run_task(library_tx(), move || {
             //     thread::sleep(Duration::from_millis(30));
-            //     let _ = ui_tx().send(UpdateUI::LibraryAlbumLoaded(index, first_song));
+            //     let _ = ui_tx().send_blocking(UpdateUI::LibraryAlbumLoaded(index, first_song));
             // });
             return;
         };
@@ -476,10 +475,11 @@ impl Window {
 
         let info = song.info();
         let Ok(thumbnail) = info.try_inspect_thumbnail() else {
-            println!("⚠️ {index}: queue song thumbnail would block; retrying later...");
+            #[cfg(feature = "lock-warnings")]
+            println!("{index}: queue song thumbnail would block; retrying later...");
             Library::run_task(library_tx(), move || {
                 thread::sleep(Duration::from_millis(30));
-                let _ = ui_tx().send(UpdateUI::QueueSongLoaded { index, song });
+                let _ = ui_tx().send_blocking(UpdateUI::QueueSongLoaded { index, song });
             });
             return;
         };

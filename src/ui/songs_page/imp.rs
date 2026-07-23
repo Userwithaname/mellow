@@ -175,8 +175,8 @@ impl SongsPage {
         .expect(EXP_RX);
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::OpenSheet(false)).expect(EXP_RX);
-        ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
+        (ui_tx.send_blocking(UpdateUI::OpenSheet(false))).expect(EXP_RX);
+        ui_tx.send_blocking(UpdateUI::FocusPlaying).expect(EXP_RX);
     }
 
     pub fn update_tag_filter_list(&self) {
@@ -464,7 +464,7 @@ impl ObjectImpl for SongsPage {
                 .downcast_ref::<SongObject>()
                 .unwrap()
                 .index();
-            (ui_tx().send(UpdateUI::SongPageByIndex(index as usize))).expect(EXP_RX);
+            (ui_tx().send_blocking(UpdateUI::SongPageByIndex(index as usize))).expect(EXP_RX);
         });
 
         // Restore the previous scroll position if pending, and update sort fields

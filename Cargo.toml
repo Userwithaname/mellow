@@ -20,13 +20,13 @@ task-counter  = []
 glib-build-tools = { version = "0.22.0", optional = true }
 
 [dependencies]
-adw          = { version = "0.9.0",  package = "libadwaita",   features = ["v1_9"]  }
-fastrand     = { version = "2.5.0",  default-features = false                       }
-gst          = { version = "0.25.0", package = "gstreamer"                          }
-gtk          = { version = "0.11.0", package = "gtk4",         features = ["v4_22"] }
-lofty        = { version = "0.24.0", default-features = false                       }
-mpris-server = { version = "0.10.0", default-features = false                       }
-tokio        = { version = "1.47.1", features = ["rt-multi-thread", "sync"]         }
+adw           = { version = "0.9.0",  package = "libadwaita",   features = ["v1_9"]  }
+async-channel = { version = "2.5.0",  default-features = false                       }
+fastrand      = { version = "2.5.0",  default-features = false                       }
+gst           = { version = "0.25.0", package = "gstreamer"                          }
+gtk           = { version = "0.11.0", package = "gtk4",         features = ["v4_22"] }
+lofty         = { version = "0.24.0", default-features = false                       }
+mpris-server  = { version = "0.10.0", default-features = false                       }
 
 [profile.dev]
 debug = "line-tables-only"
@@ -62,6 +62,7 @@ strip = false
 [lints.clippy]
 missing_safety_doc = "deny"
 undocumented_unsafe_blocks = "deny"
+let_underscore_future = "deny"
 clear_with_drain = "warn"
 deref_by_slicing = "warn"
 doc_markdown = "warn"

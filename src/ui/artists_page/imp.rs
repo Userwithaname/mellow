@@ -202,8 +202,8 @@ impl ArtistsPage {
             .expect(EXP_RX);
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
-        ui_tx.send(UpdateUI::OpenSheet(false)).expect(EXP_RX);
-        ui_tx.send(UpdateUI::FocusPlaying).expect(EXP_RX);
+        (ui_tx.send_blocking(UpdateUI::OpenSheet(false))).expect(EXP_RX);
+        ui_tx.send_blocking(UpdateUI::FocusPlaying).expect(EXP_RX);
     }
 
     #[inline]
@@ -470,7 +470,7 @@ impl ObjectImpl for ArtistsPage {
                     .unwrap()
                     .shared_artist(),
             );
-            ui_tx().send(UpdateUI::ArtistPage(artist)).expect(EXP_RX);
+            (ui_tx().send_blocking(UpdateUI::ArtistPage(artist))).expect(EXP_RX);
         });
 
         self.filter_mode.connect_active_notify(glib::clone!(

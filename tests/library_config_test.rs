@@ -2,14 +2,13 @@
 mod tests {
     use mellow::init_channels;
     use std::sync::mpsc;
-    use tokio::sync::mpsc as tokio_mpsc;
 
     use mellow::library::{LibraryConfig, LibraryRequest};
     use mellow::ui::UpdateUI;
 
     struct ConfigTester {
         config: LibraryConfig,
-        _ui_rx: tokio_mpsc::UnboundedReceiver<UpdateUI>,
+        _ui_rx: async_channel::Receiver<UpdateUI>,
         _library_rx: mpsc::Receiver<LibraryRequest>,
     }
 

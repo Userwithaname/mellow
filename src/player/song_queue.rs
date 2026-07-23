@@ -352,7 +352,7 @@ impl SongQueue {
             } else if index == self.len() {
                 if index == 0 {
                     // Clear the currently displayed song info in the UI if the queue is now empty
-                    let _ = ui_tx().send(UpdateUI::SongInfo {
+                    let _ = ui_tx().send_blocking(UpdateUI::SongInfo {
                         item: QueueItem::new_stopper(false),
                         pause_after: true,
                     });
@@ -537,11 +537,11 @@ impl SongQueue {
                         if index == playing_index {
                             // If the currently playing song has been moved, there is likely an
                             // error shown in the interface; dismissing if found
-                            let _ = ui_tx.send(UpdateUI::DismissNotifications);
+                            let _ = ui_tx.send_blocking(UpdateUI::DismissNotifications);
                         }
 
                         // Causes any open subpages to be redrawn
-                        let _ = ui_tx.send(UpdateUI::Progress(None));
+                        let _ = ui_tx.send_blocking(UpdateUI::Progress(None));
 
                         Some((index, QueueItem::from_song(&new_song)))
                     })
@@ -559,7 +559,7 @@ impl SongQueue {
     fn ui_update_shuffle(&self) {
         #[cfg(debug_assertions)]
         println!("ui_update_shuffle(): {}", self.shuffle);
-        ui_tx().send(UpdateUI::Shuffle(self.shuffle)).expect(EXP_RX);
+        (ui_tx().send_blocking(UpdateUI::Shuffle(self.shuffle))).expect(EXP_RX);
     }
 
     /// Updates the UI with the current queue repeat mode setting
@@ -570,7 +570,7 @@ impl SongQueue {
     fn ui_update_repeat(&self) {
         #[cfg(debug_assertions)]
         println!("ui_update_repeat(): {}", self.repeat);
-        ui_tx().send(UpdateUI::Repeat(self.repeat)).expect(EXP_RX);
+        (ui_tx().send_blocking(UpdateUI::Repeat(self.repeat))).expect(EXP_RX);
     }
 
     /// Updates the UI with the current queue
@@ -581,7 +581,7 @@ impl SongQueue {
     pub fn ui_update_queue(&mut self) {
         #[cfg(debug_assertions)]
         println!("ui_update_queue()");
-        (ui_tx().send(UpdateUI::SetQueue {
+        (ui_tx().send_blocking(UpdateUI::SetQueue {
             queue: self.ordered_queue(),
             playing_index: self.index,
         }))
@@ -600,7 +600,7 @@ impl SongQueue {
         }
         #[cfg(debug_assertions)]
         println!("ui_update_queue_index(): {}", self.index);
-        (ui_tx().send(UpdateUI::SetQueueIndex(self.index))).expect(EXP_RX);
+        (ui_tx().send_blocking(UpdateUI::SetQueueIndex(self.index))).expect(EXP_RX);
         self.last_ui_index = self.index;
     }
 
@@ -612,7 +612,7 @@ impl SongQueue {
     fn ui_close_queue_subpage(&self) {
         #[cfg(debug_assertions)]
         println!("ui_close_queue_subpage()");
-        ui_tx().send(UpdateUI::CloseQueueSubpage).expect(EXP_RX);
+        (ui_tx().send_blocking(UpdateUI::CloseQueueSubpage)).expect(EXP_RX);
     }
 
     /// Attempts to correct the queue subpage item index if open,
@@ -625,7 +625,7 @@ impl SongQueue {
         #[cfg(debug_assertions)]
         println!("ui_validate_queue_subpage_index()");
         ui_tx()
-            .send(UpdateUI::ValidateQueueSubpageIndex)
+            .send_blocking(UpdateUI::ValidateQueueSubpageIndex)
             .expect(EXP_RX);
     }
 
@@ -781,10 +781,12 @@ impl SongQueue {
         }
 
         match queue_startup_choice {
-            _ if library.is_empty() => ui_tx().send(UpdateUI::OpenSheet(true)).expect(EXP_RX),
+            _ if library.is_empty() => ui_tx()
+                .send_blocking(UpdateUI::OpenSheet(true))
+                .expect(EXP_RX),
             StartupQueueChoice::RestoreQueue => {
                 if fs::exists(songs_file()).unwrap_or_default() {
-                    ui_tx().send(UpdateUI::OpenSheet(true)).expect(EXP_RX);
+                    (ui_tx().send_blocking(UpdateUI::OpenSheet(true))).expect(EXP_RX);
                 } else {
                     // Load all songs into queue on first launch
                     library.run_on_songs_set(Box::new(|songs| play_songs(songs, false)));
@@ -817,7 +819,7 @@ impl SongQueue {
                 }));
             }
             StartupQueueChoice::EmptyQueue => {
-                ui_tx().send(UpdateUI::OpenSheet(true)).expect(EXP_RX);
+                (ui_tx().send_blocking(UpdateUI::OpenSheet(true))).expect(EXP_RX);
             }
         }
     }

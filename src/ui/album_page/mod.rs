@@ -92,7 +92,7 @@ impl AlbumPage {
                 let album = Arc::clone(album);
                 song_row.connect_activated(move |_| {
                     ui_tx()
-                        .send(UpdateUI::SongPage(Box::new((
+                        .send_blocking(UpdateUI::SongPage(Box::new((
                             i,
                             Arc::clone(&song),
                             Box::new(Arc::clone(&album)),
@@ -166,7 +166,7 @@ impl AlbumPage {
                     println!("Arwork assignment cancelled");
                     return;
                 }
-                let _ = ui_tx().send(UpdateUI::AlbumPageLoaded {
+                let _ = ui_tx().send_blocking(UpdateUI::AlbumPageLoaded {
                     index: page_index,
                     song: first_song,
                 });
@@ -220,10 +220,10 @@ impl AlbumPage {
     #[inline]
     pub fn add_to_queue(&self) {
         let ui_tx = ui_tx();
-        let _ = ui_tx.send(UpdateUI::RunAction("ui.library_nav_pop"));
+        let _ = ui_tx.send_blocking(UpdateUI::RunAction("ui.library_nav_pop"));
         let imp = self.imp();
         imp::AlbumPage::add_to_queue(imp.all_songs());
-        let _ = ui_tx.send(UpdateUI::Notification(
+        let _ = ui_tx.send_blocking(UpdateUI::Notification(
             format!(
                 "Album \"{}\" has been added to queue",
                 imp.album_title.label()

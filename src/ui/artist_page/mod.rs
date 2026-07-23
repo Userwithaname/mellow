@@ -76,7 +76,7 @@ impl ArtistPage {
             drop(album_locked);
             let album = Arc::clone(album);
             album_row.connect_activated(move |_| {
-                (ui_tx().send(UpdateUI::AlbumPage(Arc::clone(&album)))).expect(EXP_RX);
+                (ui_tx().send_blocking(UpdateUI::AlbumPage(Arc::clone(&album)))).expect(EXP_RX);
             });
 
             ui.albums_list.append(&album_row);
