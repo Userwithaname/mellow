@@ -17,8 +17,6 @@ pub struct LyricsPage {
     #[template_child]
     pub song_title: TemplateChild<gtk::Label>,
     #[template_child]
-    pub lyrics: TemplateChild<gtk::Label>,
-    #[template_child]
     pub scrolled_window: TemplateChild<gtk::ScrolledWindow>,
     #[template_child]
     pub lyrics_box: TemplateChild<gtk::ListBox>,
