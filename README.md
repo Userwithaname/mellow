@@ -110,7 +110,7 @@ dnf install gstreamer1-devel gtk4-devel libadwaita-devel meson
 
 > [!TIP]
 > Mellow may also be built using [Cargo](https://doc.rust-lang.org/cargo/commands/cargo-build.html)
-> directly by adding `--feature no-meson`. Note that this will require manually
+> directly by adding `--features no-meson`. Note that this will require manually
 > [installing the GSchema](https://gtk-rs.org/gtk4-rs/stable/latest/book/settings.html),
 > setting up icons, and creating the application shortcut. Building with Meson
 > is recommended for a simpler build process.
