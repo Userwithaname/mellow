@@ -9,43 +9,30 @@
           </object>
         </child>
         <property name="content">
-          <object class="AdwStatusPage">
-            <style>
-              <class name="compact"/>
-            </style>
+          <object class="GtkScrolledWindow" id="scrolled_window">
+            <property name="hscrollbar-policy">never</property>
             <child>
-              <object class="GtkBox">
-                <property name="orientation">vertical</property>
-                <property name="halign">center</property>
-                <property name="spacing">16</property>
+              <object class="AdwClamp">
+                <property name="maximum-size">600</property>
                 <child>
-                  <object class="GtkLabel" id="song_title">
-                    <property name="justify">center</property>
-                    <property name="wrap-mode">word</property>
-                    <property name="wrap">true</property>
-                    <property name="hexpand">true</property>
-                    <property name="halign">center</property>
-                    <property name="margin-start">12</property>
-                    <property name="margin-end">12</property>
-                    <property name="wrap-mode">word</property>
-                    <style>
-                      <class name="heading"/>
-                    </style>
-                  </object>
-                </child>
-                <child>
-                  <object class="GtkLabel" id="lyrics">
-                    <property name="justify">center</property>
-                    <property name="wrap-mode">word</property>
-                    <property name="wrap">true</property>
-                    <property name="hexpand">true</property>
-                    <property name="halign">center</property>
-                    <property name="margin-start">12</property>
-                    <property name="margin-end">12</property>
-                    <property name="wrap-mode">word</property>
-                    <style>
-                      <class name="body"/>
-                    </style>
+                  <object class="GtkBox">
+                    <property name="orientation">vertical</property>
+                    <property name="spacing">16</property>
+                    <child>
+                      <object class="GtkLabel" id="song_title">
+                         <property name="label">Title</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkLabel" id="lyrics">
+                         <property name="label">Lyrics</property>
+                      </object>
+                    </child>
+                    <child>
+                      <object class="GtkListBox" id="lyrics_box">
+                         <property name="selection-mode">none</property>
+                      </object>
+                    </child>
                   </object>
                 </child>
               </object>

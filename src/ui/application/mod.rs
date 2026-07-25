@@ -68,6 +68,7 @@ impl Application {
                 let Some((settings, ui_rx, mpris_rx)) = args.take() else {
                     return; // This closure should not run multiple times
                 };
+                crate::ui::load_css();
                 Self::init_window(app, settings, ui_rx);
                 glib::spawn_future_local(mpris::controller(mpris_rx));
             });

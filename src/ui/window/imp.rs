@@ -116,6 +116,10 @@ impl Window {
                 }
                 UpdateUI::PlayerTime { time } => {
                     self.main_player.set_time(time, song_duration_ms as f64);
+                    if let Some(time_ms) = time {
+                        self.lyrics_page
+                            .update_position(Duration::from_millis(time_ms));
+                }
                 }
                 UpdateUI::PlayerState {
                     playing,

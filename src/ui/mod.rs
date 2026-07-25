@@ -69,6 +69,23 @@ pub fn ui_tx() -> &'static async_channel::Sender<UpdateUI> {
 /// # Errors
 /// The function returns an error if `UI_TX` has already been initialized
 #[inline]
+pub fn load_css() {
+    let provider = gtk::CssProvider::new();
+    provider.load_from_data("
+        list.lyrics-list {
+            background-color: transparent;
+            color: #fff;
+        }
+    ");
+    if let Some(display) = gtk::gdk::Display::default() {
+        gtk::style_context_add_provider_for_display(
+            &display,
+            &provider,
+            gtk::STYLE_PROVIDER_PRIORITY_APPLICATION,
+        );
+    }
+}
+
 pub fn init_ui_tx(
     ui_tx: async_channel::Sender<UpdateUI>,
 ) -> Result<(), async_channel::Sender<UpdateUI>> {
