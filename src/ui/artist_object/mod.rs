@@ -1,4 +1,4 @@
-use adw::{prelude::*, subclass::prelude::*};
+use adw::subclass::prelude::*;
 use core::cmp;
 use glib::Object;
 use gtk::{gdk, glib};
@@ -29,28 +29,6 @@ impl ArtistObject {
             .build();
         let _ = artist_object.imp().shared_artist.set(shared_artist);
         artist_object
-    }
-
-    #[inline]
-    pub const fn load_artwork(&self) {
-        // TODO: Decide what kind of image to show for library artists and construct it
-        // Maybe 4 artworks composed in a grid with a circular cutout might look good
-        // if self.artwork().is_some() {
-        //     return;
-        // }
-        // let index = self.index() as usize;
-        // Library::run_task(LIBRARY_TX.get().expect(EXP_INIT), move || {
-        //     UI_TX
-        //         .get()
-        //         .expect(EXP_INIT)
-        //         .send(UpdateUI::LibraryArtistLoaded(index))
-        //         .expect(EXP_RX);
-        // });
-    }
-
-    #[inline]
-    pub fn unload_artwork(&self) {
-        self.set_property("artwork", Option::<gdk::Texture>::None);
     }
 
     /// Returns the `SharedArtist` associated with this object

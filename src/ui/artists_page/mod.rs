@@ -1,5 +1,5 @@
 use adw::{prelude::*, subclass::prelude::*};
-use gtk::{gdk, glib};
+use gtk::glib;
 
 use crate::library::Artists;
 use crate::ui::{ArtistOrdering, SortConfig};
@@ -28,11 +28,6 @@ impl ArtistsPage {
     }
 
     #[inline]
-    pub fn assign_artwork(&self, index: usize, artwork: Option<gdk::Texture>) {
-        self.imp().assign_artwork(index, artwork);
-    }
-
-    #[inline]
     pub fn set_sort_mode(&self, sort_mode: ArtistOrdering) {
         glib::spawn_future_local(glib::clone!(
             #[weak(rename_to=artists_page)]
@@ -54,10 +49,5 @@ impl ArtistsPage {
     #[must_use]
     pub fn get_shuffle(&self) -> bool {
         self.imp().get_shuffle()
-    }
-
-    #[inline]
-    pub fn uninit(&self) {
-        self.imp().uninit();
     }
 }

@@ -114,7 +114,6 @@ impl Window {
             let _ = player_tx().send(PlayerRequest::Uninit(remember_queue, remember_time));
         });
 
-        imp.artists_page.uninit();
         imp.albums_page.uninit();
         imp.songs_page.uninit();
         imp.queue_page.uninit();

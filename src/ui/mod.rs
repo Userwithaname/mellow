@@ -138,10 +138,6 @@ pub enum UpdateUI {
         index: usize,
         song: SharedSong,
     },
-    /// Prompts the library UI to assign the now-loaded artist artwork for the item at index
-    LibraryArtistLoaded {
-        index: usize,
-    },
     /// Prompts the queue UI to assign the now-loaded song artwork for the item at index
     QueueSongLoaded {
         index: usize,
@@ -213,13 +209,6 @@ pub fn show_queue() {
 
 // IDEA: The fallback images could be cached somehow
 // (might be tricky since `gdk::Paintable` cannot be const)
-
-// Returns a fallback image intended for artists with missing artwork
-#[must_use]
-pub fn fallback_artist_image() -> gdk::Paintable {
-    // TODO: Fallback image for albums (maybe a symbolic disc icon?)
-    gdk::Paintable::new_empty(1, 1)
-}
 
 // Returns a fallback image intended for albums with missing artwork
 #[must_use]

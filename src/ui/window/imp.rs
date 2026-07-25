@@ -147,7 +147,6 @@ impl Window {
 
                 UpdateUI::LibrarySongLoaded { index, song } => self.song_loaded(index, song),
                 UpdateUI::LibraryAlbumLoaded { index, song } => self.album_loaded(index, song),
-                UpdateUI::LibraryArtistLoaded { index } => self.artist_loaded(index),
                 UpdateUI::QueueSongLoaded { index, song } => self.queue_song_loaded(index, song),
                 UpdateUI::AlbumPageLoaded { index, song } => self.album_page_loaded(index, &song),
 
@@ -447,11 +446,6 @@ impl Window {
             return;
         }
         self.albums_page.assign_artwork(index, thumbnail.as_ref());
-    }
-    fn artist_loaded(&self, index: usize) {
-        self.artists_page.assign_artwork(
-            index, None, // TODO: Decide what to show
-        );
     }
     fn queue_song_loaded(&self, index: usize, song: SharedSong) {
         let song_queue = self.queue_page.borrow_queue();

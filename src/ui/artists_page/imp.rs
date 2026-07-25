@@ -3,7 +3,7 @@ use core::cell::{Cell, OnceCell, RefCell};
 use core::cmp;
 use fastrand;
 use gtk::CompositeTemplate;
-use gtk::{gdk, gio, glib};
+use gtk::{gio, glib};
 use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -381,14 +381,6 @@ impl ArtistsPage {
         }
     }
 
-    #[inline]
-    pub fn assign_artwork(&self, index: usize, artwork: Option<gdk::Texture>) {
-        let artists = self.artists.borrow();
-        if index < artists.len() {
-            artists[index].set_property("artwork", artwork);
-        }
-    }
-
     #[template_callback]
     pub fn handle_reverse_sort(&self) {
         self.remember_scroll_pos();
@@ -432,13 +424,6 @@ impl ArtistsPage {
         {
             glib::idle_add_local_once(move || vadjustment.set_value(scroll_pos));
         }
-    }
-
-    #[inline]
-    pub const fn uninit(&self) {
-        // for artist in self.artists.take() {
-        //     artist.imp().is_visible.store(false, Ordering::Relaxed);
-        // }
     }
 }
 
@@ -540,28 +525,11 @@ impl ObjectImpl for ArtistsPage {
                 &artist_object.artist(),
                 &format!("Albums: {}", artist_object.albums()),
             );
-            // if let Some(artwork) = artist_object.artwork() {
-            //     artist_tile.set_artwork(&artwork);
-            // } else {
-            //     artist_object.load_artwork();
-            //     artist_tile.set_artwork(&fallback_image);
-            // }
-
-            // artist_tile.add_binding(
-            //     artist_object
-            //         .bind_property("artwork", &artist_tile.imp().image.get(), "paintable")
-            //         .sync_create()
-            //         .build(),
-            // );
         });
         factory.connect_unbind(|_, list_item| {
             let list_item = list_item
                 .downcast_ref::<gtk::ListItem>()
                 .expect("Needs to be ListItem");
-            let artist_object = list_item
-                .item()
-                .and_downcast::<ArtistObject>()
-                .expect("Needs to be ArtistObject");
             let artist_tile = list_item
                 .downcast_ref::<gtk::ListItem>()
                 .expect("Needs to be ListItem")
@@ -570,7 +538,6 @@ impl ObjectImpl for ArtistsPage {
                 .expect("Needs to be ItemTile");
 
             artist_tile.reset_bindings();
-            artist_object.unload_artwork();
         });
 
         self.artists_grid.set_factory(Some(&factory));
