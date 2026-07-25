@@ -145,8 +145,8 @@ impl Window {
                 UpdateUI::SetLibraryAlbums(albums) => self.load_library_albums(albums),
                 UpdateUI::SetLibraryArtists(artists) => self.load_library_artists(artists),
 
-                UpdateUI::LibrarySongLoaded { index, song } => self.song_loaded(index, &song),
-                UpdateUI::LibraryAlbumLoaded { index, song } => self.album_loaded(index, &song),
+                UpdateUI::LibrarySongLoaded { index, song } => self.song_loaded(index, song),
+                UpdateUI::LibraryAlbumLoaded { index, song } => self.album_loaded(index, song),
                 UpdateUI::LibraryArtistLoaded { index } => self.artist_loaded(index),
                 UpdateUI::QueueSongLoaded { index, song } => self.queue_song_loaded(index, song),
                 UpdateUI::AlbumPageLoaded { index, song } => self.album_page_loaded(index, &song),
@@ -411,19 +411,16 @@ impl Window {
         self.artists_page.load_artists(artists);
     }
 
-    fn song_loaded(&self, index: usize, song: &SharedSong) {
+    fn song_loaded(&self, index: usize, song: SharedSong) {
         let info = song.info();
         let Ok(thumbnail) = info.try_inspect_thumbnail() else {
-            // NOTE: The `Err` variant means the `RwLock` is busy, which most likely means
-            // the item went out of view between when the message was sent and when it was
-            // received by the UI, so it is currently being unloaded. If there are issues
-            // with thumbnails not showing up, uncomment the code below.
+            #[cfg(feature = "startup-logs")]
+            println!("⚠️ {index}: library song thumbnail would block; retrying later...");
 
-            // println!("⚠️ {index}: library song thumbnail would block; retrying later...");
-            // Library::run_task(library_tx(), move || {
-            //     thread::sleep(Duration::from_millis(30));
-            //     let _ = ui_tx().send_blocking(UpdateUI::LibrarySongLoaded(index, song));
-            // });
+            Library::run_task(library_tx(), move || {
+                thread::sleep(Duration::from_millis(30));
+                let _ = ui_tx().send_blocking(UpdateUI::LibrarySongLoaded { index, song });
+            });
             return;
         };
         if thumbnail.is_none() {
@@ -431,19 +428,19 @@ impl Window {
         }
         self.songs_page.assign_artwork(index, thumbnail.as_ref());
     }
-    fn album_loaded(&self, index: usize, first_song: &SharedSong) {
+    fn album_loaded(&self, index: usize, first_song: SharedSong) {
         let info = first_song.info();
         let Ok(thumbnail) = info.try_inspect_thumbnail() else {
-            // NOTE: The `Err` variant means the `RwLock` is busy, which most likely means
-            // the item went out of view between when the message was sent and when it was
-            // received by the UI, so it is currently being unloaded. If there are issues
-            // with thumbnails not showing up, uncomment the code below.
+            #[cfg(feature = "startup-logs")]
+            println!("⚠️ {index}: library album thumbnail would block; retrying later...");
 
-            // println!("⚠️ {index}: library album thumbnail would block; retrying later...");
-            // Library::run_task(library_tx(), move || {
-            //     thread::sleep(Duration::from_millis(30));
-            //     let _ = ui_tx().send_blocking(UpdateUI::LibraryAlbumLoaded(index, first_song));
-            // });
+            Library::run_task(library_tx(), move || {
+                thread::sleep(Duration::from_millis(30));
+                let _ = ui_tx().send_blocking(UpdateUI::LibraryAlbumLoaded {
+                    index,
+                    song: first_song,
+                });
+            });
             return;
         };
         if thumbnail.is_none() {
