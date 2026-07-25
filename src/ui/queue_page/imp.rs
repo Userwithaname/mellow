@@ -633,26 +633,35 @@ impl QueuePage {
             row_imp.selection_toggle.set_visible(selection_mode);
             row_imp.open_subpage_icon.set_visible(!selection_mode);
 
-            let selections = Rc::clone(&selections);
-            let queue_index = queue_index as usize;
-            queue_row.connect_activated(glib::clone!(
-                #[weak(rename_to=queue_page)]
+            row_imp.selection_toggle.connect_toggled(glib::clone!(
+                #[weak(rename_to = queue_page)]
                 queue_page,
                 #[weak]
                 queue_item_object,
-                move |_| match &mut *selections.borrow_mut() {
-                    None => (ui_tx().send_blocking(UpdateUI::OpenQueueSubpage(queue_index)))
-                        .expect(EXP_RX),
-                    Some(selections) => {
-                        let selected = queue_page.toggle_selected_item(
-                            (
-                                queue_item_object.index(),
-                                queue_item_object.queue_item().clone(),
-                            ),
-                            selections,
-                        );
-                        queue_item_object.set_selected(selected);
-                    }
+                #[strong]
+                selections,
+                move |_| if let Some(selections) = &mut *selections.borrow_mut() {
+                    let selected = queue_page.toggle_selected_item(
+                        (
+                            queue_item_object.index(),
+                            queue_item_object.queue_item().clone(),
+                        ),
+                        selections,
+                    );
+                    queue_item_object.set_selected(selected);
+                }
+            ));
+
+            let queue_index = queue_index as usize;
+            queue_row.connect_activated(glib::clone!(
+                #[weak(rename_to = selection_toggle)]
+                row_imp.selection_toggle,
+                #[strong]
+                selections,
+                move |_| if selections.borrow().is_none() {
+                    (ui_tx().send_blocking(UpdateUI::OpenQueueSubpage(queue_index))).expect(EXP_RX);
+                } else {
+                    selection_toggle.activate();
                 }
             ));
 
