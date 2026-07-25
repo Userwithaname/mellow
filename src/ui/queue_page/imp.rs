@@ -21,6 +21,8 @@ const PAN_REPEAT_DELAY: Duration = Duration::from_millis(165);
 const PAN_REPEAT_DELAY_MIN: Duration = Duration::from_millis(5);
 const PAN_REPEAT_SPEEDUP: Duration = Duration::from_millis(2);
 
+type Selections = Vec<(u32, QueueItem)>;
+
 #[derive(Default, CompositeTemplate)]
 #[template(file = "queue_page.ui")]
 pub struct QueuePage {
@@ -36,7 +38,7 @@ pub struct QueuePage {
     #[template_child]
     pub remove_selection: TemplateChild<gtk::Button>,
 
-    pub selections: Rc<RefCell<Option<Vec<(u32, QueueItem)>>>>,
+    pub selections: Rc<RefCell<Option<Selections>>>,
 
     #[template_child]
     list_box: TemplateChild<gtk::ListBox>,
