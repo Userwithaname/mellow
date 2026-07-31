@@ -136,9 +136,18 @@ impl ArtistsPage {
         let mut artist_filters = self.artist_filters.borrow_mut();
         let mut new_tags = Vec::with_capacity(artist_filters.tags.len());
 
-        // TODO: When there are no tags available in the library, either show a message
-        // or hide the tag filters section in the interface entirely
-        for tag in tag_list::read_global_tags().tag_names() {
+        let global_tags = tag_list::read_global_tags();
+        if global_tags.tags().is_empty() {
+            self.filtered_tags.append(
+                &gtk::Label::builder()
+                    .label("Custom tags can be added to albums and songs")
+                    .css_classes(["dimmed"])
+                    .build(),
+            );
+            return;
+        }
+
+        for tag in global_tags.tag_names() {
             let toggle_button = gtk::ToggleButton::builder().label(tag).build();
 
             // Re-select items which were previously selected

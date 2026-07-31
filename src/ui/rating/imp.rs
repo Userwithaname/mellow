@@ -243,7 +243,18 @@ impl Rating {
     fn refresh_tags(&self) {
         if let Some(item) = &*self.item.borrow() {
             self.tags_list.remove_all();
-            for tag in item.get_tags() {
+            let tags = item.get_tags();
+            let no_tags = tags.is_empty();
+            let placeholder_label = || {
+                gtk::Label::builder()
+                    .label("Custom tags can be added using the button above")
+                    .css_classes(["dimmed"])
+                    .build()
+            };
+            if no_tags {
+                self.tags_list.append(&placeholder_label());
+            }
+            for tag in tags {
                 let tag_box = gtk::Box::builder().build();
                 tag_box.append(&gtk::Label::new(Some(&tag)));
                 let remove_tag_button = gtk::Button::builder()
@@ -260,6 +271,9 @@ impl Rating {
                     move |_| {
                         this.tags_list.remove(&tag_box);
                         (this.item.borrow().as_ref()).inspect(|item| item.remove_tag(&tag));
+                        if this.tags_list.first_child().is_none() {
+                            this.tags_list.append(&placeholder_label());
+                        }
                         this.update_tag_buttons(); // In case the last instance was removed
                     }
                 ));
