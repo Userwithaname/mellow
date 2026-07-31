@@ -312,29 +312,56 @@ impl Rating {
             exact_match |= tag == entry;
         }
 
-        if !exact_match {
-            // An extra button for creating new tags
-            let tag_button = gtk::Button::builder()
-                .label(format!("Create new tag: {entry}"))
-                .css_classes(["pill"])
-                .build();
-            let new_tag = entry.to_owned();
-            tag_button.connect_clicked(glib::clone!(
-                #[weak(rename_to = rating)]
-                self,
-                move |_| {
-                    rating.add_tag(new_tag.clone());
-                    rating.add_tag_entry.set_text("");
-                }
-            ));
-            self.available_tags.append(&tag_button);
-        }
-
         if !entry.is_empty() {
+            if !exact_match {
+                // An extra button for creating new tags
+                let tag_button = gtk::Button::builder()
+                    .label(format!("Create new tag: {entry}"))
+                    .css_classes(["pill"])
+                    .build();
+                let new_tag = entry.to_owned();
+                tag_button.connect_clicked(glib::clone!(
+                    #[weak(rename_to = rating)]
+                    self,
+                    move |_| {
+                        rating.add_tag(new_tag.clone());
+                        rating.add_tag_entry.set_text("");
+                    }
+                ));
+                self.available_tags.append(&tag_button);
+            }
+
             self.available_tags
                 .first_child()
                 .unwrap()
                 .add_css_class("suggested-action");
+        } else if self.available_tags.first_child().is_none() {
+            let placeholder = gtk::Box::builder()
+                .orientation(gtk::Orientation::Vertical)
+                .halign(gtk::Align::Center)
+                .valign(gtk::Align::Center)
+                .hexpand(true)
+                .css_classes(["card"])
+                .build();
+            placeholder.append(
+                &gtk::Label::builder()
+                    .label("Start typing above to create a new tag")
+                    .margin_top(12)
+                    .margin_start(16)
+                    .margin_end(16)
+                    .build(),
+            );
+            placeholder.append(
+                &gtk::Label::builder()
+                    .label("(suggestions: <i>fun</i> or <i>relaxing</i>)")
+                    .sensitive(false)
+                    .margin_bottom(12)
+                    .margin_start(16)
+                    .margin_end(16)
+                    .use_markup(true)
+                    .build(),
+            );
+            self.available_tags.append(&placeholder);
         }
     }
 }
