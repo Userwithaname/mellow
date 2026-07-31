@@ -4,8 +4,7 @@ use gtk::CompositeTemplate;
 use gtk::glib;
 
 use crate::excuses::EXP_INIT;
-use crate::library::RatableAndTaggable;
-use crate::library::song_rating::SongRating;
+use crate::library::{RatableAndTaggable, song_rating::SongRating, tag_list};
 
 const NUM_STARS: u8 = 5;
 const DEFAULT_STAR_SIZE: i32 = 16;
@@ -22,7 +21,11 @@ pub struct Rating {
     #[template_child]
     tags_list: TemplateChild<adw::WrapBox>,
     #[template_child]
-    add_tag_entry: TemplateChild<adw::EntryRow>,
+    add_tag_entry: TemplateChild<gtk::SearchEntry>,
+    #[template_child]
+    add_tags_toggle: TemplateChild<gtk::ToggleButton>,
+    #[template_child]
+    available_tags: TemplateChild<gtk::Box>,
 
     star_icons: OnceCell<Box<[gtk::Image]>>,
 
@@ -30,7 +33,6 @@ pub struct Rating {
     pub item: RefCell<Option<Box<dyn RatableAndTaggable>>>,
 }
 
-// TODO: Implement custom tags/management (button on the right)
 // TODO: Allow keyboard navigation for changing star ratings
 // - Allow the stars widget to be focused using the tab key
 // - Capture the left/right arrow keys to increase or decrease the stars
@@ -45,15 +47,14 @@ impl Rating {
     }
 
     #[template_callback]
-    pub fn handle_add_tag(&self) {
-        if let Some(item) = &*self.item.borrow() {
-            let tag = self.add_tag_entry.text().to_string();
-            self.add_tag_entry.set_text("");
-            if !tag.is_empty() {
-                item.add_tag(tag);
-                self.refresh_tags();
-            }
+    pub fn handle_confirm_tag(&self) {
+        if !self.add_tag_entry.text().is_empty() {
+            self.available_tags.first_child().unwrap().activate();
         }
+    }
+    #[template_callback]
+    pub fn hide_tags_menu(&self) {
+        self.add_tags_toggle.set_active(false);
     }
 
     /// Initializes the widget controllers
@@ -227,6 +228,18 @@ impl Rating {
             self.update_favorite_button(rating.is_favorite());
         }
     }
+
+    fn add_tag(&self, tag: String) {
+        if let Some(item) = &*self.item.borrow() {
+            if !tag.is_empty() {
+                item.add_tag(tag);
+                self.refresh_tags();
+            }
+        } else {
+            #[cfg(debug_assertions)]
+            panic!("Could not add tag - `item` is not assigned to the rating widget");
+        }
+    }
     fn refresh_tags(&self) {
         if let Some(item) = &*self.item.borrow() {
             self.tags_list.remove_all();
@@ -247,9 +260,66 @@ impl Rating {
                     move |_| {
                         this.tags_list.remove(&tag_box);
                         (this.item.borrow().as_ref()).inspect(|item| item.remove_tag(&tag));
+                        this.update_tag_buttons(); // In case the last instance was removed
                     }
                 ));
             }
+        }
+    }
+    #[template_callback]
+    pub fn update_tag_buttons(&self) {
+        // NOTE: Using a `GridView` would be more efficient (but this works for now)
+
+        while let Some(button) = self.available_tags.last_child() {
+            self.available_tags.remove(&button);
+        }
+
+        let entry = &*self.add_tag_entry.text();
+        let mut exact_match = false;
+        for tag in tag_list::read_global_tags().tag_names() {
+            if !tag.starts_with(entry) {
+                continue;
+            }
+
+            let tag_button = gtk::Button::builder()
+                .label(tag)
+                .css_classes(["pill"])
+                .build();
+            tag_button.connect_clicked(glib::clone!(
+                #[weak(rename_to = rating)]
+                self,
+                move |tag_button| {
+                    rating.add_tag(tag_button.label().expect(EXP_INIT).to_string());
+                    rating.add_tag_entry.set_text("");
+                }
+            ));
+            self.available_tags.append(&tag_button);
+            exact_match |= tag == entry;
+        }
+
+        if !exact_match {
+            // An extra button for creating new tags
+            let tag_button = gtk::Button::builder()
+                .label(format!("Create new tag: {entry}"))
+                .css_classes(["pill"])
+                .build();
+            let new_tag = entry.to_string();
+            tag_button.connect_clicked(glib::clone!(
+                #[weak(rename_to = rating)]
+                self,
+                move |_| {
+                    rating.add_tag(new_tag.clone());
+                    rating.add_tag_entry.set_text("");
+                }
+            ));
+            self.available_tags.append(&tag_button);
+        }
+
+        if !entry.is_empty() {
+            self.available_tags
+                .first_child()
+                .unwrap()
+                .add_css_class("suggested-action");
         }
     }
 }
@@ -285,6 +355,16 @@ impl ObjectImpl for Rating {
             self,
             move |_| this.refresh_tags()
         ));
+
+        self.available_tags.connect_map(glib::clone!(
+            #[weak(rename_to = rating)]
+            self,
+            move |_| rating.update_tag_buttons()
+        ));
+
+        self.add_tag_entry.connect_map(|entry| {
+            entry.grab_focus();
+        });
     }
 }
 impl WidgetImpl for Rating {}

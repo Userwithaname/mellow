@@ -25,8 +25,13 @@ Music library:
   - [x] Filter by user-assigned tags
     - IDEA: Add a button to select/deselect all toggles
     - IDEA: Add an "untagged" toggle for showing only items with no tags
-- [-] User-assigned custom tags
-  - TODO: **Show suggestions when adding tags**
+- [x] User-assigned custom tags
+  - [x] Show suggestions when adding tags
+    - [x] It should be possible to assign pre-existing tags without needing to type
+    - [x] Typing should only be necessary when creating a new tag
+    - [x] While typing, filter existing tags and confirm to add the best candidate
+  - IDEA: Choose which tag suggestion is active using the arrow keys, without un-focusing the entry box
+  - IDEA: Ability to rename existing tags
 - [x] Artists page
   - [x] Artist subpage, accessed from each item
     - IDEA: Display average rating
@@ -40,7 +45,7 @@ Other:
 
 - [ ] Redesign the library directory settings
   > For example, opening a separate "Directory Settings" popup window and requiring the user
-  > to apply all changes at once could work around the [Flatpak freezing issue #21](https://github.com/Userwithaname/mellow/issues/21))
+  > to apply all changes at once could work around the Flatpak freezing issue ([#21](https://github.com/Userwithaname/mellow/issues/21))
   > and also present an opportunity to add "Import"/"Export" buttons to more easily merge
   > library data from different systems
 - [ ] Bundle icons instead of relying on system ones
