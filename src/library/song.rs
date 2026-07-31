@@ -124,8 +124,6 @@ impl<'s> Song {
             |info| {
                 serialize! {
                     path => "path",
-                    user_info.added => "added",
-                    user_info.modified => "modified",
                     info.title => "title",
                     info.album => "album",
                     info.artist => "artist",
@@ -134,6 +132,8 @@ impl<'s> Song {
                     info.disc => "disc",
                     info.year => "year",
                     info.duration_ms => "duration",
+                    user_info.added => "added",
+                    user_info.modified => "modified",
                     user_info.play_count => "play_count",
                     user_info.rating => "rating",
                     serialize_list(&user_info.tags) => "tags",
@@ -159,8 +159,6 @@ impl<'s> Song {
             data => {
                 "path"<str> => path,
                 "uri"<str> => path, // COMPAT: Support for loading <= 0.2.2 `songs` file
-                "added"<?> => user_info.added,
-                "modified"<?> => user_info.modified,
                 "title"<String> => info.title,
                 "album"<String> => info.album,
                 "artist"<String> => info.artist,
@@ -169,6 +167,8 @@ impl<'s> Song {
                 "disc"<?> => info.disc,
                 "year"<?> => info.year,
                 "duration"<?> => info.duration_ms,
+                "added"<?> => user_info.added,
+                "modified"<?> => user_info.modified,
                 "play_count"<?> => user_info.play_count,
                 "rating"<?> => user_info.rating,
                 "tags"<[?String]> => user_info.tags,
