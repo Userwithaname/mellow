@@ -244,14 +244,13 @@ impl Rating {
         if let Some(item) = &*self.item.borrow() {
             self.tags_list.remove_all();
             let tags = item.get_tags();
-            let no_tags = tags.is_empty();
             let placeholder_label = || {
                 gtk::Label::builder()
                     .label("Custom tags can be added using the button above")
                     .css_classes(["dimmed"])
                     .build()
             };
-            if no_tags {
+            if tags.is_empty() {
                 self.tags_list.append(&placeholder_label());
             }
             for tag in tags {
