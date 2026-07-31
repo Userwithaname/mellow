@@ -51,11 +51,14 @@ impl Application {
                     info.payload_as_str().unwrap_or_default()
                 );
                 eprintln!("{info}\n");
-                let _ = ui_tx().send_blocking(UpdateUI::CrashNotice(info));
 
                 // IDEA: Create a crash file on disk and attempt to correct the issue
                 // on next launch (for example, if the `library` thread crashed, it
                 // could perform a lengthy check to ensure the `songs` file is valid)
+
+                if ui_tx().send_blocking(UpdateUI::CrashNotice(info)).is_err() {
+                    process::exit(1);
+                };
             }));
 
             // Starting the components in parallel with GTK (inside `init_componets`)
@@ -215,13 +218,11 @@ impl Application {
         let imp = self.imp();
         imp.window.get().unwrap().save_and_uninit().unwrap();
 
-        // Wait for all components to stop, except if timeout was exceeded
+        // Wait until all components stop cleanly or the `timeout` is reached
         let timeout = Duration::from_secs(5);
         let (notify_done, rx) = mpsc::channel::<()>();
-        let (library_handle, player_handle) = (
-            imp.library_handle.take().unwrap(),
-            imp.player_handle.take().unwrap(),
-        );
+        let library_handle = imp.library_handle.take().unwrap();
+        let player_handle = imp.player_handle.take().unwrap();
         let await_components = thread::spawn(move || {
             library_handle.join().unwrap();
             player_handle.join().unwrap();
@@ -231,6 +232,6 @@ impl Application {
             eprintln!("Exiting - component timeout was reached");
             process::exit(1);
         }
-        await_components.join().unwrap(); // Panic if a background thread crashed
+        await_components.join().expect("A component has crashed");
     }
 }
