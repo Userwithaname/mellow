@@ -11,9 +11,8 @@ pub struct Album {
     pub(super) title: String,
     pub(super) year: u16,
     /// # Safety
-    /// Costruct using `NewSharedAlbum::new_album` to ensure
-    /// `songs` is never empty to prevent undefined behavior
-    songs: AlbumSongs, // Private to enforce safety requirement
+    /// Ensure `songs` is never empty (construct using `NewSharedAlbum::new_album`)
+    songs: AlbumSongs, // Private to ensure safety requirement
     pub(super) artist: SharedArtist,
     pub(super) user_info: UserAlbumInfo,
 }

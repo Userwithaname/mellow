@@ -7,9 +7,8 @@ use crate::player::QueueItem;
 pub struct Artist {
     pub(super) name: String,
     /// # Safety
-    /// Costruct using `NewSharedArtist::new_artist_album_pair` to
-    /// ensure `albums` is never empty to prevent undefined behavior
-    albums: ArtistAlbums, // Private to enforce safety requirement
+    /// Ensure `albums` is never empty (construct using `NewSharedArtist::new_artist_album_pair`)
+    albums: ArtistAlbums, // Private to ensure safety requirement
 }
 
 impl Artist {

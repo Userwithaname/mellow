@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-static GLOBAL_TAGS: RwLock<TagList> = RwLock::new(TagList::default());
+static GLOBAL_TAGS: RwLock<TagList> = RwLock::new(TagList::new());
 /// Returns a guard for reading the global tags list
 ///
 /// # Panics
@@ -32,8 +32,7 @@ impl TagList {
     /// Constructs an empty `TagList`
     #[inline]
     #[must_use]
-    pub const fn default() -> TagList {
-        // NOTE: Not using the `Default` trait, because it needs to be `const`
+    pub const fn new() -> TagList {
         TagList(Vec::new())
     }
 

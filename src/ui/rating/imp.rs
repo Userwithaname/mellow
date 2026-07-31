@@ -243,16 +243,18 @@ impl Rating {
     fn refresh_tags(&self) {
         if let Some(item) = &*self.item.borrow() {
             self.tags_list.remove_all();
-            let tags = item.get_tags();
+
             let placeholder_label = || {
                 gtk::Label::builder()
                     .label("Custom tags can be added using the button above")
                     .css_classes(["dimmed"])
                     .build()
             };
+            let tags = item.get_tags();
             if tags.is_empty() {
                 self.tags_list.append(&placeholder_label());
             }
+
             for tag in tags {
                 let tag_box = gtk::Box::builder().build();
                 tag_box.append(&gtk::Label::new(Some(&tag)));
@@ -316,7 +318,7 @@ impl Rating {
                 .label(format!("Create new tag: {entry}"))
                 .css_classes(["pill"])
                 .build();
-            let new_tag = entry.to_string();
+            let new_tag = entry.to_owned();
             tag_button.connect_clicked(glib::clone!(
                 #[weak(rename_to = rating)]
                 self,
