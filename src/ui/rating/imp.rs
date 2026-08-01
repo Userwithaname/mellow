@@ -305,6 +305,7 @@ impl Rating {
                 tag_button.connect_clicked(move |_| {
                     rating.add_tag(tag.clone());
                     rating.add_tag_entry.set_text("");
+                    rating.update_tag_buttons();
                 });
             } else {
                 tag_button.set_sensitive(false);
@@ -424,6 +425,8 @@ impl ObjectImpl for Rating {
         self.add_tag_entry.connect_map(|entry| {
             entry.grab_focus();
         });
+        self.add_tags_toggle
+            .connect_unmap(|toggle| toggle.set_active(false));
     }
 }
 impl WidgetImpl for Rating {}
