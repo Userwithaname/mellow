@@ -377,7 +377,7 @@ impl Rating {
         }
 
         for button in inactive_buttons {
-            self.available_tags.append(&button)
+            self.available_tags.append(&button);
         }
     }
 }

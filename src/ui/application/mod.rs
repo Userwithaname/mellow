@@ -58,10 +58,10 @@ impl Application {
 
                 if ui_tx().send_blocking(UpdateUI::CrashNotice(info)).is_err() {
                     process::exit(1);
-                };
+                }
             }));
 
-            // Starting the components in parallel with GTK (inside `init_componets`)
+            // Starting the components in parallel with GTK (inside `init_components`)
             // results in faster launch times, but this requires moving them into
             // `connect_startup` which takes a reusable `Fn` closure. One way of
             // doing so is using a `RefCell<Option>` and `Option::take`.
