@@ -110,8 +110,8 @@ impl Window {
         let mut song_duration_ms = 0;
         loop {
             match ui_rx.recv().await.unwrap() {
-                UpdateUI::SongInfo { item, pause_after } => {
-                    self.update_song_info(&item, pause_after, &mut song_duration_ms);
+                UpdateUI::SongInfo { item } => {
+                    self.update_song_info(&item, &mut song_duration_ms);
                     let _ = mpris_tx().send(UpdateMPRIS::SongInfo(item)).await;
                 }
                 UpdateUI::PlayerTime { time } => {
@@ -192,11 +192,10 @@ impl Window {
         }
     }
 
-    fn update_song_info(&self, item: &QueueItem, pause_after: bool, song_duration_ms: &mut u64) {
+    fn update_song_info(&self, item: &QueueItem, song_duration_ms: &mut u64) {
         #[cfg(feature = "startup-logs")]
         println!("update_song_info()");
 
-        self.queue_subpage.set_stop_after(pause_after);
         let song = match &item {
             QueueItem::Song(song) => song,
             QueueItem::Stopper(_) => {
@@ -227,7 +226,7 @@ impl Window {
                 let item = QueueItem::clone(item);
                 Library::run_task(library_tx(), move || {
                     song.info().load_detailed();
-                    let _ = ui_tx().send_blocking(UpdateUI::SongInfo { item, pause_after });
+                    let _ = ui_tx().send_blocking(UpdateUI::SongInfo { item });
                 });
                 (None, false)
             }
@@ -287,6 +286,7 @@ impl Window {
         {
             let current = &queue[index];
             if *current == item {
+                self.queue_subpage.update_stop_after(index, &queue);
                 return;
             }
 
@@ -297,6 +297,7 @@ impl Window {
             {
                 self.queue_subpage
                     .show_song_info(index, Arc::clone(current));
+                self.queue_subpage.update_stop_after(index, &queue);
                 return;
             }
         }
@@ -314,6 +315,7 @@ impl Window {
         }
 
         self.queue_subpage.set_index(index);
+        self.queue_subpage.update_stop_after(index, &queue);
     }
     fn close_queue_subpage(&self) {
         #[cfg(debug_assertions)]

@@ -123,4 +123,10 @@ impl QueueSubpage {
             false => "Pause After",
         });
     }
+
+    /// Sets the 'Pause After' button text based on whether the next
+    /// item in the queue is a stopper or not
+    pub fn update_stop_after(&self, index: usize, queue: &[QueueItem]) {
+        self.set_stop_after(queue.get(index + 1).is_some_and(QueueItem::is_stopper));
+    }
 }

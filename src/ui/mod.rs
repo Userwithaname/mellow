@@ -88,7 +88,6 @@ pub enum UpdateUI {
     /// Updates the song info displayed in the UI to the given item (use `Stopper` to reset)
     SongInfo {
         item: QueueItem,
-        pause_after: bool,
     },
     /// Replaces the UI song queue with a new one, with the playing index as the second argument
     SetQueue {

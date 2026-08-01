@@ -436,7 +436,6 @@ impl Player {
         });
         (ui_tx().send_blocking(UpdateUI::SongInfo {
             item: QueueItem::clone(&queue_item),
-            pause_after: queue.get(index + 1).is_some_and(QueueItem::is_stopper),
         }))
         .expect(EXP_RX);
 
@@ -765,8 +764,7 @@ impl Player {
             false => QueueItem::clone(self.queue.current()),
             true => QueueItem::new_stopper(false),
         };
-        let pause_after = self.queue.next().is_some_and(QueueItem::is_stopper);
-        (ui_tx().send_blocking(UpdateUI::SongInfo { item, pause_after })).expect(EXP_RX);
+        (ui_tx().send_blocking(UpdateUI::SongInfo { item })).expect(EXP_RX);
     }
 
     /// Sends the current playback time to the UI receiver

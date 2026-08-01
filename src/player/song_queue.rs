@@ -354,7 +354,6 @@ impl SongQueue {
                     // Clear the currently displayed song info in the UI if the queue is now empty
                     let _ = ui_tx().send_blocking(UpdateUI::SongInfo {
                         item: QueueItem::new_stopper(false),
-                        pause_after: true,
                     });
                 } else {
                     self.index = match self.repeat {
