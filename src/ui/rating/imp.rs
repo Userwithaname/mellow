@@ -354,6 +354,7 @@ impl Rating {
                 .halign(gtk::Align::Center)
                 .valign(gtk::Align::Center)
                 .css_classes(["card"])
+                .hexpand(true)
                 .build();
             placeholder.append(
                 &gtk::Label::builder()
