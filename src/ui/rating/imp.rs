@@ -348,7 +348,7 @@ impl Rating {
             if best_match.is_sensitive() {
                 best_match.add_css_class("suggested-action");
             }
-        } else if self.available_tags.first_child().is_none() {
+        } else if self.available_tags.first_child().is_none() && inactive_buttons.is_empty() {
             let placeholder = gtk::Box::builder()
                 .orientation(gtk::Orientation::Vertical)
                 .halign(gtk::Align::Center)
