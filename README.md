@@ -15,9 +15,9 @@
 
 # About
 
-Mellow is an experimental music player, which strives for maximal immersion by
-minimizing distractions. Non-crucial elements of the interface are hidden away,
-making it easier to focus on what is most important - the music.
+Mellow is an experimental music player, which strives for an immersive listening
+experience by minimizing distractions. Non-crucial elements of the interface are
+hidden away, bringing music to the spotlight.
 
 Unlike most players, Mellow puts the currently playing song at the base of the
 interface. This means that there is no "back" button on the main player, which
@@ -38,15 +38,10 @@ When the overlay is closed, it is time to enjoy the music.
 - **Gapless playback**: Enjoy stutter-free transitions between songs
 - **Song queue**: View and edit the list of playing songs, or schedule a pause
 - **Music library**: Browse and play your local music collection
-- **File discovery**: Detects changed, moved, removed, or added song files
-- **Removable drives**: Ratings can be accessed once the library is available again
+- **Custom tags**: Categorize your music to make it easier to find what to listen to
+- **File discovery**: Reorganize your library without worry of losing your data
+- **Removable drives**: Unavailable libraries will not lose their library data
 - **Fast and lightweight**: Responsive and quick to start, even with large libraries
-
-# Roadmap
-
-- **User-assigned custom tags**: Allow users to assign custom tags to library songs for
-  easier browsing (for example, songs could be marked as "calm" or "energic", which would
-  make it easier to find the right music for the current mood using library filters)
 
 ---
 
@@ -56,8 +51,11 @@ When the overlay is closed, it is time to enjoy the music.
 > on the [issues page](https://github.com/Userwithaname/mellow/issues).
 
 > [!WARNING]
-> Forwards compatibility is not guaranteed; if you plan on trying out older versions
-> or commits, it is recommended to backup your configuration beforehand.
+> Forwards compatibility is not guaranteed; loading a newer configuration using older
+> versions or commits could potentially result in your library data being lost.
+> Please backup your `songs` file before doing so, if this is important to you. If the
+> old version is unable to launch, the Mellow GSchema settings may need to be reset
+> (for example, using `gsettings reset-recursively io.github.userwithaname.Mellow`).
 
 # Installing Mellow
 
@@ -71,8 +69,11 @@ It can be installed by opening the Flatpak file in Gnome Software
 (or similar), or using the `flatpak` command from the terminal:
 
 ```bash
-# Note: Check if the path is correct before running
-flatpak install --user ~/Downloads/io.github.userwithaname.Mellow.flatpak
+# Note: Ensure the file path and architecture is correct before running
+# x86_64:
+flatpak install --user ~/Downloads/io.github.userwithaname.Mellow.x86_64.flatpak
+# aarch64:
+flatpak install --user ~/Downloads/io.github.userwithaname.Mellow.aarch64.flatpak
 ```
 
 # Uninstalling
