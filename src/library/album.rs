@@ -241,4 +241,7 @@ impl Taggable for SharedAlbum {
     fn remove_tag(&self, tag: &str) {
         self.lock().unwrap().remove_tag_from_songs(tag);
     }
+    fn has_tag(&self, tag: &str) -> bool {
+        self.lock().unwrap().user_info.tags.find(tag).is_ok()
+    }
 }

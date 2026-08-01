@@ -77,6 +77,9 @@ impl Taggable for SharedSong {
                 .unwrap(),
         );
     }
+    fn has_tag(&self, tag: &str) -> bool {
+        self.info().user().tags.find(tag).is_ok()
+    }
 }
 
 #[derive(Debug)]

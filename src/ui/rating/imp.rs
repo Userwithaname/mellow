@@ -289,58 +289,70 @@ impl Rating {
             self.available_tags.remove(&button);
         }
 
+        fn new_tag_button(rating: &Rating, tag: String, label: &str, is_new: bool) -> gtk::Button {
+            let tag_button = gtk::Button::builder().css_classes(["pill"]).build();
+            let content = gtk::Box::builder().spacing(12).build();
+            let icon_name = match is_new {
+                true => "list-add-symbolic",
+                false => "object-select-symbolic",
+            };
+            content.append(&gtk::Image::builder().icon_name(icon_name).build());
+            content.append(&gtk::Label::builder().label(label).build());
+            tag_button.set_child(Some(&content));
+
+            if is_new {
+                let rating = rating.to_owned();
+                tag_button.connect_clicked(move |_| {
+                    rating.add_tag(tag.clone());
+                    rating.add_tag_entry.set_text("");
+                });
+            } else {
+                tag_button.set_sensitive(false);
+            }
+
+            tag_button
+        }
+
         let entry = &*self.add_tag_entry.text();
         let mut exact_match = false;
+        let item_tags = self.item.borrow();
+        let item_tags = item_tags.as_ref().unwrap();
+        let mut inactive_buttons = Vec::new();
         for tag in tag_list::read_global_tags().tag_names() {
             if !tag.starts_with(entry) {
                 continue;
             }
-
-            let tag_button = gtk::Button::builder()
-                .label(tag)
-                .css_classes(["pill"])
-                .build();
-            tag_button.connect_clicked(glib::clone!(
-                #[weak(rename_to = rating)]
-                self,
-                move |tag_button| {
-                    rating.add_tag(tag_button.label().expect(EXP_INIT).to_string());
-                    rating.add_tag_entry.set_text("");
-                }
-            ));
-            self.available_tags.append(&tag_button);
             exact_match |= tag == entry;
+
+            let is_new = !item_tags.has_tag(tag);
+            let tag_button = new_tag_button(self, tag.to_owned(), tag, is_new);
+            match is_new {
+                true => self.available_tags.append(&tag_button),
+                false => inactive_buttons.push(tag_button),
+            }
         }
 
         if !entry.is_empty() {
             if !exact_match {
                 // An extra button for creating new tags
-                let tag_button = gtk::Button::builder()
-                    .label(format!("Create new tag: {entry}"))
-                    .css_classes(["pill"])
-                    .build();
-                let new_tag = entry.to_owned();
-                tag_button.connect_clicked(glib::clone!(
-                    #[weak(rename_to = rating)]
+                let tag_button = new_tag_button(
                     self,
-                    move |_| {
-                        rating.add_tag(new_tag.clone());
-                        rating.add_tag_entry.set_text("");
-                    }
-                ));
+                    entry.to_owned(),
+                    &format!("Create new tag: {entry}"),
+                    true,
+                );
                 self.available_tags.append(&tag_button);
             }
 
-            self.available_tags
-                .first_child()
-                .unwrap()
-                .add_css_class("suggested-action");
+            let best_match = self.available_tags.first_child().unwrap();
+            if best_match.is_sensitive() {
+                best_match.add_css_class("suggested-action");
+            }
         } else if self.available_tags.first_child().is_none() {
             let placeholder = gtk::Box::builder()
                 .orientation(gtk::Orientation::Vertical)
                 .halign(gtk::Align::Center)
                 .valign(gtk::Align::Center)
-                .hexpand(true)
                 .css_classes(["card"])
                 .build();
             placeholder.append(
@@ -354,14 +366,18 @@ impl Rating {
             placeholder.append(
                 &gtk::Label::builder()
                     .label("(suggestions: <i>fun</i> or <i>relaxing</i>)")
+                    .use_markup(true)
                     .sensitive(false)
                     .margin_bottom(12)
                     .margin_start(16)
                     .margin_end(16)
-                    .use_markup(true)
                     .build(),
             );
             self.available_tags.append(&placeholder);
+        }
+
+        for button in inactive_buttons {
+            self.available_tags.append(&button)
         }
     }
 }

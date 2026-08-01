@@ -23,6 +23,7 @@ pub trait Taggable {
     fn get_tags(&self) -> Box<[String]>;
     fn add_tag(&self, tag: String);
     fn remove_tag(&self, tag: &str);
+    fn has_tag(&self, tag: &str) -> bool;
 }
 
 #[derive(Debug, Default)]

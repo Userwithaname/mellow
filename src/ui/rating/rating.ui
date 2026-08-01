@@ -78,7 +78,6 @@
                                     <property name="margin-top">6</property>
                                     <child>
                                       <object class="GtkBox" id="available_tags">
-                                        <property name="height-request">16</property>
                                         <property name="spacing">6</property>
                                       </object>
                                     </child>
