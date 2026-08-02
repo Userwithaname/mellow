@@ -1,10 +1,10 @@
 /// Takes a duration in seconds and returns a nicely formatted
 /// `String` for display (`(h:)(m)m:ss`)
 ///
-/// # Example:
+/// # Example
 /// ```rust
-/// use mellow::util::format_duration;
-///
+/// # use mellow::util::format_duration;
+/// #
 /// assert_eq!(format_duration(83), "1:23");
 /// assert_eq!(format_duration(60 * 60 + 83), "1:01:23");
 /// ```
@@ -26,10 +26,10 @@ pub fn format_duration(seconds_total: u64) -> String {
 /// Takes a duration in milliseconds and returns a nicely
 /// formatted `String` for display (`(h:)(m)m:ss`)
 ///
-/// # Example:
+/// # Example
 /// ```rust
-/// use mellow::util::format_duration_ms;
-///
+/// # use mellow::util::format_duration_ms;
+/// #
 /// assert_eq!(format_duration_ms(83000), "1:23");
 /// assert_eq!(format_duration_ms((60 * 60 + 83) * 1000), "1:01:23");
 /// ```
@@ -41,10 +41,10 @@ pub fn format_duration_ms(milliseconds_total: u64) -> String {
 /// Takes a duration in minutes and returns a nicely formatted
 /// `String` for display (`(([x]d,) [y]h,) [z]m`)
 ///
-/// # Example:
+/// # Example
 /// ```rust
-/// use mellow::util::format_duration_minutes;
-///
+/// # use mellow::util::format_duration_minutes;
+/// #
 /// assert_eq!(format_duration_minutes(1), "1m");
 /// assert_eq!(format_duration_minutes(60 + 23), "1h, 23m");
 /// assert_eq!(format_duration_minutes(24 * 60 + 2 * 60 + 3), "1d, 2h, 3m");

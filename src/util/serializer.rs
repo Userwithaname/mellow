@@ -4,7 +4,8 @@
 ///
 /// # Example
 /// ```rust
-/// use mellow::util::{serialize, serialize_list};
+/// # use mellow::util::serialize;
+/// use mellow::util::serialize_list;
 ///
 /// let number = 5;
 /// let text = "hello";
@@ -43,8 +44,8 @@ pub use serialize;
 ///
 /// # Example
 /// ```rust
-/// use mellow::util::serialize_list;
-///
+/// # use mellow::util::serialize_list;
+/// #
 /// assert_eq!(
 ///     serialize_list(&[
 ///         "one".to_string(),
@@ -63,7 +64,7 @@ pub fn serialize_list(list: &[String]) -> String {
 /// Retreives serialized `data` field values and assigns them
 /// to the variables on the right side of each expression
 ///
-/// Note: Assignment may fail silently for individual fields
+/// Note: Assignment will fail silently for individual fields
 /// if they are not present within the provided `data`
 ///
 /// The following types are supported:
@@ -75,12 +76,16 @@ pub fn serialize_list(list: &[String]) -> String {
 /// - A special case exists for `[?String]`, which is the same as
 ///   `[String]`, but converts the `Vec<String>` using `.into()`
 ///
+/// To deserialize lists, `unescaped_split` must also be available
+/// in scope where this macro is invoked
+///
 /// # Panics
-/// This macro panics when parsing invalid data for types `?` and `[?]`
+/// Panics when parsing invalid data for types `?` and `[?]`
 ///
 /// # Example
 /// ```rust
-/// use mellow::util::{unescaped_split, deserialize};
+/// # use mellow::util::deserialize;
+/// use mellow::util::unescaped_split;
 ///
 /// let mut number = 0;
 /// let mut text = String::new();

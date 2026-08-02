@@ -17,15 +17,14 @@ impl SongRating {
 
     /// Returns a new `SongRating`
     ///
-    /// # Example:
+    /// # Example
     /// ```rust
-    /// use mellow::library::song_rating::SongRating;
+    /// # use mellow::library::song_rating::SongRating;
+    /// #
+    /// let mut rating = SongRating::new(3, true);
     ///
-    /// fn main() {
-    ///     let mut rating = SongRating::new(3, true);
-    ///     assert_eq!(rating.stars(), 3);
-    ///     assert_eq!(rating.is_favorite(), true);
-    /// }
+    /// assert_eq!(rating.stars(), 3);
+    /// assert_eq!(rating.is_favorite(), true);
     /// ```
     #[inline]
     #[must_use]
@@ -62,15 +61,12 @@ impl SongRating {
     ///
     /// # Example
     /// ```rust
-    /// use mellow::library::song_rating::SongRating;
-    ///
-    /// fn main() {
-    ///     let mut rating = SongRating::new(3, true);
-    ///
-    ///     rating.set_stars(5);
-    ///     assert_eq!(rating.stars(), 5);
-    ///     assert_eq!(rating.is_favorite(), true);
-    /// }
+    /// # use mellow::library::song_rating::SongRating;
+    /// #
+    /// let mut rating = SongRating::new(3, true);
+    /// rating.set_stars(5);
+    /// assert_eq!(rating.stars(), 5);
+    /// assert_eq!(rating.is_favorite(), true);
     /// ```
     #[inline]
     pub fn set_stars(&mut self, stars: u8) {
@@ -85,18 +81,16 @@ impl SongRating {
     ///
     /// # Example
     /// ```rust
-    /// use mellow::library::song_rating::SongRating;
+    /// # use mellow::library::song_rating::SongRating;
+    /// #
+    /// let mut rating = SongRating::new(3, true);
     ///
-    /// fn main() {
-    ///     let mut rating = SongRating::new(3, true);
+    /// rating.set_favorite(false);
+    /// assert_eq!(rating.is_favorite(), false);
+    /// assert_eq!(rating.stars(), 3);
     ///
-    ///     rating.set_favorite(false);
-    ///     assert_eq!(rating.is_favorite(), false);
-    ///     assert_eq!(rating.stars(), 3);
-    ///
-    ///     rating.set_favorite(true);
-    ///     assert_eq!(rating.is_favorite(), true);
-    /// }
+    /// rating.set_favorite(true);
+    /// assert_eq!(rating.is_favorite(), true);
     /// ```
     #[inline]
     pub const fn set_favorite(&mut self, favorite: bool) {
@@ -107,18 +101,16 @@ impl SongRating {
     ///
     /// # Example
     /// ```rust
-    /// use mellow::library::song_rating::SongRating;
+    /// # use mellow::library::song_rating::SongRating;
+    /// #
+    /// let mut rating = SongRating::new(3, true);
     ///
-    /// fn main() {
-    ///     let mut rating = SongRating::new(3, true);
+    /// rating.toggle_favorite();
+    /// assert_eq!(rating.is_favorite(), false);
+    /// assert_eq!(rating.stars(), 3);
     ///
-    ///     rating.toggle_favorite();
-    ///     assert_eq!(rating.is_favorite(), false);
-    ///     assert_eq!(rating.stars(), 3);
-    ///
-    ///     rating.toggle_favorite();
-    ///     assert_eq!(rating.is_favorite(), true);
-    /// }
+    /// rating.toggle_favorite();
+    /// assert_eq!(rating.is_favorite(), true);
     /// ```
     #[inline]
     pub const fn toggle_favorite(&mut self) {

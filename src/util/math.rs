@@ -4,8 +4,8 @@
 ///
 /// # Example
 /// ```rust
-/// use mellow::util::lerp;
-///
+/// # use mellow::util::lerp;
+/// #
 /// assert_eq!(lerp(5.0, 10.0, 0.0), 5.0);
 /// assert_eq!(lerp(5.0, 10.0, 1.0), 10.0);
 /// assert_eq!(lerp(5.0, 10.0, 0.5), 7.5);
@@ -22,8 +22,8 @@ pub const fn lerp(left: f64, right: f64, mid: f64) -> f64 {
 ///
 /// # Example
 /// ```rust
-/// use mellow::util::approx_eq;
-///
+/// # use mellow::util::approx_eq;
+/// #
 /// assert!(approx_eq(0.9995, 1.0));
 /// assert!(approx_eq(1.0005, 1.0));
 /// assert!(!approx_eq(0.9994, 1.0));
@@ -43,8 +43,8 @@ pub const fn approx_eq(left: f64, right: f64) -> bool {
 ///
 /// # Example
 /// ```rust
-/// use mellow::util::wrap_index;
-///
+/// # use mellow::util::wrap_index;
+/// #
 /// let len = 15;
 /// assert_eq!(wrap_index(5, len), 5);
 /// assert_eq!(wrap_index(-1, len), 14);

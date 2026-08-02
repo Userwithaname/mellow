@@ -1,20 +1,24 @@
 pub const SCORE_THRESHOLD: f64 = 0.75;
 
-/// Fuzzy query result scoring function which returns a
-/// score number between 0 and 1, depending on how well
-/// the `query` matches the `item`. Individual words of
-/// the `query` will be matched against the `item`, and
-/// scored based on factors such as ordering and spacing
-/// between the matched words. If small discrepancies
-/// between `query` and `input` should be allowed, use
-/// `query_score_old` instead.
+/// Returns a number between 0 and 1 depending on
+/// how well the `query` matches the `item`
 ///
-/// Note: the comparison is case-sensitive
+/// Comparison is case-sensitive, and is based on
+/// individual words
 ///
-/// # Example:
+/// - If words in the `query` are ordered differently
+///   from, or a word is not a substring of `item`, the
+///   result is always 0
+/// - Partially matching words will lower the overall
+///   score, depending on how long the word from `query`
+///   is compared to the word in `item`
+/// - Skipped words result in a lower overall score,
+///   depending on how long the skipped words are
+///
+/// # Example
 /// ```rust
-/// use mellow::util::search::query_score;
-///
+/// # use mellow::util::search::query_score;
+/// #
 /// assert_eq!(query_score("happy day", "happy tuesday"), 0.7142857142857143);
 /// assert_eq!(query_score("test", "test"), 1.0);
 /// assert_eq!(query_score("test", "TEST"), 0.0);

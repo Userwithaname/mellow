@@ -9,10 +9,10 @@ use std::{fs, io};
 ///
 /// Note that splitting by `\` is not possible
 ///
-/// # Example:
+/// # Example
 /// ```rust
-/// use mellow::util::unescaped_split;
-///
+/// # use mellow::util::unescaped_split;
+/// #
 /// assert_eq!(
 ///     unescaped_split(r"Testing, testing\, one two, three", ',').as_ref(),
 ///     vec!["Testing", "testing, one two", "three"]

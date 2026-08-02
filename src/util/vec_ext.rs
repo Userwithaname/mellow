@@ -13,8 +13,8 @@ impl<T> ReorderVecExt for Vec<T> {
     ///
     /// # Example
     /// ```rust
-    /// use mellow::util::ReorderVecExt;
-    ///
+    /// # use mellow::util::ReorderVecExt;
+    /// #
     /// let mut numbers = vec![1, 2, 3, 4, 5];
     ///
     /// numbers.reorder(1, 4);
@@ -44,7 +44,7 @@ impl<T> ReorderVecExt for Vec<T> {
     ///
     /// Reference counted types behave as expected:
     /// ```rust
-    /// use mellow::util::ReorderVecExt;
+    /// # use mellow::util::ReorderVecExt;
     /// use std::rc::Rc;
     ///
     /// let mut rcs = vec![Rc::new(1), Rc::new(2)];
