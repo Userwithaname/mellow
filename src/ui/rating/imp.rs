@@ -249,7 +249,6 @@ impl Rating {
                     .label("Press the <b>+</b> button to add tags")
                     .use_markup(true)
                     .css_classes(["dimmed"])
-                    .valign(gtk::Align::Center)
                     .hexpand(true)
                     .build()
             };
