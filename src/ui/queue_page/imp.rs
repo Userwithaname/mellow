@@ -564,10 +564,24 @@ impl QueuePage {
     #[inline]
     pub fn assign_artwork(&self, index: usize, artwork: Option<&gdk::Texture>) {
         if let Ok(model_index) = self.queue_index_to_model(index) {
-            self.queue_item_objects.borrow()[model_index].set_property("artwork", artwork);
+            let queue_item_objects = self.queue_item_objects.borrow();
+            queue_item_objects[model_index].set_property("artwork", artwork);
 
             #[cfg(debug_assertions)]
             self.model_index_to_queue_discrepancy_check(model_index, index);
+
+            // Assign artworks for repeat mode wrapped item duplicates as well
+            let queue_length = self.queue_length.get();
+            let model_length = queue_item_objects.len();
+            if queue_length < model_length {
+                if let Some(wrapped_back) = model_index.checked_sub(queue_length) {
+                    queue_item_objects[wrapped_back].set_property("artwork", artwork);
+                }
+                let wrapped_ahead = model_index + queue_length;
+                if wrapped_ahead < model_length {
+                    queue_item_objects[wrapped_ahead].set_property("artwork", artwork);
+                }
+            }
         }
     }
 
