@@ -246,8 +246,11 @@ impl Rating {
 
             let placeholder_label = || {
                 gtk::Label::builder()
-                    .label("Custom tags can be added using the button above")
+                    .label("Press the <b>+</b> button to add tags")
+                    .use_markup(true)
                     .css_classes(["dimmed"])
+                    .valign(gtk::Align::Center)
+                    .hexpand(true)
                     .build()
             };
             let tags = item.get_tags();
@@ -359,7 +362,7 @@ impl Rating {
                 .build();
             placeholder.append(
                 &gtk::Label::builder()
-                    .label("Start typing above to create a new tag")
+                    .label("Enter a word or phrase create a new tag")
                     .margin_top(12)
                     .margin_start(16)
                     .margin_end(16)
