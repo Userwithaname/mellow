@@ -64,6 +64,24 @@ impl Artist {
         }
     }
 
+    /// Returns the average play count of all songs by this artist
+    ///
+    /// # Panics
+    /// Panics if the album or song user info `Mutex` is poisoned
+    #[inline]
+    #[must_use]
+    pub fn average_play_count(&self) -> f64 {
+        let mut total = 0;
+        let mut num_songs = 0;
+        for album in &self.albums {
+            for song in album.lock().unwrap().songs() {
+                total += song.info().user().play_count;
+                num_songs += 1;
+            }
+        }
+        total as f64 / num_songs as f64
+    }
+
     /// Loops through all artist's albums and returns the average rating,
     /// defaulting to `fallback` for songs which do not have a rating
     /// assigned

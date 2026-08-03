@@ -344,6 +344,7 @@ impl ArtistsPage {
 
                 artist.set_stars(artist_locked.average_rating(0.0));
                 artist.set_rating(artist_locked.sort_rating(3.0));
+                artist.set_played(artist_locked.average_play_count());
                 artist.set_random(fastrand::u64(0..u64::MAX));
 
                 let mut added = u64::MAX;
