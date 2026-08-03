@@ -185,6 +185,9 @@ impl ArtistFilters {
         let mut artist_tags = Tags::from(artist_object.tags());
         match self.tag_filter_mode {
             FilterMode::Exclusive => {
+                if artist_tags.is_empty() && *self.tags == ["untagged"] {
+                    return true;
+                }
                 for tag in &*self.tags {
                     if !artist_tags.contains(tag) {
                         artist_tags.remove(tag);
@@ -193,7 +196,9 @@ impl ArtistFilters {
                 }
                 true
             }
-            FilterMode::Inclusive => self.tags.iter().any(|tag| artist_tags.contains(tag)),
+            FilterMode::Inclusive => self.tags.iter().any(|tag| {
+                artist_tags.contains(tag) || artist_tags.is_empty() && tag == "untagged"
+            }),
         }
     }
 }

@@ -147,7 +147,7 @@ impl ArtistsPage {
             return;
         }
 
-        for tag in global_tags.tag_names() {
+        for tag in global_tags.tag_names().chain(["untagged"]) {
             let toggle_button = gtk::ToggleButton::builder().label(tag).build();
 
             // Re-select items which were previously selected

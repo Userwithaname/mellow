@@ -296,6 +296,7 @@ impl Rating {
             let content = gtk::Box::builder().spacing(12).build();
             let icon_name = match is_new {
                 true => "list-add-symbolic",
+                false if tag.is_empty() => "action-unavailable-symbolic",
                 false => "object-select-symbolic",
             };
             content.append(&gtk::Image::builder().icon_name(icon_name).build());
@@ -338,12 +339,21 @@ impl Rating {
         if !entry.is_empty() {
             if !exact_match {
                 // An extra button for creating new tags
-                let tag_button = new_tag_button(
-                    self,
-                    entry.to_owned(),
-                    &format!("Create new tag: {entry}"),
-                    true,
-                );
+                let tag_button = if entry == "untagged" {
+                    new_tag_button(
+                        self,
+                        String::new(),
+                        &format!("Cannot create: {entry}"),
+                        false,
+                    )
+                } else {
+                    new_tag_button(
+                        self,
+                        entry.to_owned(),
+                        &format!("Create new tag: {entry}"),
+                        true,
+                    )
+                };
                 self.available_tags.append(&tag_button);
             }
 
