@@ -81,11 +81,10 @@ impl Album {
         let mut rating_total = 0.0;
         let mut num_songs = 0;
         for song in &self.songs {
-            match song.info().user().rating.stars() {
-                0 => continue,
-                n => rating_total += n as f64,
-            }
-            num_songs += 1;
+            let average_song_rating = song.info().user().rating.stars();
+            let contribution = (average_song_rating > 0) as usize;
+            rating_total += average_song_rating as f64 * contribution as f64;
+            num_songs += contribution;
         }
         match num_songs {
             0 => fallback,
@@ -100,10 +99,9 @@ impl Album {
     pub fn sort_rating(&self, fallback: f64) -> f64 {
         let mut rating_total = 0.0;
         for song in &self.songs {
-            match song.info().user().rating.as_raw() {
-                0 => rating_total += fallback,
-                n => rating_total += n as f64,
-            }
+            let song_rating_raw = song.info().user().rating.as_raw();
+            let contribution = (song_rating_raw > 0) as u8 as f64;
+            rating_total += song_rating_raw as f64 * contribution + (1.0 - contribution) * fallback;
         }
         rating_total / self.songs.len() as f64
     }
@@ -115,10 +113,7 @@ impl Album {
         for song in &self.songs {
             play_count_total += song.info().user().play_count;
         }
-        match self.songs.len() {
-            0 => 0.0,
-            n => play_count_total as f64 / n as f64,
-        }
+        play_count_total as f64 / self.songs.len() as f64
     }
 
     /// Sets the rating of all songs on the album to `rating`

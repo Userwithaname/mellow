@@ -53,10 +53,9 @@ impl Artist {
         for album in &self.albums {
             // NOTE: It would be more efficient to cache the average ratings on `UserAlbumInfo`
             let average_album_rating = album.lock().unwrap().average_rating(-1.0);
-            if average_album_rating > 0.0 {
-                rating_total += average_album_rating;
-                num_albums += 1;
-            }
+            let contribution = (average_album_rating > 0.0) as usize;
+            rating_total += average_album_rating * contribution as f64;
+            num_albums += contribution;
         }
         match num_albums {
             0 => fallback,
