@@ -81,9 +81,9 @@ impl Album {
         let mut rating_total = 0.0;
         let mut num_songs = 0;
         for song in &self.songs {
-            let average_song_rating = song.info().user().rating.stars();
-            let contribution = (average_song_rating > 0) as usize;
-            rating_total += average_song_rating as f64 * contribution as f64;
+            let rating = song.info().user().rating.stars();
+            let contribution = (rating > 0) as usize;
+            rating_total = (rating as f64).mul_add(contribution as f64, rating_total);
             num_songs += contribution;
         }
         match num_songs {
@@ -99,9 +99,10 @@ impl Album {
     pub fn sort_rating(&self, fallback: f64) -> f64 {
         let mut rating_total = 0.0;
         for song in &self.songs {
-            let song_rating_raw = song.info().user().rating.as_raw();
-            let contribution = (song_rating_raw > 0) as u8 as f64;
-            rating_total += song_rating_raw as f64 * contribution + (1.0 - contribution) * fallback;
+            let rating = song.info().user().rating.as_raw();
+            let contribution = (rating > 0) as u8;
+            rating_total +=
+                fallback.mul_add(1.0 - contribution as f64, (rating * contribution) as f64);
         }
         rating_total / self.songs.len() as f64
     }

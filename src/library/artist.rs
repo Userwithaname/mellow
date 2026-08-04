@@ -52,9 +52,9 @@ impl Artist {
         let mut num_albums = 0;
         for album in &self.albums {
             // NOTE: It would be more efficient to cache the average ratings on `UserAlbumInfo`
-            let average_album_rating = album.lock().unwrap().average_rating(-1.0);
-            let contribution = (average_album_rating > 0.0) as usize;
-            rating_total += average_album_rating * contribution as f64;
+            let rating = album.lock().unwrap().average_rating(-1.0);
+            let contribution = (rating > 0.0) as usize;
+            rating_total = rating.mul_add(contribution as f64, rating_total);
             num_albums += contribution;
         }
         match num_albums {

@@ -14,7 +14,9 @@ Song queue:
 
 Music library:
 
-- IDEA: Allow initiating a full library rebuild
+- IDEA: Artist/album average calculations could be optimized further using [algebraic operators](https://doc.rust-lang.org/std/primitive.f32.html#algebraic-operators)
+  methods which are supposed to be stabilized in Rust 1.98 (source: <https://pythonspeed.com/articles/faster-float-math-rust/>)
+- IDEA: It might be possible to reduce UI code repetition for songs/albums/artists using proc macros
 
 - [x] Save/load user settings and application state
   - IDEA: Remember filters?
@@ -24,7 +26,6 @@ Music library:
 - [x] Songs/albums/artists filtering
   - [x] Filter by user-assigned tags
     - IDEA: Add a button to select/deselect all toggles
-    - IDEA: Add an "untagged" toggle for showing only items with no tags
 - [x] User-assigned custom tags
   - [x] Show suggestions when adding tags
     - [x] It should be possible to assign pre-existing tags without needing to type
