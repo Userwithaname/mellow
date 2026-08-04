@@ -317,7 +317,8 @@ impl Rating {
             tag_button
         }
 
-        let entry = &*self.add_tag_entry.text();
+        let entry = self.add_tag_entry.text();
+        let entry = entry.trim();
         let mut exact_match = false;
         let item_tags = self.item.borrow();
         let item_tags = item_tags.as_ref().unwrap();
@@ -340,7 +341,7 @@ impl Rating {
             if !exact_match {
                 #[inline]
                 fn is_valid_tag_name(tag: &str) -> bool {
-                    tag != "untagged" && !tag.ends_with('\\') && !tag.ends_with(',')
+                    tag != "untagged" && !tag.contains('\\') && !tag.ends_with(',')
                 }
 
                 // Add an extra button for creating new tags
