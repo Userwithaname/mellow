@@ -34,10 +34,9 @@ pub fn unescaped_split(input: &str, split_by: char) -> Vec<String> {
     let mut start = 0;
     let mut output = Vec::new();
     for i in 0..chars.len() {
-        if chars[i] == split_by_u8 {
-            if i > 0 && chars[i - 1] == b'\\' && (i < 2 || chars[i - 2] != b'\\') {
-                continue;
-            }
+        if chars[i] == split_by_u8
+            && !(i > 0 && chars[i - 1] == b'\\' && (i < 2 || chars[i - 2] != b'\\'))
+        {
             output.push(
                 input[start..i]
                     .replace(&format!("\\{split_by}"), split_by_str)
