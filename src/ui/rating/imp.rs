@@ -339,7 +339,7 @@ impl Rating {
         if !entry.is_empty() {
             if !exact_match {
                 // An extra button for creating new tags
-                let tag_button = if entry == "untagged" {
+                let tag_button = if entry == "untagged" || entry.ends_with('\\') {
                     new_tag_button(
                         self,
                         String::new(),
