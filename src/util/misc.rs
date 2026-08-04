@@ -25,26 +25,25 @@ use std::{fs, io};
 #[inline]
 #[must_use]
 pub fn unescaped_split(input: &str, split_by: char) -> Vec<String> {
-    let split_by_u8 = split_by as u8;
-    let split_by_str = &[split_by_u8];
+    let split_by_str = &[split_by as u8];
     // SAFETY: Cannot be invalid because `split_by` is of type `char`
     let split_by_str = unsafe { str::from_utf8_unchecked(split_by_str) };
-    let chars: Vec<u8> = input.bytes().collect();
+    let chars: Box<[char]> = input.chars().collect();
 
     let mut start = 0;
+    let mut end = 0;
     let mut output = Vec::new();
-    for i in 0..chars.len() {
-        if chars[i] == split_by_u8
-            && !(i > 0 && chars[i - 1] == b'\\' && (i < 2 || chars[i - 2] != b'\\'))
-        {
+    for (i, &char) in chars.iter().enumerate() {
+        if char == split_by && !(i > 0 && chars[i - 1] == '\\') && (i > 1 && chars[i - 2] != '\\') {
             output.push(
-                input[start..i]
+                input[start..end]
                     .replace(&format!("\\{split_by}"), split_by_str)
                     .trim()
                     .to_owned(),
             );
-            start = i + 1;
+            start = end + 1;
         }
+        end += char.len_utf8();
     }
     match input[start..].trim() {
         last if !last.is_empty() => output.push(last.to_owned()),
