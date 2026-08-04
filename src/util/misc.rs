@@ -46,8 +46,8 @@ pub fn unescaped_split(input: &str, split_by: char) -> Vec<String> {
             start = i + 1;
         }
     }
-    match input[start..].trim().to_owned() {
-        last if !last.is_empty() => output.push(last),
+    match input[start..].trim() {
+        last if !last.is_empty() => output.push(last.to_owned()),
         _ => (),
     }
     output
