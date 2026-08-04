@@ -338,23 +338,26 @@ impl Rating {
 
         if !entry.is_empty() {
             if !exact_match {
-                // An extra button for creating new tags
-                let tag_button = if entry == "untagged" || entry.ends_with('\\') {
-                    new_tag_button(
-                        self,
-                        String::new(),
-                        &format!("Cannot create: {entry}"),
-                        false,
-                    )
-                } else {
-                    new_tag_button(
+                #[inline]
+                fn is_valid_tag_name(tag: &str) -> bool {
+                    tag != "untagged" && !tag.ends_with('\\') && !tag.ends_with(',')
+                }
+
+                // Add an extra button for creating new tags
+                self.available_tags.append(&match is_valid_tag_name(entry) {
+                    true => new_tag_button(
                         self,
                         entry.to_owned(),
                         &format!("Create new tag: {entry}"),
                         true,
-                    )
-                };
-                self.available_tags.append(&tag_button);
+                    ),
+                    false => new_tag_button(
+                        self,
+                        String::new(),
+                        &format!("Cannot create: {entry}"),
+                        false,
+                    ),
+                });
             }
 
             let best_match = self.available_tags.first_child().unwrap();
