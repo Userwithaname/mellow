@@ -61,11 +61,11 @@ pub fn serialize_list(list: &[String]) -> String {
     list.iter().map(|s| s.replace(',', "\\,") + ", ").collect()
 }
 
-/// Retreives serialized `data` field values and assigns them
-/// to the variables on the right side of each expression
+/// Takes serialized `data` and assigns the parsed values of fields
+/// into the specified variables using a `match`-like syntax
 ///
-/// Note: Assignment will fail silently for individual fields
-/// if they are not present within the provided `data`
+/// Pattern matching is non-exhaustive; fields missing from `data`
+/// will be skipped silently without parsing or assigning
 ///
 /// The following types are supported:
 /// - `str` for assigning string slices
@@ -76,7 +76,7 @@ pub fn serialize_list(list: &[String]) -> String {
 /// - A special case exists for `[?String]`, which is the same as
 ///   `[String]`, but converts the `Vec<String>` using `.into()`
 ///
-/// To deserialize lists, `unescaped_split` must also be available
+/// Deserializing lists requires `unescaped_split` to be available
 /// in scope where this macro is invoked
 ///
 /// # Panics
@@ -120,11 +120,6 @@ pub fn serialize_list(list: &[String]) -> String {
 #[macro_export]
 macro_rules! deserialize {
     {$data:tt => {$($field:tt<$type:tt> => $target:expr,)+}} => {
-        #[cfg(debug_assertions)]
-        if $data.is_empty() {
-            panic!("No data provided");
-        }
-
         for line in $data.lines() {
             let Some((field, value)) = line.split_once(": ") else {
                 continue;
