@@ -39,8 +39,11 @@ macro_rules! serialize {
 }
 pub use serialize;
 
-/// Combines a list of `String`s into a single `String` which
-/// can be used with the `serialize!()` macro
+/// Combines `list` elements into a single `String` separated by commas,
+/// which can be used with the `serialize!()` macro
+///
+/// Warning: The `list` will not serialize correctly if an element contains
+/// an unescaped comma (`\,`, or any odd number of backslashes before it)
 ///
 /// # Example
 /// ```rust
@@ -52,13 +55,13 @@ pub use serialize;
 ///         "two".to_string(),
 ///         "three, four".to_string(),
 ///     ]),
-///     "one, two, three\\, four, "
+///     r"one, two, three\, four, "
 /// );
 /// ```
 #[inline]
 #[must_use]
 pub fn serialize_list(list: &[String]) -> String {
-    list.iter().map(|s| s.replace(',', "\\,") + ", ").collect()
+    list.iter().map(|s| s.replace(',', r"\,") + ", ").collect()
 }
 
 /// Takes serialized `data` and assigns the parsed values of fields
