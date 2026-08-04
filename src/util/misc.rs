@@ -9,6 +9,10 @@ use std::{fs, io};
 ///   characters are not included in the output result
 /// - Note that splitting by `\` is not possible
 ///
+/// # Panics
+/// - If `split_by` is `'\'` when running in debug mode
+/// - If `split_by` is a large UTF-8 character
+///
 /// # Example
 /// ```rust
 /// # use mellow::util::unescaped_split;
@@ -28,20 +32,33 @@ pub fn unescaped_split(input: &str, split_by: char) -> Vec<String> {
     let split_by_str = &[split_by as u8];
     // SAFETY: Cannot be invalid because `split_by` is of type `char`
     let split_by_str = unsafe { str::from_utf8_unchecked(split_by_str) };
-    let chars: Box<[char]> = input.chars().collect();
+
+    debug_assert!(split_by_str != r"\", r"Cannot split by '\'");
+    debug_assert!(
+        split_by.len_utf8() == 1,
+        "UTF-8 length must be 1 (was {} for '{split_by}')",
+        split_by.len_utf8(),
+    );
 
     let mut start = 0;
     let mut end = 0;
+    let mut unescape = 0u8; // Counter for consecutive backslash characters
     let mut output = Vec::new();
-    for (i, &char) in chars.iter().enumerate() {
-        if char == split_by && !(i > 0 && chars[i - 1] == '\\') && (i > 1 && chars[i - 2] != '\\') {
-            output.push(
-                input[start..end]
-                    .replace(&format!("\\{split_by}"), split_by_str)
-                    .trim()
-                    .to_owned(),
-            );
-            start = end + 1;
+    for char in input.chars() {
+        if char == '\\' {
+            unescape += 1
+        } else {
+            // If the `unescape` count is even, do not unescape
+            if char == split_by && unescape & 1 == 0 {
+                output.push(
+                    input[start..end]
+                        .replace(&format!("\\{split_by}"), split_by_str)
+                        .trim()
+                        .to_owned(),
+                );
+                start = end + 1; // `len_utf8` for `split_by` is expected to be 1
+            }
+            unescape = 0
         }
         end += char.len_utf8();
     }
