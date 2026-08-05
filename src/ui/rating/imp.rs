@@ -341,10 +341,7 @@ impl Rating {
             if !exact_match {
                 #[inline]
                 fn is_valid_tag_name(tag: &str) -> bool {
-                    tag != "untagged"
-                        && !tag.ends_with(',')
-                        && !tag.ends_with('\\')
-                        && !tag.contains(r"\,")
+                    tag != "untagged" && !tag.ends_with('\\') && !tag.contains(r"\,")
                 }
 
                 // Add an extra button for creating new tags
