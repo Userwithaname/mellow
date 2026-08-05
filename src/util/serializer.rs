@@ -26,8 +26,8 @@
 ///     "\
 /// number: 5
 /// text: hello
-/// list: one, two, three\\, four, \n\
-/// numbers: 1, 2, 3, 4, \n\
+/// list: one, two, three\\, four
+/// numbers: 1, 2, 3, 4
 /// "
 /// );
 /// ```
@@ -55,13 +55,21 @@ pub use serialize;
 ///         "two".to_string(),
 ///         "three, four".to_string(),
 ///     ]),
-///     r"one, two, three\, four, "
+///     r"one, two, three\, four"
 /// );
 /// ```
 #[inline]
 #[must_use]
 pub fn serialize_list(list: &[String]) -> String {
-    list.iter().map(|s| s.replace(',', r"\,") + ", ").collect()
+    let mut list = list.iter().map(|s| s.replace(',', r"\,"));
+    let Some(mut out) = list.next() else {
+        return String::new();
+    };
+    for item in list {
+        out.push_str(", ");
+        out.push_str(&item);
+    }
+    out
 }
 
 /// Takes serialized `data` and assigns the parsed values of fields
@@ -101,7 +109,7 @@ pub fn serialize_list(list: &[String]) -> String {
 /// text: hello
 /// text_str: hi
 /// numbers: 1, 2, 3, 4
-/// list: one, two, three\\, four,
+/// list: one, two, three\\, four
 /// ";
 ///
 /// deserialize! {
