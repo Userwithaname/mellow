@@ -87,7 +87,7 @@ pub fn serialize_list(list: &[String]) -> String {
 /// - A special case exists for `[?String]`, which is the same as
 ///   `[String]`, but converts the `Vec<String>` using `.into()`
 ///
-/// Deserializing lists requires `unescaped_split` to be available
+/// Deserializing lists requires `deserialize_list` to be available
 /// in scope where this macro is invoked
 ///
 /// # Panics
@@ -96,7 +96,7 @@ pub fn serialize_list(list: &[String]) -> String {
 /// # Example
 /// ```rust
 /// # use mellow::util::deserialize;
-/// use mellow::util::unescaped_split;
+/// use mellow::util::deserialize_list;
 ///
 /// let mut number = 0;
 /// let mut text = String::new();
@@ -158,10 +158,53 @@ macro_rules! deserialize {
         $value.to_owned()
     };
     (@to_value [String], $value:expr, $field:expr) => {
-        unescaped_split($value, ',')
+        deserialize_list($value)
     };
     (@to_value [?String], $value:expr, $field:expr) => {
-        unescaped_split($value, ',').into()
+        deserialize_list($value).into()
     };
 }
 pub use deserialize;
+
+/// Returns a `Vec<String>` built from comma-separated values within `input`
+///
+/// - Commas can be unescaped using backslash (`\`)
+/// - Unescape characters before commas will not be included
+/// - Unescape characters on their own do not need to be unescaped
+///
+/// # Example
+/// ```rust
+/// # use mellow::util::deserialize_list;
+/// #
+/// assert_eq!(
+///     deserialize_list(r"Testing, testing\, one two, three").as_ref(),
+///     vec!["Testing", "testing, one two", "three"]
+/// );
+/// ```
+#[inline]
+#[must_use]
+pub fn deserialize_list(input: &str) -> Vec<String> {
+    let mut output = Vec::new();
+    let mut extend_output = |item: &str| output.push(item.replace(r"\,", ",").to_owned());
+
+    // `unescape` is used to count consecutive backslash characters
+    let (mut start, mut end, mut unescape) = (0, 0, 0u8);
+    for char in input.chars() {
+        if char == '\\' {
+            unescape = unescape.wrapping_add(1);
+        } else {
+            // Split at comma, unless `unescape` is odd
+            if char == ',' && unescape & 1 == 0 {
+                extend_output(&input[start..end].trim());
+                start = end + 1; // UTF-8 length of ',' is 1 byte
+            }
+            unescape = 0;
+        }
+        end += char.len_utf8();
+    }
+    if start < input.len() {
+        extend_output(&input[start..].trim());
+    }
+
+    output
+}

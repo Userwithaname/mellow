@@ -17,7 +17,7 @@ use crate::library::song_rating::{Ratable, SongRating};
 use crate::library::tag_list::{Taggable, Tags};
 use crate::library::{Album, SharedAlbum, tag_list};
 use crate::util::hint::{cold, unlikely};
-use crate::util::{deserialize, serialize, serialize_list, unescaped_split};
+use crate::util::{deserialize, deserialize_list, serialize, serialize_list};
 use crate::{cache_dir, cold_expression};
 
 pub struct Song {

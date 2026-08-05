@@ -14,7 +14,7 @@ use crate::library::{Library, LibraryConfig, LibraryRequest, library_tx};
 use crate::player::{Player, PlayerRequest, SongQueue};
 use crate::shortcuts::Shortcuts;
 use crate::ui::{UpdateUI, Window, actions::Actions, ui_tx};
-use crate::{about, music_dir, util::unescaped_split};
+use crate::{about, music_dir, util::deserialize_list};
 use crate::{init_channels, mpris};
 
 glib::wrapper! {
@@ -115,10 +115,7 @@ impl Application {
                         LibraryConfig::new(match directories.as_str() {
                             // The value ":" means "first launch"
                             ":" => vec![PathBuf::from(music_dir())],
-                            dirs => unescaped_split(dirs, ',')
-                                .iter()
-                                .map(PathBuf::from)
-                                .collect(),
+                            dirs => deserialize_list(dirs).iter().map(PathBuf::from).collect(),
                         }),
                         library_rx,
                     );
