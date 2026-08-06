@@ -361,8 +361,7 @@ impl Rating {
                 });
             }
 
-            let best_match = self.available_tags.first_child().unwrap();
-            if best_match.is_sensitive() {
+            if let Some(best_match) = self.available_tags.first_child() {
                 best_match.add_css_class("suggested-action");
             }
         } else if self.available_tags.first_child().is_none() && inactive_buttons.is_empty() {
