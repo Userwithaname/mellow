@@ -185,7 +185,7 @@ pub use deserialize;
 #[must_use]
 pub fn deserialize_list(input: &str) -> Vec<String> {
     let mut output = Vec::new();
-    let mut extend_output = |item: &str| output.push(item.replace(r"\,", ",").to_owned());
+    let mut extend_output = |item: &str| output.push(item.replace(r"\,", ","));
 
     // `unescape` is used to count consecutive backslash characters
     let (mut start, mut end, mut unescape) = (0, 0, 0u8);
@@ -195,7 +195,7 @@ pub fn deserialize_list(input: &str) -> Vec<String> {
         } else {
             // Split at comma, unless `unescape` is odd
             if char == ',' && unescape & 1 == 0 {
-                extend_output(&input[start..end].trim());
+                extend_output(input[start..end].trim());
                 start = end + 1; // UTF-8 length of ',' is 1 byte
             }
             unescape = 0;
@@ -203,7 +203,7 @@ pub fn deserialize_list(input: &str) -> Vec<String> {
         end += char.len_utf8();
     }
     if start < input.len() {
-        extend_output(&input[start..].trim());
+        extend_output(input[start..].trim());
     }
 
     output
