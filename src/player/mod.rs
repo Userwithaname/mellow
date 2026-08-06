@@ -633,7 +633,7 @@ impl Player {
 
             // Seek one final time after state reset
             let _ = self.seek_to_time(pos);
-        } else {
+        } else if self.current_state == State::Playing {
             // Skip the current song if the song has ended
             // or the playback time/duration cannot be determined
             player_tx().send(PlayerRequest::SkipNext).expect(EXP_RX);
