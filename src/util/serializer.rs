@@ -202,8 +202,11 @@ pub fn deserialize_list(input: &str) -> Vec<String> {
         }
         end += char.len_utf8();
     }
-    if start < input.len() {
-        extend_output(input[start..].trim());
+    if start < input.len()
+        && let last = input[start..].trim()
+        && !last.is_empty()
+    {
+        extend_output(last);
     }
 
     output
