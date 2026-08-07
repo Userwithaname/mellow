@@ -1,3 +1,5 @@
+use std::ops::Deref;
+
 /// Serializes the given value/field pairs into a `String`,
 /// which can be used with `deserialize!()` to retreive the
 /// values afterwards
@@ -10,9 +12,9 @@
 /// let number = 5;
 /// let text = "hello";
 /// let list = &[
-///     "one".to_string(),
-///     "two".to_string(),
-///     "three, four".to_string(),
+///     "one",
+///     "two",
+///     "three, four",
 /// ];
 /// let numbers = &[1, 2, 3, 4];
 ///
@@ -51,24 +53,24 @@ pub use serialize;
 /// #
 /// assert_eq!(
 ///     serialize_list(&[
-///         "one".to_string(),
-///         "two".to_string(),
-///         "three, four".to_string(),
+///         "one",
+///         "two",
+///         "three, four",
 ///     ]),
 ///     r"one, two, three\, four"
 /// );
 /// assert_eq!(
 ///     serialize_list(&[
-///         r"one\".to_string(),
-///         r"two\\".to_string(),
-///         r"three\, \four\".to_string(),
+///         r"one\",
+///         r"two\\",
+///         r"three\, \four\",
 ///     ]),
 ///     r"one\\, two\\\\, three\\\, \four\"
 /// );
 /// ```
 #[inline]
 #[must_use]
-pub fn serialize_list(list: &[String]) -> String {
+pub fn serialize_list<S: Deref<Target = str>>(list: &[S]) -> String {
     let mut out = String::new();
 
     // `unescape` is used to count consecutive backslash characters
