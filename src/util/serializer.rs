@@ -40,10 +40,10 @@ macro_rules! serialize {
 pub use serialize;
 
 /// Combines `list` elements into a single `String` separated by commas,
-/// which can be used with the `serialize!()` macro
+/// which can be used with `deserialize_list` and the `serialize!()` macro
 ///
-/// Warning: The `list` will not serialize correctly if an element contains
-/// an unescaped comma (`\,`, or any odd number of backslashes before it)
+/// Warning: Unescaped backslash before an unescaped comma is currently not
+/// handled in `deserialize_list`, and will result in duplicate backslashes
 ///
 /// # Example
 /// ```rust
@@ -57,18 +57,48 @@ pub use serialize;
 ///     ]),
 ///     r"one, two, three\, four"
 /// );
+/// assert_eq!(
+///     serialize_list(&[
+///         r"one\".to_string(),
+///         r"two\\".to_string(),
+///         r"three\, \four\".to_string(),
+///     ]),
+///     r"one\\, two\\\\, three\\\, \four\"
+/// );
 /// ```
 #[inline]
 #[must_use]
 pub fn serialize_list(list: &[String]) -> String {
-    let mut list = list.iter().map(|s| s.replace(',', r"\,"));
-    let Some(mut out) = list.next() else {
-        return String::new();
-    };
+    let mut out = String::new();
+
+    // `unescape` is used to count consecutive backslash characters
+    let mut unescape = 0usize;
+    let (mut start, mut end);
     for item in list {
+        (start, end, unescape) = (0, 0, 0);
+        for char in item.chars() {
+            match char {
+                ',' => {
+                    out.push_str(&item[start..end]);
+                    out.push_str(&r"\".repeat(unescape + 1)); // Unescape backslashes and comma
+                    out.push(char);
+                    start = end + 1; // Start next after the comma (',' is 1 byte)
+                    unescape = 0;
+                }
+                '\\' => unescape += 1,
+                _ => unescape = 0,
+            }
+            end += char.len_utf8();
+        }
+        out.push_str(&item[start..end]);
+        out.push_str(&r"\".repeat(unescape)); // Unescape backslashes before comma
         out.push_str(", ");
-        out.push_str(&item);
     }
+    // Remove last ", " and excess backslashes (unescaping is only needed before commas)
+    if !out.is_empty() {
+        out.truncate(out.len() - 2 - unescape);
+    }
+
     out
 }
 
@@ -170,44 +200,72 @@ pub use deserialize;
 ///
 /// - Commas can be unescaped using backslash (`\`)
 /// - Unescape characters before commas will not be included
-/// - Unescape characters on their own do not need to be unescaped
+/// - Backslashes should only be unescaped when placed before a comma
+/// - Note that unescaping a backslash before an unescaped comma will not
+///   deserialize correctly (see examples)
 ///
-/// # Example
+/// # Examples
 /// ```rust
 /// # use mellow::util::deserialize_list;
 /// #
+/// assert_eq!(*deserialize_list("one, two, three"), ["one", "two", "three"]);
 /// assert_eq!(
-///     deserialize_list(r"Testing, testing\, one two, three").as_ref(),
-///     vec!["Testing", "testing, one two", "three"]
+///     *deserialize_list(r"first, second\, with a comma, third"),
+///     ["first", "second, with a comma", "third"]
 /// );
+/// assert_eq!(
+///     *deserialize_list(r"element ending with a backslash\\, another \element"),
+///     [r"element ending with a backslash\", r"another \element"]
+/// );
+/// ```
+///
+/// Unescaped backslashes before an unescaped comma in the input will currently
+/// not remove the excess backslashes:
+/// ```rust
+/// # use mellow::util::deserialize_list;
+/// #
+/// let list = deserialize_list(r"one\, two\\, three\\\, four\\\\, test");
+/// // Expected:
+/// assert_ne!(*list, [r"one, two\,", r"three\, four\\", "test"]);
+/// // Actual (notice how "three" has twice as many backslashes than expected):
+/// assert_eq!(*list, [r"one, two\", r"three\\, four\\", "test"]);
 /// ```
 #[inline]
 #[must_use]
 pub fn deserialize_list(input: &str) -> Vec<String> {
-    let mut output = Vec::new();
-    let mut extend_output = |item: &str| output.push(item.replace(r"\,", ","));
+    let mut out = Vec::new();
+    let mut extend_output = |item: &str| out.push(item.replace(r"\,", ","));
 
     // `unescape` is used to count consecutive backslash characters
-    let (mut start, mut end, mut unescape) = (0, 0, 0u8);
+    let (mut start, mut end, mut unescape) = (0, 0, 0);
     for char in input.chars() {
-        if char == '\\' {
-            unescape = unescape.wrapping_add(1);
-        } else {
-            // Split at comma, unless `unescape` is odd
-            if char == ',' && unescape & 1 == 0 {
-                extend_output(input[start..end].trim());
-                start = end + 1; // UTF-8 length of ',' is 1 byte
+        match char {
+            ',' => {
+                // Split at comma if not unescaped (if `unescape` is even)
+                if unescape & 1 == 0 {
+                    extend_output(input[start..end - (unescape / 2)].trim());
+                    start = end + 1; // Start next after the comma (',' is 1 byte)
+                } else {
+                    // TODO: Remove excess backslash characters when `unescape` is odd
+                    // One way would be to initialize the output with an empty element
+                    // beforehand and build it in chunks, then push a new empty string
+                    // in the above `if` branch, increment the target index, and repeat
+                    // (remove the excess element if necessary). Be mindful of performance.
+                }
+                unescape = 0;
             }
-            unescape = 0;
+            '\\' => unescape += 1,
+            _ => unescape = 0,
         }
         end += char.len_utf8();
     }
     if start < input.len()
+        // COMPAT: Lists from versions <=0.4.1 end with ", "
         && let last = input[start..].trim()
         && !last.is_empty()
     {
         extend_output(last);
     }
 
-    output
+    out
 }
