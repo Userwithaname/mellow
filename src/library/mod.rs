@@ -25,6 +25,7 @@ use crate::library::tag_list::Taggable;
 use crate::library::{album::NewSharedAlbum, artist::NewSharedArtist};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{UpdateUI, ui_tx};
+use crate::util::Forever;
 use crate::util::hint::likely;
 use crate::util::tasks::{BoxedTask, Runner};
 use crate::{songs_file, util::visit_dirs};
@@ -45,7 +46,7 @@ pub struct Library {
     artists: Artists,
 
     missing_songs: Songs,
-    check_moved: Arc<Mutex<Songs>>,
+    check_moved: Forever<Mutex<Songs>>,
     undo_songs: Songs,
 
     rebuild_pending: bool,
@@ -284,7 +285,7 @@ impl Library {
             artists: Vec::new(),
 
             missing_songs: Vec::new(),
-            check_moved: Arc::new(Mutex::new(Vec::new())),
+            check_moved: Forever::new(Mutex::new(Vec::new())),
             undo_songs: Vec::new(),
 
             rebuild_pending: false,
@@ -394,10 +395,10 @@ impl Library {
         self.tasks.run({
             let songs = self.songs.clone();
             let missing = mem::take(&mut self.missing_songs);
-            let check = Arc::clone(&self.check_moved);
+            let check = self.check_moved.static_ref();
             let config = self.config.clone();
             let n_workers = self.tasks.num_workers();
-            move || match Library::create_connections(songs, missing, &check, &config, n_workers) {
+            move || match Library::create_connections(songs, missing, check, &config, n_workers) {
                 Ok(()) => (),
                 Err(e) => eprintln!("`Library::create_connections`: {e}"),
             }
@@ -417,7 +418,7 @@ impl Library {
     fn create_connections(
         mut songs: Songs,
         mut missing: Songs,
-        check_moved: &Arc<Mutex<Songs>>,
+        check_moved: &Mutex<Songs>,
         config: &LibraryConfig,
         num_workers: usize,
     ) -> Result<(), Box<dyn Error>> {
@@ -691,7 +692,7 @@ impl Library {
     fn validate_songs(
         songs: &mut Songs,
         missing: &mut Songs,
-        check_moved: &Arc<Mutex<Songs>>,
+        check_moved: &Mutex<Songs>,
         config: &LibraryConfig,
     ) {
         let mut libraries = Vec::with_capacity(config.directories().len());

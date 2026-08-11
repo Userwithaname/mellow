@@ -4,7 +4,6 @@ use core::cmp;
 use fastrand;
 use gtk::CompositeTemplate;
 use gtk::{gio, glib};
-use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -15,7 +14,7 @@ use crate::library::{Artists, ToQueue, ToShuffledQueue};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::{ArtistObject, FilterMode, ItemTile, LibraryFilters, LibrarySort, LibrarySortMode};
 use crate::ui::{UpdateUI, ui_tx};
-use crate::util::search;
+use crate::util::{Forever, search};
 
 #[derive(Default, CompositeTemplate)]
 #[template(file = "artists_page.ui")]
@@ -53,15 +52,15 @@ pub struct ArtistsPage {
 
     #[template_child]
     pub search_entry: TemplateChild<gtk::SearchEntry>,
-    search_query: Rc<RefCell<String>>,
+    search_query: Forever<RefCell<String>>,
 
     contents_id: Cell<u8>,
     artists: RefCell<Vec<ArtistObject>>,
     filter: RefCell<gtk::CustomFilter>,
     sorter: RefCell<gtk::CustomSorter>,
 
-    sort_mode: Rc<RefCell<LibrarySort>>,
-    artist_filters: Rc<RefCell<LibraryFilters>>,
+    sort_mode: Forever<RefCell<LibrarySort>>,
+    artist_filters: Forever<RefCell<LibraryFilters>>,
 
     shuffle: Cell<bool>,
     pending_scroll_pos: Cell<Option<f64>>,
@@ -290,8 +289,8 @@ impl ArtistsPage {
 
         self.artists.replace(artist_objects);
 
-        let query = Rc::clone(&self.search_query);
-        let artist_filters = Rc::clone(&self.artist_filters);
+        let query = self.search_query.static_ref();
+        let artist_filters = self.artist_filters.static_ref();
         let filter = gtk::CustomFilter::new(move |object| {
             let artist_object = object.downcast_ref::<ArtistObject>().unwrap();
             let score = search::query_score(
@@ -304,7 +303,7 @@ impl ArtistsPage {
         let filter_model = gtk::FilterListModel::new(Some(model), Some(filter.clone()));
         self.filter.replace(filter);
 
-        let sort_mode = Rc::clone(&self.sort_mode);
+        let sort_mode = self.sort_mode.static_ref();
         let sorter = gtk::CustomSorter::new(move |object_a, object_b| {
             let artist_a = object_a.downcast_ref::<ArtistObject>().unwrap();
             let artist_b = object_b.downcast_ref::<ArtistObject>().unwrap();

@@ -2,7 +2,6 @@ use core::cell::RefCell;
 use gio::prelude::*;
 use glib::{GString, VariantTy};
 use gtk::{gio, glib};
-use std::rc::Rc;
 
 use crate::ui::SongsPage;
 use crate::ui::{AlbumPage, AlbumsPage};
@@ -114,12 +113,12 @@ pub fn songs_play_mode(songs_page: SongsPage) -> gio::ActionEntry<gio::SimpleAct
 
 #[inline]
 pub fn artist_page_play_mode(
-    artist_pages: Rc<RefCell<Vec<ArtistPage>>>,
+    artist_pages: &'static RefCell<Vec<ArtistPage>>,
 ) -> gio::ActionEntry<gio::SimpleActionGroup> {
     gio::ActionEntry::builder("artist_page_play_mode")
         .parameter_type(Some(VariantTy::STRING))
         .state("Sequential".to_variant())
-        .activate(move |_, action, variant| {
+        .activate(|_, action, variant| {
             let variant = variant.unwrap();
             action.set_state(variant);
             artist_pages.borrow().last().inspect(|album_page| {
@@ -134,12 +133,12 @@ pub fn artist_page_play_mode(
 }
 #[inline]
 pub fn album_page_play_mode(
-    album_pages: Rc<RefCell<Vec<AlbumPage>>>,
+    album_pages: &'static RefCell<Vec<AlbumPage>>,
 ) -> gio::ActionEntry<gio::SimpleActionGroup> {
     gio::ActionEntry::builder("album_page_play_mode")
         .parameter_type(Some(VariantTy::STRING))
         .state("Sequential".to_variant())
-        .activate(move |_, action, variant| {
+        .activate(|_, action, variant| {
             let variant = variant.unwrap();
             action.set_state(variant);
             album_pages.borrow().last().inspect(|album_page| {

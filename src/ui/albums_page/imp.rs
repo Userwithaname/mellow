@@ -5,7 +5,6 @@ use core::sync::atomic::Ordering;
 use fastrand;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib};
-use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -16,7 +15,7 @@ use crate::library::{Albums, ToQueue, ToShuffledQueue};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::{AlbumObject, FilterMode, ItemTile, LibraryFilters, LibrarySort, LibrarySortMode};
 use crate::ui::{UpdateUI, fallback_album_image, ui_tx};
-use crate::util::search;
+use crate::util::{Forever, search};
 
 #[derive(Default, CompositeTemplate)]
 #[template(file = "albums_page.ui")]
@@ -61,15 +60,15 @@ pub struct AlbumsPage {
 
     #[template_child]
     pub search_entry: TemplateChild<gtk::SearchEntry>,
-    search_query: Rc<RefCell<String>>,
+    search_query: Forever<RefCell<String>>,
 
     contents_id: Cell<u8>,
     albums: RefCell<Vec<AlbumObject>>,
     filter: RefCell<gtk::CustomFilter>,
     sorter: RefCell<gtk::CustomSorter>,
 
-    sort_mode: Rc<RefCell<LibrarySort>>,
-    album_filters: Rc<RefCell<LibraryFilters>>,
+    sort_mode: Forever<RefCell<LibrarySort>>,
+    album_filters: Forever<RefCell<LibraryFilters>>,
 
     shuffle: Cell<bool>,
     pending_scroll_pos: Cell<Option<f64>>,
@@ -310,9 +309,9 @@ impl AlbumsPage {
 
         self.albums.replace(album_objects);
 
-        let query = Rc::clone(&self.search_query);
-        let album_filters = Rc::clone(&self.album_filters);
-        let filter = gtk::CustomFilter::new(move |object| {
+        let query = self.search_query.static_ref();
+        let album_filters = self.album_filters.static_ref();
+        let filter = gtk::CustomFilter::new(|object| {
             let album_object = object.downcast_ref::<AlbumObject>().unwrap();
             let query = &query.borrow().to_lowercase();
             let score = search::query_score(query, &album_object.album().to_lowercase())
@@ -323,8 +322,8 @@ impl AlbumsPage {
         let filter_model = gtk::FilterListModel::new(Some(model), Some(filter.clone()));
         self.filter.replace(filter);
 
-        let sort_mode = Rc::clone(&self.sort_mode);
-        let sorter = gtk::CustomSorter::new(move |object_a, object_b| {
+        let sort_mode = self.sort_mode.static_ref();
+        let sorter = gtk::CustomSorter::new(|object_a, object_b| {
             let album_a = object_a.downcast_ref::<AlbumObject>().unwrap();
             let album_b = object_b.downcast_ref::<AlbumObject>().unwrap();
             album_a.order_cmp(album_b, &sort_mode.borrow())

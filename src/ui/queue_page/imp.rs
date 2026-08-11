@@ -11,7 +11,7 @@ use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::queue_page::QueueScrollAction;
 use crate::ui::{ListRow, QueueItemObject, QueueSubpage};
 use crate::ui::{UpdateUI, fallback_song_image, ui_tx};
-use crate::util::wrap_index;
+use crate::util::{Forever, wrap_index};
 
 const NUM_ITEMS_AHEAD: usize = 45;
 const NUM_ITEMS_BEHIND: usize = 45;
@@ -38,7 +38,7 @@ pub struct QueuePage {
     #[template_child]
     pub remove_selection: TemplateChild<gtk::Button>,
 
-    pub selections: Rc<RefCell<Option<Selections>>>,
+    pub selections: Forever<RefCell<Option<Selections>>>,
 
     #[template_child]
     list_box: TemplateChild<gtk::ListBox>,
@@ -588,7 +588,7 @@ impl QueuePage {
     #[inline]
     fn setup_model(&self) {
         let model = gio::ListStore::new::<QueueItemObject>();
-        let selections = Rc::clone(&self.selections);
+        let selections = self.selections.static_ref();
         let fallback_image = fallback_song_image();
         let queue_page = self.to_owned();
 

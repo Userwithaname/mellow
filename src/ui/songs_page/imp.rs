@@ -5,7 +5,6 @@ use core::sync::atomic::Ordering;
 use fastrand;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib};
-use std::rc::Rc;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
@@ -16,7 +15,7 @@ use crate::library::{Songs, ToQueue};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::{FilterMode, ItemRow, LibraryFilters, LibrarySort, LibrarySortMode, SongObject};
 use crate::ui::{UpdateUI, fallback_song_image, ui_tx};
-use crate::util::search;
+use crate::util::{Forever, search};
 
 #[derive(Default, CompositeTemplate)]
 #[template(file = "songs_page.ui")]
@@ -61,15 +60,15 @@ pub struct SongsPage {
 
     #[template_child]
     pub search_entry: TemplateChild<gtk::SearchEntry>,
-    search_query: Rc<RefCell<String>>,
+    search_query: Forever<RefCell<String>>,
 
     contents_id: Cell<u8>,
     songs: RefCell<Vec<SongObject>>,
     filter: RefCell<gtk::CustomFilter>,
     sorter: RefCell<gtk::CustomSorter>,
 
-    sort_mode: Rc<RefCell<LibrarySort>>,
-    song_filters: Rc<RefCell<LibraryFilters>>,
+    sort_mode: Forever<RefCell<LibrarySort>>,
+    song_filters: Forever<RefCell<LibraryFilters>>,
 
     shuffle: Cell<bool>,
     pending_scroll_pos: Cell<Option<f64>>,
@@ -306,9 +305,9 @@ impl SongsPage {
 
         self.songs.replace(song_objects);
 
-        let query = Rc::clone(&self.search_query);
-        let song_filters = Rc::clone(&self.song_filters);
-        let filter = gtk::CustomFilter::new(move |object| {
+        let query = self.search_query.static_ref();
+        let song_filters = self.song_filters.static_ref();
+        let filter = gtk::CustomFilter::new(|object| {
             let song_object = object.downcast_ref::<SongObject>().unwrap();
             let query = &query.borrow().to_lowercase();
             let score = search::query_score(query, &song_object.song().to_lowercase())
@@ -319,8 +318,8 @@ impl SongsPage {
         let filter_model = gtk::FilterListModel::new(Some(model), Some(filter.clone()));
         self.filter.replace(filter);
 
-        let sort_mode = Rc::clone(&self.sort_mode);
-        let sorter = gtk::CustomSorter::new(move |object_a, object_b| {
+        let sort_mode = self.sort_mode.static_ref();
+        let sorter = gtk::CustomSorter::new(|object_a, object_b| {
             let song_a = object_a.downcast_ref::<SongObject>().unwrap();
             let song_b = object_b.downcast_ref::<SongObject>().unwrap();
             song_a.order_cmp(song_b, &sort_mode.borrow())

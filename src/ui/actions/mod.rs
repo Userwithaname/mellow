@@ -1,7 +1,6 @@
 use adw::{prelude::*, subclass::prelude::*};
 use glib::GString;
 use gtk::{gio, glib};
-use std::rc::Rc;
 
 use crate::about::show_about_dialog;
 use crate::shortcuts::show_shortcuts_dialog;
@@ -52,8 +51,8 @@ impl WindowActions for Window {
                 actions::player::play_all_songs(&window.songs_page),
                 actions::player::play_all_albums(&window.albums_page),
                 actions::player::play_all_artists(&window.artists_page),
-                actions::player::queue_visible_album(Rc::clone(&window.album_pages)),
-                actions::player::queue_visible_artist(Rc::clone(&window.artist_pages)),
+                actions::player::queue_visible_album(window.album_pages.static_ref()),
+                actions::player::queue_visible_artist(window.artist_pages.static_ref()),
                 actions::player::refresh_library(),
             ]
         });
@@ -82,8 +81,8 @@ impl WindowActions for Window {
             actions::menu::songs_play_mode(window.songs_page.get()),
             actions::menu::albums_play_mode(window.albums_page.get()),
             actions::menu::artists_play_mode(window.artists_page.get()),
-            actions::menu::album_page_play_mode(Rc::clone(&window.album_pages)),
-            actions::menu::artist_page_play_mode(Rc::clone(&window.artist_pages)),
+            actions::menu::album_page_play_mode(window.album_pages.static_ref()),
+            actions::menu::artist_page_play_mode(window.artist_pages.static_ref()),
         ]);
         self.insert_action_group("menu", Some(&menu_actions));
     }

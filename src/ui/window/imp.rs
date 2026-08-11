@@ -4,7 +4,6 @@ use core::cell::{Cell, OnceCell, RefCell};
 use core::time::Duration;
 use glib::subclass::InitializingObject;
 use gtk::{CompositeTemplate, gio, glib};
-use std::rc::Rc;
 use std::sync::Arc;
 use std::thread;
 
@@ -20,6 +19,7 @@ use crate::ui::{
 use crate::ui::{LibraryPage, LyricsPage, MainPlayer, SettingsPage, SubpageType};
 use crate::ui::{QueuePage, QueueSubpage};
 use crate::ui::{UpdateUI, ui_tx};
+use crate::util::Forever;
 
 #[derive(Default, CompositeTemplate)]
 #[template(file = "window.ui")]
@@ -50,10 +50,10 @@ pub struct Window {
     #[template_child]
     pub artists_page: TemplateChild<ArtistsPage>,
 
-    pub library_subpages: Rc<RefCell<Vec<SubpageType>>>,
-    pub song_pages: Rc<RefCell<Vec<SongPage>>>,
-    pub album_pages: Rc<RefCell<Vec<AlbumPage>>>,
-    pub artist_pages: Rc<RefCell<Vec<ArtistPage>>>,
+    pub library_subpages: RefCell<Vec<SubpageType>>,
+    pub song_pages: RefCell<Vec<SongPage>>,
+    pub album_pages: Forever<RefCell<Vec<AlbumPage>>>,
+    pub artist_pages: Forever<RefCell<Vec<ArtistPage>>>,
 
     // View stack "Playing" tab
     #[template_child]

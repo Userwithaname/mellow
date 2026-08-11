@@ -2,7 +2,6 @@ use adw::subclass::prelude::*;
 use core::cell::RefCell;
 use glib::clone;
 use gtk::{gio, glib};
-use std::rc::Rc;
 
 use crate::library::Library;
 use crate::ui::main_player::imp::MainPlayer;
@@ -70,10 +69,10 @@ pub fn play_all_artists(artists_page: &ArtistsPage) -> gio::ActionEntry<gio::Sim
 }
 #[inline]
 pub fn queue_visible_album(
-    album_pages: Rc<RefCell<Vec<AlbumPage>>>,
+    album_pages: &'static RefCell<Vec<AlbumPage>>,
 ) -> gio::ActionEntry<gio::SimpleActionGroup> {
     gio::ActionEntry::builder("queue_visible_album")
-        .activate(move |_, _, _| {
+        .activate(|_, _, _| {
             if let Some(album_page) = album_pages.borrow().last() {
                 album_page.add_to_queue();
             }
@@ -82,10 +81,10 @@ pub fn queue_visible_album(
 }
 #[inline]
 pub fn queue_visible_artist(
-    artist_pages: Rc<RefCell<Vec<ArtistPage>>>,
+    artist_pages: &'static RefCell<Vec<ArtistPage>>,
 ) -> gio::ActionEntry<gio::SimpleActionGroup> {
     gio::ActionEntry::builder("queue_visible_artist")
-        .activate(move |_, _, _| {
+        .activate(|_, _, _| {
             if let Some(artist_page) = artist_pages.borrow().last() {
                 artist_page.imp().add_to_queue();
             }
