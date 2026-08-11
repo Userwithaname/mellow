@@ -1,4 +1,3 @@
-use core::cell::Cell;
 use gtk::gdk;
 use std::sync::OnceLock;
 
@@ -26,16 +25,18 @@ mod song_page;
 mod songs_page;
 mod window;
 
-pub use album_object::{AlbumData, AlbumObject, AlbumOrdering};
+pub use album_object::{AlbumData, AlbumObject};
 pub use album_page::AlbumPage;
 pub use albums_page::AlbumsPage;
 pub use application::Application;
-pub use artist_object::{ArtistData, ArtistObject, ArtistOrdering};
+pub use artist_object::{ArtistData, ArtistObject};
 pub use artist_page::ArtistPage;
 pub use artists_page::ArtistsPage;
 pub use item_row::ItemRow;
 pub use item_tile::ItemTile;
-pub use library_page::{LibraryPage, SubpageType};
+pub use library_page::filter::{FilterMode, LibraryFilters};
+pub use library_page::sort::{LibrarySort, LibrarySortMode, Sortable};
+pub use library_page::{LibraryObject, LibraryPage, SubpageType};
 pub use list_row::ListRow;
 pub use lyrics_page::LyricsPage;
 pub use main_player::MainPlayer;
@@ -44,7 +45,7 @@ pub use queue_page::QueuePage;
 pub use queue_subpage::QueueSubpage;
 pub use rating::Rating;
 pub use settings_page::{SettingsPage, StartupQueueChoice};
-pub use song_object::{SongData, SongObject, SongOrdering};
+pub use song_object::{SongData, SongObject};
 pub use song_page::SongPage;
 pub use songs_page::SongsPage;
 pub use window::Window;
@@ -221,30 +222,4 @@ pub fn fallback_album_image() -> gdk::Paintable {
 pub fn fallback_song_image() -> gdk::Paintable {
     // TODO: Fallback image for songs (maybe a symbolic note icon?)
     gdk::Paintable::new_empty(1, 1)
-}
-
-#[derive(Clone, Copy)]
-pub struct SortConfig<O: 'static> {
-    pub ordering: &'static Cell<O>,
-    pub reversed: &'static Cell<bool>,
-}
-impl<O> SortConfig<O> {
-    /// Constructs a new instance of `SortConfig`
-    ///
-    /// Note: Once constructed, the data will remain
-    /// in memory for the duration of the program
-    #[inline]
-    pub fn new(ordering: O, reversed: bool) -> SortConfig<O> {
-        SortConfig {
-            ordering: Box::leak(Box::new(Cell::new(ordering))),
-            reversed: Box::leak(Box::new(Cell::new(reversed))),
-        }
-    }
-}
-
-#[derive(Default)]
-pub enum FilterMode {
-    #[default]
-    Exclusive,
-    Inclusive,
 }

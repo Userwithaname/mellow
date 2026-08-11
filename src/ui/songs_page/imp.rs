@@ -1,5 +1,5 @@
 use adw::{prelude::*, subclass::prelude::*};
-use core::cell::{Cell, OnceCell, RefCell};
+use core::cell::{Cell, Ref, RefCell};
 use core::cmp;
 use core::sync::atomic::Ordering;
 use fastrand;
@@ -14,8 +14,7 @@ use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::tag_list::{self, Tags};
 use crate::library::{Songs, ToQueue};
 use crate::player::{PlayerRequest, player_tx};
-use crate::ui::song_object::SongFilters;
-use crate::ui::{FilterMode, ItemRow, SongObject, SongOrdering, SortConfig};
+use crate::ui::{FilterMode, ItemRow, LibraryFilters, LibrarySort, LibrarySortMode, SongObject};
 use crate::ui::{UpdateUI, fallback_song_image, ui_tx};
 use crate::util::search;
 
@@ -69,8 +68,8 @@ pub struct SongsPage {
     filter: RefCell<gtk::CustomFilter>,
     sorter: RefCell<gtk::CustomSorter>,
 
-    sort_mode: OnceCell<SortConfig<SongOrdering>>,
-    song_filters: Rc<RefCell<SongFilters>>,
+    sort_mode: Rc<RefCell<LibrarySort>>,
+    song_filters: Rc<RefCell<LibraryFilters>>,
 
     shuffle: Cell<bool>,
     pending_scroll_pos: Cell<Option<f64>>,
@@ -320,11 +319,11 @@ impl SongsPage {
         let filter_model = gtk::FilterListModel::new(Some(model), Some(filter.clone()));
         self.filter.replace(filter);
 
-        let sort_mode = *self.sort_mode.get().unwrap();
+        let sort_mode = Rc::clone(&self.sort_mode);
         let sorter = gtk::CustomSorter::new(move |object_a, object_b| {
             let song_a = object_a.downcast_ref::<SongObject>().unwrap();
             let song_b = object_b.downcast_ref::<SongObject>().unwrap();
-            song_a.order_cmp(song_b, sort_mode)
+            song_a.order_cmp(song_b, &sort_mode.borrow())
         });
         let sort_model = gtk::SortListModel::new(Some(filter_model), Some(sorter.clone()));
         self.sorter.replace(sorter);
@@ -367,11 +366,11 @@ impl SongsPage {
                 let info = info.user();
 
                 song.set_random(fastrand::u64(0..u64::MAX));
-                song.set_played(info.play_count as u64);
-                song.set_stars(info.rating.stars());
+                song.set_played(info.play_count as f64);
+                song.set_stars(info.rating.stars() as f64);
                 song.set_rating(match info.rating.as_raw() {
-                    0 => 3,
-                    n => n,
+                    0 => 3.0,
+                    n => n as f64,
                 });
                 song.set_modified(info.modified);
                 song.set_added(info.added);
@@ -398,9 +397,10 @@ impl SongsPage {
     #[template_callback]
     pub fn handle_reverse_sort(&self) {
         self.remember_scroll_pos();
-        let reversed = self.sort_mode.get().expect(EXP_INIT).reversed;
-        let reverse = !reversed.get();
-        reversed.set(reverse);
+        let mut sort = self.sort_mode.borrow_mut();
+        let reverse = !sort.reversed;
+        sort.reversed = reverse;
+        drop(sort);
         self.sorter.borrow().changed(gtk::SorterChange::Inverted);
         self.sort_button.set_icon_name(match reverse {
             true => "view-sort-ascending-symbolic",
@@ -409,10 +409,9 @@ impl SongsPage {
         self.restore_scroll_pos();
     }
     #[inline]
-    pub async fn set_sort_mode(&self, sort_mode: SongOrdering) {
+    pub async fn set_sort_mode(&self, sort_mode: LibrarySortMode) {
         self.remember_scroll_pos();
-        let ordering = self.sort_mode.get().expect(EXP_INIT).ordering;
-        ordering.replace(sort_mode);
+        self.sort_mode.borrow_mut().ordering = sort_mode;
         self.sorter.borrow().changed(gtk::SorterChange::Different);
         if let Some(model) = &self.songs_grid.model() {
             self.update_sort_fields(model, self.contents_id.get()).await;
@@ -421,8 +420,8 @@ impl SongsPage {
     }
     #[inline]
     #[must_use]
-    pub fn get_sort_mode(&self) -> &SortConfig<SongOrdering> {
-        self.sort_mode.get().expect(EXP_INIT)
+    pub fn get_sort_mode(&self) -> Ref<'_, LibrarySort> {
+        self.sort_mode.borrow()
     }
 
     #[inline]
@@ -464,10 +463,6 @@ impl ObjectSubclass for SongsPage {
 }
 impl ObjectImpl for SongsPage {
     fn constructed(&self) {
-        let _ = self
-            .sort_mode
-            .set(SortConfig::new(SongOrdering::Default, false));
-
         self.songs_grid.connect_activate(|grid, index| {
             let index = (grid.model().unwrap().item(index).unwrap())
                 .downcast_ref::<SongObject>()

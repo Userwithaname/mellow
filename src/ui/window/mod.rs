@@ -130,15 +130,15 @@ impl Window {
 
         settings.set_string(
             "songs-sort",
-            imp.songs_page.get_sort_config().ordering.get().to_str(),
+            imp.songs_page.get_sort_config().ordering.to_str(),
         )?;
         settings.set_string(
             "albums-sort",
-            imp.albums_page.get_sort_config().ordering.get().to_str(),
+            imp.albums_page.get_sort_config().ordering.to_str(),
         )?;
         settings.set_string(
             "artists-sort",
-            imp.artists_page.get_sort_config().ordering.get().to_str(),
+            imp.artists_page.get_sort_config().ordering.to_str(),
         )?;
 
         settings.set_boolean("songs-shuffle", imp.songs_page.get_shuffle())?;

@@ -1,8 +1,9 @@
 use adw::{prelude::*, subclass::prelude::*};
+use core::cell::Ref;
 use gtk::{gdk, glib};
 
 use crate::library::Songs;
-use crate::ui::{SongOrdering, SortConfig};
+use crate::ui::{LibrarySort, LibrarySortMode};
 
 mod imp;
 
@@ -33,7 +34,7 @@ impl SongsPage {
     }
 
     #[inline]
-    pub fn set_sort_mode(&self, sort_mode: SongOrdering) {
+    pub fn set_sort_mode(&self, sort_mode: LibrarySortMode) {
         glib::spawn_future_local(glib::clone!(
             #[weak(rename_to=songs_page)]
             self.imp(),
@@ -42,7 +43,7 @@ impl SongsPage {
     }
     #[inline]
     #[must_use]
-    pub fn get_sort_config(&self) -> &SortConfig<SongOrdering> {
+    pub fn get_sort_config(&self) -> Ref<'_, LibrarySort> {
         self.imp().get_sort_mode()
     }
 

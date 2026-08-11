@@ -5,10 +5,8 @@ use gtk::{gdk, glib};
 use std::sync::Arc;
 
 use crate::cold_expression;
-use crate::library::tag_list::Tags;
 use crate::library::{Library, SharedSong, library_tx};
-use crate::ui::{FilterMode, SortConfig, UpdateUI, ui_tx};
-use crate::util::CmpIsEqOr;
+use crate::ui::{LibraryObject, LibrarySort, Sortable, UpdateUI, ui_tx};
 
 mod imp;
 
@@ -100,58 +98,10 @@ impl SongObject {
     /// based on the sort mode specified using `order_by`
     #[inline]
     #[must_use]
-    pub fn order_cmp(&self, other: &Self, order_by: SortConfig<SongOrdering>) -> gtk::Ordering {
-        let ord = match other.rank().total_cmp(&self.rank()) {
-            cmp::Ordering::Equal => match order_by.ordering.get() {
-                SongOrdering::Default => self.cmp_default(other),
-                SongOrdering::Rating => self.cmp_best_rating(other),
-                SongOrdering::PlayCount => self.cmp_most_played(other),
-                SongOrdering::ReleaseDate => self.cmp_release_date(other),
-                SongOrdering::Added => self.cmp_added_newer(other),
-                SongOrdering::Modified => self.cmp_modified_newer(other),
-                SongOrdering::Random => self.cmp_random(other),
-            },
-            ordering => ordering,
-        };
-        if order_by.reversed.get() {
-            return ord.reverse().into();
-        }
-        ord.into()
-    }
-    #[inline]
-    #[must_use]
-    fn cmp_default(&self, other: &Self) -> cmp::Ordering {
-        (self.artist().cmp(&other.artist())).then_with(|| self.index().cmp(&other.index()))
-    }
-    #[inline]
-    #[must_use]
-    fn cmp_best_rating(&self, other: &Self) -> cmp::Ordering {
-        (other.rating().cmp(&self.rating())).then_with(|| self.cmp_most_played(other))
-    }
-    #[inline]
-    #[must_use]
-    fn cmp_most_played(&self, other: &Self) -> cmp::Ordering {
-        (other.played().cmp(&self.played())).then_with(|| self.cmp_default(other))
-    }
-    #[inline]
-    #[must_use]
-    fn cmp_release_date(&self, other: &Self) -> cmp::Ordering {
-        (other.year().cmp(&self.year())).then_with(|| self.cmp_default(other))
-    }
-    #[inline]
-    #[must_use]
-    fn cmp_added_newer(&self, other: &Self) -> cmp::Ordering {
-        (other.modified().cmp(&self.modified())).then_with(|| self.cmp_default(other))
-    }
-    #[inline]
-    #[must_use]
-    fn cmp_modified_newer(&self, other: &Self) -> cmp::Ordering {
-        (other.modified().cmp(&self.modified())).then_with(|| self.cmp_default(other))
-    }
-    #[inline]
-    #[must_use]
-    fn cmp_random(&self, other: &Self) -> cmp::Ordering {
-        other.random().cmp(&self.random())
+    pub fn order_cmp(&self, other: &Self, order_by: &LibrarySort) -> gtk::Ordering {
+        (other.rank().total_cmp(&self.rank()))
+            .then_with(|| order_by.cmp(self, other))
+            .into()
     }
 }
 
@@ -165,116 +115,54 @@ pub struct SongData {
     year: u32,
     rank: f64,
     /// Rating, as displayed in the UI (0 if unassigned)
-    stars: u8,
+    stars: f64,
     /// Rating with a fallback value (3 if unassigned, used for sorting)
-    rating: u8,
-    played: u64,
+    rating: f64,
+    played: f64,
     modified: u64,
     added: u64,
     random: u64,
     tags: Vec<String>,
 }
 
-#[derive(Clone, Copy)]
-pub enum SongOrdering {
-    Default,
-    Rating,
-    PlayCount,
-    ReleaseDate,
-    Added,
-    Modified,
-    Random,
-}
-
-impl SongOrdering {
+impl LibraryObject for SongObject {
     #[inline]
-    #[must_use]
-    pub const fn to_str(self) -> &'static str {
-        match self {
-            SongOrdering::Default => "Default",
-            SongOrdering::Rating => "Rating",
-            SongOrdering::PlayCount => "Play Count",
-            SongOrdering::ReleaseDate => "Release Date",
-            SongOrdering::Added => "Added",
-            SongOrdering::Modified => "Modified",
-            SongOrdering::Random => "Random",
-        }
+    fn play_count(&self) -> f64 {
+        self.played()
     }
-}
-impl From<&str> for SongOrdering {
     #[inline]
-    fn from(value: &str) -> Self {
-        match value {
-            "Default" => SongOrdering::Default,
-            "Rating" => SongOrdering::Rating,
-            "Play Count" => SongOrdering::PlayCount,
-            "Release Date" => SongOrdering::ReleaseDate,
-            "Added" => SongOrdering::Added,
-            "Modified" => SongOrdering::Modified,
-            "Random" => SongOrdering::Random,
-            _ => unimplemented!(),
-        }
+    fn stars(&self) -> f64 {
+        self.stars()
+    }
+    #[inline]
+    fn rating(&self) -> f64 {
+        self.rating()
+    }
+    #[inline]
+    fn year(&self) -> u32 {
+        self.year()
+    }
+    #[inline]
+    fn modified(&self) -> u64 {
+        self.modified()
+    }
+    #[inline]
+    fn added(&self) -> u64 {
+        self.added()
+    }
+    #[inline]
+    fn tags(&self) -> Vec<String> {
+        self.tags()
     }
 }
 
-#[derive(Default)]
-pub struct SongFilters {
-    pub filter_mode: FilterMode,
-    pub rating: Option<(cmp::Ordering, u8)>,
-    pub play_count: Option<(cmp::Ordering, u64)>,
-    pub year: Option<(cmp::Ordering, u32)>,
-    pub tag_filter_mode: FilterMode,
-    pub tags: Tags,
-}
-
-impl SongFilters {
+impl Sortable for SongObject {
     #[inline]
-    pub fn filter(&self, song_object: &SongObject) -> bool {
-        match self.filter_mode {
-            FilterMode::Exclusive => self.filter_exclusive(song_object),
-            FilterMode::Inclusive => self.filter_inclusive(song_object),
-        }
+    fn sort_default(&self, other: &Self) -> cmp::Ordering {
+        (self.artist().cmp(&other.artist())).then_with(|| self.index().cmp(&other.index()))
     }
-    pub fn filter_exclusive(&self, song_object: &SongObject) -> bool {
-        self.rating
-            .is_none_or(|rating| song_object.stars().cmp(&rating.1).is_eq_or(rating.0))
-            && self.play_count.is_none_or(|play_count| {
-                (song_object.played().cmp(&play_count.1)).is_eq_or(play_count.0)
-            })
-            && (self.year).is_none_or(|year| song_object.year().cmp(&year.1).is_eq_or(year.0))
-            && (self.tags.is_empty() || self.filter_tags(song_object))
-    }
-    pub fn filter_inclusive(&self, song_object: &SongObject) -> bool {
-        ((self.rating.is_none() && self.play_count.is_none() && self.year.is_none())
-            || self
-                .rating
-                .is_some_and(|rating| song_object.stars().cmp(&rating.1) == rating.0)
-            || self
-                .play_count
-                .is_some_and(|play_count| song_object.played().cmp(&play_count.1) == play_count.0)
-            || self
-                .year
-                .is_some_and(|year| song_object.year().cmp(&year.1) == year.0))
-            && (self.tags.is_empty() || self.filter_tags(song_object))
-    }
-    pub fn filter_tags(&self, song_object: &SongObject) -> bool {
-        let mut song_tags = Tags::from(song_object.tags());
-        match self.tag_filter_mode {
-            FilterMode::Exclusive => {
-                if song_tags.is_empty() && *self.tags == ["untagged"] {
-                    return true;
-                }
-                for tag in &*self.tags {
-                    if !song_tags.contains(tag) {
-                        song_tags.remove(tag);
-                        return false;
-                    }
-                }
-                true
-            }
-            FilterMode::Inclusive => self.tags.iter().any(|tag| {
-                song_tags.contains(tag) || song_tags.is_empty() && tag == "untagged" //
-            }),
-        }
+    #[inline]
+    fn sort_random(&self, other: &Self) -> cmp::Ordering {
+        self.random().cmp(&other.random())
     }
 }

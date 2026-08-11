@@ -1,5 +1,5 @@
 use adw::{prelude::*, subclass::prelude::*};
-use core::cell::{Cell, OnceCell, RefCell};
+use core::cell::{Cell, Ref, RefCell};
 use core::cmp;
 use core::sync::atomic::Ordering;
 use fastrand;
@@ -14,8 +14,7 @@ use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::tag_list::{self, Tags};
 use crate::library::{Albums, ToQueue, ToShuffledQueue};
 use crate::player::{PlayerRequest, player_tx};
-use crate::ui::album_object::AlbumFilters;
-use crate::ui::{AlbumObject, AlbumOrdering, FilterMode, ItemTile, SortConfig};
+use crate::ui::{AlbumObject, FilterMode, ItemTile, LibraryFilters, LibrarySort, LibrarySortMode};
 use crate::ui::{UpdateUI, fallback_album_image, ui_tx};
 use crate::util::search;
 
@@ -69,8 +68,8 @@ pub struct AlbumsPage {
     filter: RefCell<gtk::CustomFilter>,
     sorter: RefCell<gtk::CustomSorter>,
 
-    sort_mode: OnceCell<SortConfig<AlbumOrdering>>,
-    album_filters: Rc<RefCell<AlbumFilters>>,
+    sort_mode: Rc<RefCell<LibrarySort>>,
+    album_filters: Rc<RefCell<LibraryFilters>>,
 
     shuffle: Cell<bool>,
     pending_scroll_pos: Cell<Option<f64>>,
@@ -324,11 +323,11 @@ impl AlbumsPage {
         let filter_model = gtk::FilterListModel::new(Some(model), Some(filter.clone()));
         self.filter.replace(filter);
 
-        let sort_mode = *self.sort_mode.get().unwrap();
+        let sort_mode = Rc::clone(&self.sort_mode);
         let sorter = gtk::CustomSorter::new(move |object_a, object_b| {
             let album_a = object_a.downcast_ref::<AlbumObject>().unwrap();
             let album_b = object_b.downcast_ref::<AlbumObject>().unwrap();
-            album_a.order_cmp(album_b, sort_mode)
+            album_a.order_cmp(album_b, &sort_mode.borrow())
         });
         let sort_model = gtk::SortListModel::new(Some(filter_model), Some(sorter.clone()));
         self.sorter.replace(sorter);
@@ -379,6 +378,7 @@ impl AlbumsPage {
                 let info = song.info();
                 let info = info.user();
 
+                // NOTE: Checking modified/added times for only the first song might not be accurate
                 album.set_modified(info.modified);
                 album.set_added(info.added);
             }
@@ -411,9 +411,10 @@ impl AlbumsPage {
     #[template_callback]
     pub fn handle_reverse_sort(&self) {
         self.remember_scroll_pos();
-        let reversed = self.sort_mode.get().expect(EXP_INIT).reversed;
-        let reverse = !reversed.get();
-        reversed.set(reverse);
+        let mut sort = self.sort_mode.borrow_mut();
+        let reverse = !sort.reversed;
+        sort.reversed = reverse;
+        drop(sort);
         self.sorter.borrow().changed(gtk::SorterChange::Inverted);
         self.sort_button.set_icon_name(match reverse {
             true => "view-sort-ascending-symbolic",
@@ -422,10 +423,9 @@ impl AlbumsPage {
         self.restore_scroll_pos();
     }
     #[inline]
-    pub async fn set_sort_mode(&self, sort_mode: AlbumOrdering) {
+    pub async fn set_sort_mode(&self, sort_mode: LibrarySortMode) {
         self.remember_scroll_pos();
-        let ordering = self.sort_mode.get().expect(EXP_INIT).ordering;
-        ordering.replace(sort_mode);
+        self.sort_mode.borrow_mut().ordering = sort_mode;
         self.sorter.borrow().changed(gtk::SorterChange::Different);
         if let Some(model) = &self.albums_grid.model() {
             self.update_sort_fields(model, self.contents_id.get()).await;
@@ -434,8 +434,8 @@ impl AlbumsPage {
     }
     #[inline]
     #[must_use]
-    pub fn get_sort_mode(&self) -> &SortConfig<AlbumOrdering> {
-        self.sort_mode.get().expect(EXP_INIT)
+    pub fn get_sort_mode(&self) -> Ref<'_, LibrarySort> {
+        self.sort_mode.borrow()
     }
 
     #[inline]
@@ -477,10 +477,6 @@ impl ObjectSubclass for AlbumsPage {
 }
 impl ObjectImpl for AlbumsPage {
     fn constructed(&self) {
-        let _ = self
-            .sort_mode
-            .set(SortConfig::new(AlbumOrdering::Default, false));
-
         self.albums_grid.connect_activate(|grid, index| {
             let album = Arc::clone(
                 (grid.model().unwrap().item(index).unwrap())

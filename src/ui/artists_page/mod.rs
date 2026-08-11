@@ -1,8 +1,10 @@
+use core::cell::Ref;
+
 use adw::{prelude::*, subclass::prelude::*};
 use gtk::glib;
 
 use crate::library::Artists;
-use crate::ui::{ArtistOrdering, SortConfig};
+use crate::ui::{LibrarySort, LibrarySortMode};
 
 mod imp;
 
@@ -28,7 +30,7 @@ impl ArtistsPage {
     }
 
     #[inline]
-    pub fn set_sort_mode(&self, sort_mode: ArtistOrdering) {
+    pub fn set_sort_mode(&self, sort_mode: LibrarySortMode) {
         glib::spawn_future_local(glib::clone!(
             #[weak(rename_to=artists_page)]
             self.imp(),
@@ -37,7 +39,7 @@ impl ArtistsPage {
     }
     #[inline]
     #[must_use]
-    pub fn get_sort_config(&self) -> &SortConfig<ArtistOrdering> {
+    pub fn get_sort_config(&self) -> Ref<'_, LibrarySort> {
         self.imp().get_sort_mode()
     }
 

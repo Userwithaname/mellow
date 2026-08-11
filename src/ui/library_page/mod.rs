@@ -3,6 +3,9 @@ use gtk::glib;
 
 mod imp;
 
+pub mod filter;
+pub mod sort;
+
 glib::wrapper! {
     pub struct LibraryPage(ObjectSubclass<imp::LibraryPage>)
         @extends adw::NavigationPage, gtk::Widget,
@@ -33,8 +36,19 @@ impl LibraryPage {
     }
 }
 
+#[derive(Debug)]
 pub enum SubpageType {
     Song,
     Album,
     Artist,
+}
+
+pub trait LibraryObject {
+    fn play_count(&self) -> f64;
+    fn stars(&self) -> f64;
+    fn rating(&self) -> f64;
+    fn year(&self) -> u32;
+    fn added(&self) -> u64;
+    fn modified(&self) -> u64;
+    fn tags(&self) -> Vec<String>;
 }
