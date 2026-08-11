@@ -29,7 +29,7 @@ pub fn visit_dirs<F: FnMut(PathBuf)>(dir: PathBuf, f: &mut F) -> io::Result<()> 
 #[derive(Copy, Clone)]
 pub struct Forever<T: 'static>(&'static T);
 impl<T> Forever<T> {
-    /// Constructs a new `Leaked` object, leaking `value` to a `'static` allocation
+    /// Constructs a new `Forever` object, leaking `value` to a `'static` allocation
     #[inline]
     #[must_use]
     pub fn new(value: T) -> Forever<T> {
