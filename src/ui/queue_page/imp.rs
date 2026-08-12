@@ -3,7 +3,6 @@ use core::cell::{Cell, OnceCell, RefCell};
 use core::time::Duration;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib, graphene};
-use std::rc::Rc;
 
 use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::{Library, library_tx};
@@ -59,11 +58,11 @@ pub struct QueuePage {
     pub subpage: OnceCell<QueueSubpage>,
 
     view_pan_offset: Cell<isize>,
-    queue_item_objects: Rc<RefCell<Vec<QueueItemObject>>>,
+    queue_item_objects: RefCell<Vec<QueueItemObject>>,
     list_model: OnceCell<gio::ListStore>,
     pub drag_row: OnceCell<ListRow>,
     pub next_scroll_pos: Cell<QueueScrollAction>,
-    pan_loop_direction: Rc<Cell<PanLoopDirection>>,
+    pan_loop_direction: Cell<PanLoopDirection>,
 
     pub song_queue: RefCell<Box<[QueueItem]>>,
     pub playing_index: Cell<usize>,
@@ -696,14 +695,11 @@ impl QueuePage {
         let drag = gtk::GestureDrag::new();
         let drag_row = ListRow::default();
         drag_row.add_css_class("osd");
-        let drag_container = self.drag_widget.parent().unwrap();
-        let dragged_item = Rc::new(Cell::new(None));
-        let dragged_item_index = Rc::new(Cell::new(0));
-        self.drag_widget.set_cursor_from_name(Some("grabbing"));
         self.drag_widget.put(&drag_row, 0.0, 0.0);
-        let drag_offset = Rc::new(Cell::new((0.0, 0.0)));
+        // self.drag_widget.set_cursor_from_name(Some("grabbing")); // This doesn't work
+        let drag_container = self.drag_widget.parent().unwrap();
 
-        type DragState = Rc<Cell<bool>>;
+        type DragState = Cell<bool>;
         trait SetDragState {
             fn set_drag_state(&self, dragging: bool);
         }
@@ -713,7 +709,12 @@ impl QueuePage {
                 (ui_tx().send_blocking(UpdateUI::CanCloseSheet(!dragging))).expect(EXP_RX);
             }
         }
-        let dragging: DragState = Rc::new(Cell::new(false));
+
+        // These can be static, since they will be needed for the rest of the program runtime
+        let dragging: &'static DragState = Box::leak(Box::new(Cell::new(false)));
+        let dragged_item: &'static Cell<Option<QueueItem>> = Box::leak(Box::new(Cell::new(None)));
+        let dragged_item_index: &'static Cell<usize> = Box::leak(Box::new(Cell::new(0)));
+        let drag_offset: &'static Cell<(f64, f64)> = Box::leak(Box::new(Cell::new((0.0, 0.0))));
 
         drag.connect_drag_begin(glib::clone!(
             #[weak(rename_to=queue_page)]
@@ -729,15 +730,7 @@ impl QueuePage {
             #[weak]
             drag_row,
             #[weak]
-            drag_offset,
-            #[weak]
             drag_container,
-            #[weak]
-            dragged_item,
-            #[weak]
-            dragged_item_index,
-            #[weak]
-            dragging,
             move |_, start_x, start_y| if selections.borrow().is_none()
                 && Self::should_drag(start_x)
             {
@@ -749,7 +742,7 @@ impl QueuePage {
                 #[cold]
                 fn set_fallback_offsets(
                     drag_row: &ListRow,
-                    drag_offset: &Rc<Cell<(f64, f64)>>,
+                    drag_offset: &Cell<(f64, f64)>,
                     pan_up_button_visible: bool,
                     list_box: &gtk::ListBox,
                     start_y: f64,
@@ -832,10 +825,6 @@ impl QueuePage {
             self,
             #[weak]
             drag_row,
-            #[strong]
-            dragging,
-            #[strong]
-            drag_offset,
             move |gesture_drag, _| if dragging.get() {
                 // TODO: Stop dragging when escape is pressed (`dragging.set_drag_state(false)`)
 
@@ -884,12 +873,6 @@ impl QueuePage {
             drag_row,
             #[weak]
             drag_container,
-            #[strong]
-            dragged_item,
-            #[strong]
-            dragged_item_index,
-            #[strong]
-            dragging,
             move |gesture_drag, _| if dragging.get() {
                 queue_page.for_each_row(|row, _| row.remove_css_class("highlight-top"));
                 drag_container.set_visible(false);
