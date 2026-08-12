@@ -651,8 +651,6 @@ impl QueuePage {
                 queue_page,
                 #[weak]
                 queue_item_object,
-                #[strong]
-                selections,
                 move |_| if let Some(selections) = &mut *selections.borrow_mut() {
                     let selected = queue_page.toggle_selected_item(
                         (
