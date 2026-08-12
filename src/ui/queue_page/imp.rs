@@ -667,8 +667,6 @@ impl QueuePage {
             queue_row.connect_activated(glib::clone!(
                 #[weak(rename_to = selection_toggle)]
                 row_imp.selection_toggle,
-                #[strong]
-                selections,
                 move |_| if selections.borrow().is_none() {
                     (ui_tx().send_blocking(UpdateUI::OpenQueueSubpage(queue_index))).expect(EXP_RX);
                 } else {
