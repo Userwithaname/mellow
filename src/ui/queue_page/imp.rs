@@ -719,19 +719,11 @@ impl QueuePage {
         drag.connect_drag_begin(glib::clone!(
             #[weak(rename_to=queue_page)]
             self,
-            #[weak(rename_to=list_box)]
-            self.list_box,
-            #[strong(rename_to=selections)]
-            self.selections,
-            #[weak(rename_to=scrolled_window)]
-            self.scrolled_window,
-            #[weak(rename_to=drag_widget)]
-            self.drag_widget,
             #[weak]
             drag_row,
             #[weak]
             drag_container,
-            move |_, start_x, start_y| if selections.borrow().is_none()
+            move |_, start_x, start_y| if queue_page.selections.borrow().is_none()
                 && Self::should_drag(start_x)
             {
                 dragging.set_drag_state(true);
@@ -763,7 +755,7 @@ impl QueuePage {
                     ));
                 }
 
-                if let Some(row) = list_box.row_at_y(start_y as i32) {
+                if let Some(row) = queue_page.list_box.row_at_y(start_y as i32) {
                     let row = row.downcast_ref::<ListRow>().unwrap();
                     let row_index = row.index();
                     dragged_item.set(Some(
@@ -787,34 +779,34 @@ impl QueuePage {
                         row,
                         &graphene::Point::new(
                             start_x as f32,
-                            (start_y - scrolled_window.vadjustment().value()) as f32,
+                            (start_y - queue_page.scrolled_window.vadjustment().value()) as f32,
                         ),
                     ) {
                         drag_offset.set((-point.x() as f64 - 1.0, -point.y() as f64 - 1.0));
                     } else {
                         set_fallback_offsets(
                             &drag_row,
-                            &drag_offset,
+                            drag_offset,
                             queue_page.view_further_up.is_visible(),
-                            &list_box,
+                            &queue_page.list_box,
                             start_y,
                         );
                     }
                 } else {
                     set_fallback_offsets(
                         &drag_row,
-                        &drag_offset,
+                        drag_offset,
                         queue_page.view_further_up.is_visible(),
-                        &list_box,
+                        &queue_page.list_box,
                         start_y,
                     );
                 }
 
                 let (drag_offset_x, drag_offset_y) = drag_offset.get();
-                drag_widget.move_(
+                queue_page.drag_widget.move_(
                     &drag_row,
                     start_x + drag_offset_x,
-                    start_y + drag_offset_y - scrolled_window.vadjustment().value(),
+                    start_y + drag_offset_y - queue_page.scrolled_window.vadjustment().value(),
                 );
 
                 drag_container.set_visible(true);
