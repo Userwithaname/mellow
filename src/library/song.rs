@@ -822,16 +822,13 @@ impl SongInfoLoader<'_> {
 
         self.thumbnail.read().unwrap()
     }
-    /// Unloads the song's thumbnail from memory if it is no longer used
+    /// Unloads this song's thumbnail
     ///
     /// # Panics
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
     pub fn unload_thumbnail(&mut self) {
-        let mut writer = self.thumbnail.write().unwrap();
-        if writer.as_ref().is_some_and(|t| t.ref_count() < 2) {
-            *writer = None;
-        }
+        *self.thumbnail.write().unwrap() = None;
     }
     /// Unloads the song's thumbnail from memory if it is no longer used,
     /// but only if possible to do so without blocking

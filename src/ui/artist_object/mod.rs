@@ -1,5 +1,4 @@
 use adw::subclass::prelude::*;
-use core::cmp;
 use glib::Object;
 use gtk::{gdk, glib};
 
@@ -98,11 +97,11 @@ impl LibraryObject for ArtistObject {
 
 impl Sortable for ArtistObject {
     #[inline]
-    fn sort_default(&self, other: &Self) -> cmp::Ordering {
+    fn sort_default(&self, other: &Self) -> core::cmp::Ordering {
         self.index().cmp(&other.index())
     }
     #[inline]
-    fn sort_random(&self, other: &Self) -> cmp::Ordering {
+    fn sort_random(&self, other: &Self) -> core::cmp::Ordering {
         self.random().cmp(&other.random())
     }
 }

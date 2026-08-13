@@ -1,6 +1,7 @@
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, Ref, RefCell};
 use core::cmp;
+use core::hint::cold_path;
 use core::sync::atomic::Ordering;
 use fastrand;
 use gtk::CompositeTemplate;
@@ -402,8 +403,13 @@ impl AlbumsPage {
     #[inline]
     pub fn assign_artwork(&self, index: usize, artwork: Option<&gdk::Texture>) {
         let albums = self.albums.borrow();
-        if index < albums.len() {
-            albums[index].set_property("artwork", artwork);
+        let Some(album_object) = albums.get(index) else {
+            return cold_path();
+        };
+        if album_object.is_visible().load(Ordering::Acquire) {
+            album_object.set_property("artwork", artwork);
+        } else {
+            album_object.unload_artwork();
         }
     }
 
@@ -542,20 +548,18 @@ impl ObjectImpl for AlbumsPage {
                 .and_downcast::<AlbumObject>()
                 .expect("Needs to be AlbumObject");
             let album_tile = list_item
-                .downcast_ref::<gtk::ListItem>()
-                .expect("Needs to be ListItem")
                 .child()
                 .and_downcast::<ItemTile>()
                 .expect("Needs to be ItemTile");
 
-            album_tile.set_info(&album_object.album(), &album_object.artist());
             if let Some(artwork) = album_object.artwork() {
+                album_object.is_visible().store(true, Ordering::Release);
                 album_tile.set_artwork(&artwork);
             } else {
                 album_object.load_artwork();
                 album_tile.set_artwork(&fallback_image);
             }
-
+            album_tile.set_info(&album_object.album(), &album_object.artist());
             album_tile.add_binding(
                 album_object
                     .bind_property("artwork", &album_tile.imp().image.get(), "paintable")
@@ -567,19 +571,17 @@ impl ObjectImpl for AlbumsPage {
             let list_item = list_item
                 .downcast_ref::<gtk::ListItem>()
                 .expect("Needs to be ListItem");
-            let object = list_item
+            let album_object = list_item
                 .item()
                 .and_downcast::<AlbumObject>()
                 .expect("Needs to be AlbumObject");
+            album_object.unload_artwork();
+
             let album_tile = list_item
-                .downcast_ref::<gtk::ListItem>()
-                .expect("Needs to be ListItem")
                 .child()
                 .and_downcast::<ItemTile>()
                 .expect("Needs to be ItemTile");
-
             album_tile.reset_bindings();
-            object.unload_artwork();
         });
 
         self.albums_grid.set_factory(Some(&factory));

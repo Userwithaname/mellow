@@ -519,8 +519,6 @@ impl ObjectImpl for ArtistsPage {
                 .and_downcast::<ArtistObject>()
                 .expect("Needs to be ArtistObject");
             let artist_tile = list_item
-                .downcast_ref::<gtk::ListItem>()
-                .expect("Needs to be ListItem")
                 .child()
                 .and_downcast::<ItemTile>()
                 .expect("Needs to be ItemTile");
@@ -535,8 +533,6 @@ impl ObjectImpl for ArtistsPage {
                 .downcast_ref::<gtk::ListItem>()
                 .expect("Needs to be ListItem");
             let artist_tile = list_item
-                .downcast_ref::<gtk::ListItem>()
-                .expect("Needs to be ListItem")
                 .child()
                 .and_downcast::<ItemTile>()
                 .expect("Needs to be ItemTile");

@@ -1,6 +1,7 @@
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, Ref, RefCell};
 use core::cmp;
+use core::hint::cold_path;
 use core::sync::atomic::Ordering;
 use fastrand;
 use gtk::CompositeTemplate;
@@ -337,8 +338,13 @@ impl SongsPage {
     #[inline]
     pub fn assign_artwork(&self, index: usize, artwork: Option<&gdk::Texture>) {
         let songs = self.songs.borrow();
-        if index < songs.len() {
-            songs[index].set_property("artwork", artwork);
+        let Some(song_object) = songs.get(index) else {
+            return cold_path();
+        };
+        if song_object.is_visible().load(Ordering::Acquire) {
+            song_object.set_property("artwork", artwork);
+        } else {
+            song_object.unload_artwork();
         }
     }
 
@@ -520,20 +526,18 @@ impl ObjectImpl for SongsPage {
                 .and_downcast::<SongObject>()
                 .expect("Needs to be SongObject");
             let song_row = list_item
-                .downcast_ref::<gtk::ListItem>()
-                .expect("Needs to be ListItem")
                 .child()
                 .and_downcast::<ItemRow>()
                 .expect("Needs to be ItemRow");
 
-            song_row.set_info(&song_object.song(), &song_object.artist());
             if let Some(artwork) = song_object.artwork() {
+                song_object.is_visible().store(true, Ordering::Release);
                 song_row.set_artwork(&artwork);
             } else {
                 song_object.load_artwork();
                 song_row.set_artwork(&fallback_image);
             }
-
+            song_row.set_info(&song_object.song(), &song_object.artist());
             song_row.add_binding(
                 song_object
                     .bind_property("artwork", &song_row.imp().image.get(), "paintable")
@@ -549,15 +553,13 @@ impl ObjectImpl for SongsPage {
                 .item()
                 .and_downcast::<SongObject>()
                 .expect("Needs to be SongObject");
+            song_object.unload_artwork();
+
             let song_row = list_item
-                .downcast_ref::<gtk::ListItem>()
-                .expect("Needs to be ListItem")
                 .child()
                 .and_downcast::<ItemRow>()
                 .expect("Needs to be ItemTile");
-
             song_row.reset_bindings();
-            song_object.unload_artwork();
         });
 
         self.songs_grid.set_factory(Some(&factory));

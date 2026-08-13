@@ -1,5 +1,5 @@
 use adw::{prelude::*, subclass::prelude::*};
-use core::{cmp, sync::atomic};
+use core::sync::atomic::{AtomicBool, Ordering};
 use glib::Object;
 use gtk::{gdk, glib};
 use std::sync::Arc;
@@ -50,18 +50,19 @@ impl SongObject {
     }
 
     /// Loads the artwork thumbnail in a background thread
+    ///
+    /// The function also marks the item as visible, so it
+    /// should only be called when the item is in view
     #[inline]
     pub fn load_artwork(&self) {
-        if self.artwork().is_some() {
-            return;
-        }
         let imp = self.imp();
+        let is_visible = Arc::clone(&imp.is_visible);
+        is_visible.store(true, Ordering::Release);
         let index = self.index() as usize;
         let song = Arc::clone(imp.shared_song());
-        let is_visible = Arc::clone(&imp.is_visible);
-        is_visible.store(true, atomic::Ordering::Release);
+
         Library::run_task(library_tx(), move || {
-            if !is_visible.load(atomic::Ordering::Acquire) {
+            if !is_visible.load(Ordering::Acquire) {
                 return;
             }
             drop(song.info().load_thumbnail());
@@ -71,20 +72,30 @@ impl SongObject {
     }
 
     /// Unloads the artwork thumbnail in a background thread
+    ///
+    /// The function also marks the item as not visible, so it
+    /// should only be called when the item is not in view
     #[inline]
     pub fn unload_artwork(&self) {
-        self.set_property("artwork", Option::<gdk::Texture>::None);
         let imp = self.imp();
-        let song = Arc::clone(imp.shared_song());
         let is_visible = Arc::clone(&imp.is_visible);
-        is_visible.store(false, atomic::Ordering::Release);
+        is_visible.store(false, Ordering::Release);
+        let song = Arc::clone(imp.shared_song());
+        self.set_property("artwork", Option::<gdk::Texture>::None);
+
         // NOTE: Unloading in the background in case the `RwLock` is busy
         Library::run_task(library_tx(), move || {
-            if is_visible.load(atomic::Ordering::Acquire) {
+            if is_visible.load(Ordering::Acquire) {
                 return;
             }
             song.info().unload_thumbnail();
         });
+    }
+
+    /// Returns the `AtomicBool` for determining whether this item is in view
+    #[inline]
+    pub fn is_visible(&self) -> &Arc<AtomicBool> {
+        &self.imp().is_visible
     }
 
     /// Returns the `SharedSong` associated with this object
@@ -158,11 +169,11 @@ impl LibraryObject for SongObject {
 
 impl Sortable for SongObject {
     #[inline]
-    fn sort_default(&self, other: &Self) -> cmp::Ordering {
+    fn sort_default(&self, other: &Self) -> core::cmp::Ordering {
         (self.artist().cmp(&other.artist())).then_with(|| self.index().cmp(&other.index()))
     }
     #[inline]
-    fn sort_random(&self, other: &Self) -> cmp::Ordering {
+    fn sort_random(&self, other: &Self) -> core::cmp::Ordering {
         self.random().cmp(&other.random())
     }
 }

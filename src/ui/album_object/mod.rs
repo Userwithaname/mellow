@@ -1,5 +1,5 @@
 use adw::subclass::prelude::*;
-use core::{cmp, sync::atomic};
+use core::sync::atomic::{AtomicBool, Ordering};
 use glib::{Object, object::ObjectExt};
 use gtk::{gdk, glib};
 use std::sync::Arc;
@@ -39,20 +39,21 @@ impl AlbumObject {
 
     /// Loads the artwork thumbnail in a background thread
     ///
+    /// The function also marks the item as visible, so it
+    /// should only be called when the item is in view
+    ///
     /// # Panics
     /// The function panics if the album `Mutex` is poisoned
     #[inline]
     pub fn load_artwork(&self) {
-        if self.artwork().is_some() {
-            return;
-        }
-        let index = self.index() as usize;
         let imp = self.imp();
-        let album = Arc::clone(self.shared_album());
         let is_visible = Arc::clone(&imp.is_visible);
-        is_visible.store(true, atomic::Ordering::Release);
+        is_visible.store(true, Ordering::Release);
+        let index = self.index() as usize;
+        let album = Arc::clone(self.shared_album());
+
         Library::run_task(library_tx(), move || {
-            if !is_visible.load(atomic::Ordering::Acquire) {
+            if !is_visible.load(Ordering::Acquire) {
                 return;
             }
             let song = Arc::clone(album.lock().unwrap().first_song());
@@ -64,22 +65,32 @@ impl AlbumObject {
 
     /// Unloads the artwork thumbnail in a background thread
     ///
+    /// The function also marks the item as not visible, so it
+    /// should only be called when the item is not in view
+    ///
     /// # Panics
     /// The function panics if the album `Mutex` is poisoned
     #[inline]
     pub fn unload_artwork(&self) {
-        self.set_property("artwork", Option::<gdk::Texture>::None);
         let imp = self.imp();
-        let album = Arc::clone(self.shared_album());
         let is_visible = Arc::clone(&imp.is_visible);
-        is_visible.store(false, atomic::Ordering::Release);
+        is_visible.store(false, Ordering::Release);
+        let album = Arc::clone(imp.shared_album());
+        self.set_property("artwork", Option::<gdk::Texture>::None);
+
         // NOTE: Unloading in the background in case the `RwLock` is busy
         Library::run_task(library_tx(), move || {
-            if is_visible.load(atomic::Ordering::Acquire) {
+            if is_visible.load(Ordering::Acquire) {
                 return;
             }
             album.lock().unwrap().first_song().info().unload_thumbnail();
         });
+    }
+
+    /// Returns the `AtomicBool` for determining whether this item is in view
+    #[inline]
+    pub fn is_visible(&self) -> &Arc<AtomicBool> {
+        &self.imp().is_visible
     }
 
     /// Returns the `SharedAlbum` associated with this object
@@ -152,13 +163,13 @@ impl LibraryObject for AlbumObject {
 
 impl Sortable for AlbumObject {
     #[inline]
-    fn sort_default(&self, other: &Self) -> cmp::Ordering {
+    fn sort_default(&self, other: &Self) -> core::cmp::Ordering {
         (self.artist().cmp(&other.artist()))
             .then_with(|| self.year().cmp(&other.year()))
             .then_with(|| self.album().cmp(&other.album()))
     }
     #[inline]
-    fn sort_random(&self, other: &Self) -> cmp::Ordering {
+    fn sort_random(&self, other: &Self) -> core::cmp::Ordering {
         self.random().cmp(&other.random())
     }
 }
