@@ -525,18 +525,18 @@ impl ObjectImpl for SongsPage {
                 .item()
                 .and_downcast::<SongObject>()
                 .expect("Needs to be SongObject");
+            #[cfg(feature = "startup-logs")]
+            if let Some(artwork) = song_object.artwork() {
+                eprintln!("⚠ Artwork should not have been loaded before coming into view");
+                cold_path();
+            }
+            song_object.load_artwork();
+
             let song_row = list_item
                 .child()
                 .and_downcast::<ItemRow>()
                 .expect("Needs to be ItemRow");
-
-            if let Some(artwork) = song_object.artwork() {
-                song_object.is_visible().store(true, Ordering::Release);
-                song_row.set_artwork(&artwork);
-            } else {
-                song_object.load_artwork();
-                song_row.set_artwork(&fallback_image);
-            }
+            song_row.set_artwork(&fallback_image);
             song_row.set_info(&song_object.song(), &song_object.artist());
             song_row.add_binding(
                 song_object

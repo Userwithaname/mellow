@@ -547,18 +547,18 @@ impl ObjectImpl for AlbumsPage {
                 .item()
                 .and_downcast::<AlbumObject>()
                 .expect("Needs to be AlbumObject");
+            #[cfg(feature = "startup-logs")]
+            if let Some(artwork) = album_object.artwork() {
+                eprintln!("⚠ Artwork should not have been loaded before coming into view");
+                cold_path();
+            }
+            album_object.load_artwork();
+
             let album_tile = list_item
                 .child()
                 .and_downcast::<ItemTile>()
                 .expect("Needs to be ItemTile");
-
-            if let Some(artwork) = album_object.artwork() {
-                album_object.is_visible().store(true, Ordering::Release);
-                album_tile.set_artwork(&artwork);
-            } else {
-                album_object.load_artwork();
-                album_tile.set_artwork(&fallback_image);
-            }
+            album_tile.set_artwork(&fallback_image);
             album_tile.set_info(&album_object.album(), &album_object.artist());
             album_tile.add_binding(
                 album_object

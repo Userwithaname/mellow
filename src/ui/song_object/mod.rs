@@ -94,6 +94,7 @@ impl SongObject {
 
     /// Returns the `AtomicBool` for determining whether this item is in view
     #[inline]
+    #[must_use]
     pub fn is_visible(&self) -> &Arc<AtomicBool> {
         &self.imp().is_visible
     }
