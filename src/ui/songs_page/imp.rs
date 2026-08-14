@@ -526,7 +526,7 @@ impl ObjectImpl for SongsPage {
                 .and_downcast::<SongObject>()
                 .expect("Needs to be SongObject");
             #[cfg(feature = "startup-logs")]
-            if let Some(artwork) = song_object.artwork() {
+            if song_object.artwork().is_some() {
                 eprintln!("⚠ Artwork should not have been loaded before coming into view");
                 cold_path();
             }

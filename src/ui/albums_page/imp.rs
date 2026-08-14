@@ -548,7 +548,7 @@ impl ObjectImpl for AlbumsPage {
                 .and_downcast::<AlbumObject>()
                 .expect("Needs to be AlbumObject");
             #[cfg(feature = "startup-logs")]
-            if let Some(artwork) = album_object.artwork() {
+            if album_object.artwork().is_some() {
                 eprintln!("⚠ Artwork should not have been loaded before coming into view");
                 cold_path();
             }
