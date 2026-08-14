@@ -449,66 +449,8 @@ impl SongsPage {
             song.imp().is_visible.store(false, Ordering::Release);
         }
     }
-}
 
-#[glib::object_subclass]
-impl ObjectSubclass for SongsPage {
-    const NAME: &str = "MellowSongsPage";
-    type Type = super::SongsPage;
-    type ParentType = adw::NavigationPage;
-
-    fn class_init(class: &mut Self::Class) {
-        class.bind_template();
-        class.bind_template_callbacks();
-    }
-
-    fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
-        obj.init_template();
-    }
-}
-impl ObjectImpl for SongsPage {
-    fn constructed(&self) {
-        self.songs_grid.connect_activate(|grid, index| {
-            let index = (grid.model().unwrap().item(index).unwrap())
-                .downcast_ref::<SongObject>()
-                .unwrap()
-                .index();
-            (ui_tx().send_blocking(UpdateUI::SongPageByIndex(index as usize))).expect(EXP_RX);
-        });
-
-        // Restore the previous scroll position if pending, and update sort fields
-        // Setting the scroll position must be done when mapped; if it wasn't
-        // set in `load_songs`, it is restored in `connect_map` instead.
-        self.songs_grid.connect_map(glib::clone!(
-            #[weak(rename_to = songs_page)]
-            self,
-            move |_| {
-                songs_page.restore_scroll_pos();
-                glib::spawn_future_local(async move {
-                    songs_page
-                        .update_sort_fields(
-                            &songs_page.songs_grid.model().expect(EXP_INIT),
-                            songs_page.contents_id.get(),
-                        )
-                        .await;
-                    songs_page.update_tag_filter_list();
-                    songs_page.handle_filters_changed();
-                });
-            }
-        ));
-
-        self.filter_mode.connect_active_notify(glib::clone!(
-            #[weak(rename_to = songs_page)]
-            self,
-            move |_| songs_page.handle_filters_changed()
-        ));
-
-        self.tag_filter_mode.connect_active_notify(glib::clone!(
-            #[weak(rename_to = songs_page)]
-            self,
-            move |_| songs_page.handle_filters_changed()
-        ));
-
+    fn setup_factory(&self) {
         let fallback_image = fallback_song_image();
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_, list_item| {
@@ -563,6 +505,71 @@ impl ObjectImpl for SongsPage {
         });
 
         self.songs_grid.set_factory(Some(&factory));
+    }
+}
+
+#[glib::object_subclass]
+impl ObjectSubclass for SongsPage {
+    const NAME: &str = "MellowSongsPage";
+    type Type = super::SongsPage;
+    type ParentType = adw::NavigationPage;
+
+    fn class_init(class: &mut Self::Class) {
+        class.bind_template();
+        class.bind_template_callbacks();
+    }
+
+    fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
+        obj.init_template();
+    }
+}
+impl ObjectImpl for SongsPage {
+    fn constructed(&self) {
+        self.songs_grid.connect_activate(|grid, index| {
+            let index = (grid.model().unwrap().item(index).unwrap())
+                .downcast_ref::<SongObject>()
+                .unwrap()
+                .index();
+            (ui_tx().send_blocking(UpdateUI::SongPageByIndex(index as usize))).expect(EXP_RX);
+        });
+
+        // Restore the previous scroll position if pending, and update sort fields
+        // Setting the scroll position must be done when mapped; if it wasn't
+        // set in `load_songs`, it is restored in `connect_map` instead.
+        self.songs_grid.connect_map(glib::clone!(
+            #[weak(rename_to = songs_page)]
+            self,
+            move |_| {
+                if songs_page.songs_grid.factory().is_none() {
+                    songs_page.setup_factory();
+                } else {
+                    songs_page.restore_scroll_pos();
+                }
+                songs_page.restore_scroll_pos();
+                glib::spawn_future_local(async move {
+                    songs_page
+                        .update_sort_fields(
+                            &songs_page.songs_grid.model().expect(EXP_INIT),
+                            songs_page.contents_id.get(),
+                        )
+                        .await;
+                    songs_page.update_tag_filter_list();
+                    songs_page.handle_filters_changed();
+                });
+            }
+        ));
+
+        self.filter_mode.connect_active_notify(glib::clone!(
+            #[weak(rename_to = songs_page)]
+            self,
+            move |_| songs_page.handle_filters_changed()
+        ));
+
+        self.tag_filter_mode.connect_active_notify(glib::clone!(
+            #[weak(rename_to = songs_page)]
+            self,
+            move |_| songs_page.handle_filters_changed()
+        ));
     }
 }
 impl WidgetImpl for SongsPage {}

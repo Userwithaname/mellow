@@ -326,12 +326,15 @@ impl QueuePage {
         }
 
         // Garbage collection
+        // FIX: Memory usage increases when repeatedly toggling shuffle mode
+        // FIX: May unload thumbnails before they are assigned to library views if ran in parallel
         if old_queue_length > 0 {
             // NOTE: If there are issues with queue artworks not appearing, try
             // disabling garbage collection to verify that it is working properly
             Library::run_task(library_tx(), {
                 let queue = queue.to_vec();
                 move || {
+                    // IDEA: Try remembering/comparing previous and current visible items instead?
                     let len = queue_length - 1;
                     let short_start = playing.saturating_sub(2);
                     let short_end = (playing + 2).min(queue.len());

@@ -433,69 +433,8 @@ impl ArtistsPage {
             glib::idle_add_local_once(move || vadjustment.set_value(scroll_pos));
         }
     }
-}
 
-#[glib::object_subclass]
-impl ObjectSubclass for ArtistsPage {
-    const NAME: &str = "MellowArtistsPage";
-    type Type = super::ArtistsPage;
-    type ParentType = adw::NavigationPage;
-
-    fn class_init(class: &mut Self::Class) {
-        class.bind_template();
-        class.bind_template_callbacks();
-    }
-
-    fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
-        obj.init_template();
-    }
-}
-impl ObjectImpl for ArtistsPage {
-    fn constructed(&self) {
-        self.artists_grid.connect_activate(|grid, index| {
-            let artist = Arc::clone(
-                (grid.model().unwrap().item(index).unwrap())
-                    .downcast_ref::<ArtistObject>()
-                    .unwrap()
-                    .shared_artist(),
-            );
-            (ui_tx().send_blocking(UpdateUI::ArtistPage(artist))).expect(EXP_RX);
-        });
-
-        self.filter_mode.connect_active_notify(glib::clone!(
-            #[weak(rename_to = artists_page)]
-            self,
-            move |_| artists_page.handle_filters_changed()
-        ));
-
-        self.tag_filter_mode.connect_active_notify(glib::clone!(
-            #[weak(rename_to = artists_page)]
-            self,
-            move |_| artists_page.handle_filters_changed()
-        ));
-
-        // Restore the previous scroll position if pending, and update sort fields
-        // Setting the scroll position must be done when mapped; if it wasn't
-        // set in `load_artists`, it is restored in `connect_map` instead.
-        self.artists_grid.connect_map(glib::clone!(
-            #[weak(rename_to=artists_page)]
-            self,
-            move |_| {
-                artists_page.restore_scroll_pos();
-                glib::spawn_future_local(async move {
-                    artists_page
-                        .update_sort_fields(
-                            &artists_page.artists_grid.model().expect(EXP_INIT),
-                            artists_page.contents_id.get(),
-                        )
-                        .await;
-                    artists_page.update_tag_filter_list();
-                    artists_page.handle_filters_changed();
-                });
-            }
-        ));
-
-        // let fallback_image = fallback_artist_image();
+    fn setup_factory(&self) {
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_, list_item| {
             let artist_tile = ItemTile::builder()
@@ -541,6 +480,72 @@ impl ObjectImpl for ArtistsPage {
         });
 
         self.artists_grid.set_factory(Some(&factory));
+    }
+}
+
+#[glib::object_subclass]
+impl ObjectSubclass for ArtistsPage {
+    const NAME: &str = "MellowArtistsPage";
+    type Type = super::ArtistsPage;
+    type ParentType = adw::NavigationPage;
+
+    fn class_init(class: &mut Self::Class) {
+        class.bind_template();
+        class.bind_template_callbacks();
+    }
+
+    fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
+        obj.init_template();
+    }
+}
+impl ObjectImpl for ArtistsPage {
+    fn constructed(&self) {
+        self.artists_grid.connect_activate(|grid, index| {
+            let artist = Arc::clone(
+                (grid.model().unwrap().item(index).unwrap())
+                    .downcast_ref::<ArtistObject>()
+                    .unwrap()
+                    .shared_artist(),
+            );
+            (ui_tx().send_blocking(UpdateUI::ArtistPage(artist))).expect(EXP_RX);
+        });
+
+        // Restore the previous scroll position if pending, and update sort fields
+        // Setting the scroll position must be done when mapped; if it wasn't
+        // set in `load_artists`, it is restored in `connect_map` instead.
+        self.artists_grid.connect_map(glib::clone!(
+            #[weak(rename_to = artists_page)]
+            self,
+            move |_| {
+                if artists_page.artists_grid.factory().is_none() {
+                    artists_page.setup_factory();
+                } else {
+                    artists_page.restore_scroll_pos();
+                }
+                glib::spawn_future_local(async move {
+                    artists_page
+                        .update_sort_fields(
+                            &artists_page.artists_grid.model().expect(EXP_INIT),
+                            artists_page.contents_id.get(),
+                        )
+                        .await;
+                    artists_page.update_tag_filter_list();
+                    artists_page.handle_filters_changed();
+                });
+            }
+        ));
+
+        self.filter_mode.connect_active_notify(glib::clone!(
+            #[weak(rename_to = artists_page)]
+            self,
+            move |_| artists_page.handle_filters_changed()
+        ));
+
+        self.tag_filter_mode.connect_active_notify(glib::clone!(
+            #[weak(rename_to = artists_page)]
+            self,
+            move |_| artists_page.handle_filters_changed()
+        ));
     }
 }
 impl WidgetImpl for ArtistsPage {}

@@ -463,74 +463,8 @@ impl AlbumsPage {
             album.imp().is_visible.store(false, Ordering::Release);
         }
     }
-}
 
-#[glib::object_subclass]
-impl ObjectSubclass for AlbumsPage {
-    const NAME: &str = "MellowAlbumsPage";
-    type Type = super::AlbumsPage;
-    type ParentType = adw::NavigationPage;
-
-    fn class_init(class: &mut Self::Class) {
-        class.bind_template();
-        class.bind_template_callbacks();
-    }
-
-    fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
-        obj.init_template();
-    }
-}
-impl ObjectImpl for AlbumsPage {
-    fn constructed(&self) {
-        self.albums_grid.connect_activate(|grid, index| {
-            let album = Arc::clone(
-                (grid.model().unwrap().item(index).unwrap())
-                    .downcast_ref::<AlbumObject>()
-                    .unwrap()
-                    .shared_album(),
-            );
-            (ui_tx().send_blocking(UpdateUI::AlbumPage(album))).expect(EXP_RX);
-        });
-
-        // Restore the previous scroll position if pending, and update sort fields
-        // Setting the scroll position must be done when mapped; if it wasn't
-        // set in `load_albums`, it is restored in `connect_map` instead.
-        self.albums_grid.connect_map(glib::clone!(
-            #[weak(rename_to = albums_page)]
-            self,
-            move |_| {
-                albums_page.restore_scroll_pos();
-                glib::spawn_future_local(async move {
-                    albums_page
-                        .update_sort_fields(
-                            &albums_page.albums_grid.model().expect(EXP_INIT),
-                            albums_page.contents_id.get(),
-                        )
-                        .await;
-                    albums_page.update_tag_filter_list();
-                    albums_page.handle_filters_changed();
-                });
-            }
-        ));
-
-        self.filter_mode.connect_active_notify(glib::clone!(
-            #[weak(rename_to = albums_page)]
-            self,
-            move |_| albums_page.handle_filters_changed()
-        ));
-
-        self.tag_filter_mode.connect_active_notify(glib::clone!(
-            #[weak(rename_to = albums_page)]
-            self,
-            move |_| albums_page.handle_filters_changed()
-        ));
-
-        self.filtered_tags.connect_map(glib::clone!(
-            #[weak(rename_to = albums_page)]
-            self,
-            move |_| albums_page.update_tag_filter_list()
-        ));
-
+    fn setup_factory(&self) {
         let fallback_image = fallback_album_image();
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_, list_item| {
@@ -585,6 +519,78 @@ impl ObjectImpl for AlbumsPage {
         });
 
         self.albums_grid.set_factory(Some(&factory));
+    }
+}
+
+#[glib::object_subclass]
+impl ObjectSubclass for AlbumsPage {
+    const NAME: &str = "MellowAlbumsPage";
+    type Type = super::AlbumsPage;
+    type ParentType = adw::NavigationPage;
+
+    fn class_init(class: &mut Self::Class) {
+        class.bind_template();
+        class.bind_template_callbacks();
+    }
+
+    fn instance_init(obj: &glib::subclass::InitializingObject<Self>) {
+        obj.init_template();
+    }
+}
+impl ObjectImpl for AlbumsPage {
+    fn constructed(&self) {
+        self.albums_grid.connect_activate(|grid, index| {
+            let album = Arc::clone(
+                (grid.model().unwrap().item(index).unwrap())
+                    .downcast_ref::<AlbumObject>()
+                    .unwrap()
+                    .shared_album(),
+            );
+            (ui_tx().send_blocking(UpdateUI::AlbumPage(album))).expect(EXP_RX);
+        });
+
+        // Restore the previous scroll position if pending, and update sort fields
+        // Setting the scroll position must be done when mapped; if it wasn't
+        // set in `load_albums`, it is restored in `connect_map` instead.
+        self.albums_grid.connect_map(glib::clone!(
+            #[weak(rename_to = albums_page)]
+            self,
+            move |_| {
+                if albums_page.albums_grid.factory().is_none() {
+                    albums_page.setup_factory();
+                } else {
+                    albums_page.restore_scroll_pos();
+                }
+                glib::spawn_future_local(async move {
+                    albums_page
+                        .update_sort_fields(
+                            &albums_page.albums_grid.model().expect(EXP_INIT),
+                            albums_page.contents_id.get(),
+                        )
+                        .await;
+                    albums_page.update_tag_filter_list();
+                    albums_page.handle_filters_changed();
+                });
+            }
+        ));
+
+        self.filter_mode.connect_active_notify(glib::clone!(
+            #[weak(rename_to = albums_page)]
+            self,
+            move |_| albums_page.handle_filters_changed()
+        ));
+
+        self.tag_filter_mode.connect_active_notify(glib::clone!(
+            #[weak(rename_to = albums_page)]
+            self,
+            move |_| albums_page.handle_filters_changed()
+        ));
+
+        self.filtered_tags.connect_map(glib::clone!(
+            #[weak(rename_to = albums_page)]
+            self,
+            move |_| albums_page.update_tag_filter_list()
+        ));
     }
 }
 impl WidgetImpl for AlbumsPage {}
