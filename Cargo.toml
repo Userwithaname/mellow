@@ -60,17 +60,18 @@ debug = "line-tables-only"
 strip = false
 
 [lints.clippy]
+
+## --- Deny
+let_underscore_future = "deny"
 missing_safety_doc = "deny"
 undocumented_unsafe_blocks = "deny"
-let_underscore_future = "deny"
+
+## --- Warn
 clear_with_drain = "warn"
 deref_by_slicing = "warn"
-doc_markdown = "warn"
 fallible_impl_from = "warn"
-missing_const_for_fn = "warn"
 match_wildcard_for_single_variants = "warn"
-missing_errors_doc = "warn"
-missing_panics_doc = "warn"
+missing_const_for_fn = "warn"
 mixed_read_write_in_expression = "warn"
 must_use_candidate = "warn"
 needless_collect = "warn"
@@ -90,6 +91,19 @@ redundant_pub_crate = "warn"
 semicolon_if_nothing_returned = "warn"
 single_option_map = "warn"
 str_to_string = "warn"
+# suboptimal_flops = "warn"
+todo = "warn"
+unreadable_literal = "warn"
 unnecessary_semicolon = "warn"
 unnecessary_trailing_comma = "warn"
+
+## --- Warn (documentation)
+doc_broken_link = "warn"
+doc_comment_double_space_linebreaks = "warn"
+doc_markdown = "warn"
+missing_errors_doc = "warn"
+missing_panics_doc = "warn"
+too_long_first_doc_paragraph = "warn"
+
+## --- Allow
 match_bool = "allow"

@@ -12,8 +12,8 @@ pub trait Ratable {
 pub struct SongRating(u8);
 
 impl SongRating {
-    const STARS_MASK: u8 = 0b00000111;
-    const FAVORITE_MASK: u8 = 0b00001000;
+    const STARS_MASK: u8 = 0b0000_0111;
+    const FAVORITE_MASK: u8 = 0b0000_1000;
 
     /// Returns a new `SongRating`
     ///
@@ -21,8 +21,7 @@ impl SongRating {
     /// ```rust
     /// # use mellow::library::song_rating::SongRating;
     /// #
-    /// let mut rating = SongRating::new(3, true);
-    ///
+    /// let rating = SongRating::new(3, true);
     /// assert_eq!(rating.stars(), 3);
     /// assert_eq!(rating.is_favorite(), true);
     /// ```
@@ -50,7 +49,7 @@ impl SongRating {
         self.0 & Self::FAVORITE_MASK == Self::FAVORITE_MASK
     }
 
-    /// Returns raw `u8` rating representation
+    /// Returns the raw `u8` rating representation
     #[inline]
     #[must_use]
     pub const fn as_raw(&self) -> u8 {
