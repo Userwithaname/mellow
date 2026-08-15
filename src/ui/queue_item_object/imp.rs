@@ -5,6 +5,7 @@ use glib::Properties;
 use gtk::{gdk, glib};
 use std::sync::Arc;
 
+use crate::excuses::EXP_INIT;
 use crate::player::QueueItem;
 use crate::ui::QueueItemData;
 
@@ -45,5 +46,18 @@ impl ObjectImpl for QueueItemObject {}
 impl Drop for QueueItemObject {
     fn drop(&mut self) {
         self.is_visible.store(false, Ordering::Release);
+        // Reference count of 3 was chosen as the threshold for unused thumbnails based on testing.
+        // The object is dropped before the UI is updated, so I count the following:
+        // 1. The thumbnail loaded on `Song`
+        // 2. Reference in `QueueItemData` (this object)
+        // 3. Reference used by the UI row widget
+        // Since the thumbnail is usually paired with an object (except in some cases temporarily),
+        // the reference count for in-use thumbnails should be at least 4, even if unloaded from `Song`
+        if (self.data.borrow().artwork.as_ref()).is_some_and(|a| a.ref_count() <= 3) {
+            let song = self.queue_item.take().expect(EXP_INIT);
+            let mut song_info = song.as_song().info();
+            song_info.unload_thumbnail();
+            song_info.unload_detailed(); // NOTE: Might require it's own reference count check
+        }
     }
 }

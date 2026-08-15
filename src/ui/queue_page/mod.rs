@@ -1,6 +1,6 @@
 use adw::{prelude::*, subclass::prelude::*};
+use core::cell::Ref;
 use gtk::{gdk, glib};
-use std::cell::Ref;
 
 use crate::player::QueueItem;
 use crate::ui::QueueSubpage;
@@ -72,17 +72,13 @@ impl QueuePage {
     pub fn update_queue(&self, queue: Box<[QueueItem]>, playing: usize) {
         let queue_page = self.imp();
         queue_page.set_queue_items(queue);
-        queue_page.draw_queue(&queue_page.song_queue.borrow(), playing);
+        queue_page.draw_queue(playing);
     }
     /// Redraws the song queue without changing it
     #[inline]
     pub fn redraw_queue(&self) {
         let queue_page = self.imp();
-        let (queue, playing) = (
-            &queue_page.song_queue.borrow(),
-            queue_page.playing_index.get(),
-        );
-        queue_page.draw_queue(queue, playing);
+        queue_page.draw_queue(queue_page.playing_index.get());
     }
     /// Recenters the queue UI scroll position using the new playing index
     #[inline]

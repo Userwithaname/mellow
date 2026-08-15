@@ -122,14 +122,14 @@ impl QueuePage {
         self.next_scroll_pos.set(QueueScrollAction::Retain);
         self.view_pan_offset
             .set((self.view_pan_offset.get() - 1) % self.queue_length.get() as isize);
-        self.draw_queue(&self.song_queue.borrow(), self.playing_index.get());
+        self.draw_queue(self.playing_index.get());
     }
     #[template_callback]
     pub fn handle_pan_down(&self) {
         self.next_scroll_pos.set(QueueScrollAction::Offset(1));
         self.view_pan_offset
             .set((self.view_pan_offset.get() + 1) % self.queue_length.get() as isize);
-        self.draw_queue(&self.song_queue.borrow(), self.playing_index.get());
+        self.draw_queue(self.playing_index.get());
     }
     #[template_callback]
     pub fn handle_show_playing(&self) {
@@ -139,7 +139,7 @@ impl QueuePage {
             self.scroll_to_model_item(model_index);
         } else {
             self.next_scroll_pos.set(QueueScrollAction::ToPlaying);
-            self.draw_queue(&self.song_queue.borrow(), self.playing_index.get());
+            self.draw_queue(self.playing_index.get());
         }
     }
 
@@ -198,7 +198,8 @@ impl QueuePage {
         self.song_queue.replace(queue);
     }
 
-    pub fn draw_queue(&self, queue: &[QueueItem], playing: usize) {
+    pub fn draw_queue(&self, playing: usize) {
+        let queue = &**self.song_queue.borrow();
         self.playing_index.set(playing);
         let queue_length = queue.len();
         let old_queue_length = self.queue_length.replace(queue_length);
@@ -325,16 +326,13 @@ impl QueuePage {
             QueueScrollAction::ToPlaying => self.scroll_to_item(playing),
         }
 
-        // Garbage collection
-        // FIX: Memory usage increases when repeatedly toggling shuffle mode
-        // FIX: May unload thumbnails before they are assigned to library views if ran in parallel
+        // Garbage collection for detailed artworks
         if old_queue_length > 0 {
-            // NOTE: If there are issues with queue artworks not appearing, try
-            // disabling garbage collection to verify that it is working properly
             Library::run_task(library_tx(), {
+                // FIX: Should be unloading from the previous queue, not the new one
+                // IDEA: Try remembering/comparing previous and current visible items instead?
                 let queue = queue.to_vec();
                 move || {
-                    // IDEA: Try remembering/comparing previous and current visible items instead?
                     let len = queue_length - 1;
                     let short_start = playing.saturating_sub(2);
                     let short_end = (playing + 2).min(queue.len());
@@ -350,19 +348,11 @@ impl QueuePage {
                                     || index < 2usize.saturating_sub(len - playing)))
                         {
                             song.info().try_unload_detailed();
-                        } else {
-                            song.info().load_detailed();
-                            continue;
                         }
-
-                        // Unload thumbnails that are no longer needed
-                        if !(start..=end).contains(&index)
-                            && (!repeat_mode
-                                || !(index > len - NUM_ITEMS_BEHIND.saturating_sub(playing)
-                                    || index < NUM_ITEMS_AHEAD.saturating_sub(len - playing)))
-                        {
-                            song.info().try_unload_thumbnail();
-                        }
+                        // NOTE: Disabled until collection of detailed artworks works reliably
+                        // else {
+                        //     song.info().load_detailed();
+                        // }
                     }
                 }
             });
@@ -614,14 +604,14 @@ impl QueuePage {
 
             match queue_item_object.queue_item() {
                 QueueItem::Song(_) => {
-                    if queue_item_object.playing() {
-                        queue_row.add_css_class("heading");
-                        queue_row.add_css_class("card");
-                    }
-
                     if queue_item_object.artwork().is_none() {
                         queue_item_object.load_artwork();
                         queue_row.set_prefix_image(Some(&fallback_image));
+                    }
+
+                    if queue_item_object.playing() {
+                        queue_row.add_css_class("heading");
+                        queue_row.add_css_class("card");
                     }
 
                     queue_row.set_suffix_label(&queue_item_object.suffix());
@@ -646,8 +636,8 @@ impl QueuePage {
                 }
                 None => false,
             };
-            row_imp.selection_toggle.set_visible(selection_mode);
             row_imp.open_subpage_icon.set_visible(!selection_mode);
+            row_imp.selection_toggle.set_visible(selection_mode);
 
             row_imp.selection_toggle.connect_toggled(glib::clone!(
                 #[weak(rename_to = queue_page)]
