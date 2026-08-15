@@ -25,7 +25,7 @@ async-channel = { version = "2.5.0",  default-features = false                  
 fastrand      = { version = "2.5.0",  default-features = false                       }
 gst           = { version = "0.25.0", package = "gstreamer"                          }
 gtk           = { version = "0.11.0", package = "gtk4",         features = ["v4_22"] }
-lofty         = { version = "0.24.0", default-features = false                       }
+lofty         = { version = "0.25.0"                                                 }
 mpris-server  = { version = "0.10.0", default-features = false                       }
 
 [profile.dev]
