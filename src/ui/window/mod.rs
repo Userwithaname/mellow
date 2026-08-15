@@ -6,7 +6,7 @@ use gtk::{Orientation, gdk, gio, glib};
 use std::time::Instant;
 
 use crate::excuses::{EXP_INIT, EXP_RX};
-use crate::library::{Library, LibraryConfig, LibraryRequest, library_tx};
+use crate::library::{LibraryConfig, LibraryRequest, library_tx};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::{Application, UpdateUI, actions::WindowActions, ui_tx};
 use crate::util::serialize_list;
@@ -108,11 +108,9 @@ impl Window {
 
         let library_tx = library_tx();
         (library_tx.send(LibraryRequest::CancelRebuild(Instant::now()))).expect(EXP_RX);
-        Library::run_task(library_tx, move || {
-            LibraryConfig::create_config_dir();
-            library_tx.send(LibraryRequest::Uninit).expect(EXP_RX);
-            let _ = player_tx().send(PlayerRequest::Uninit(remember_queue, remember_time));
-        });
+        LibraryConfig::create_config_dir(); // IDEA: Add a `write_or_create_dir` function instead
+        library_tx.send(LibraryRequest::Uninit).expect(EXP_RX);
+        let _ = player_tx().send(PlayerRequest::Uninit(remember_queue, remember_time));
 
         imp.albums_page.uninit();
         imp.songs_page.uninit();
