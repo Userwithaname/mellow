@@ -1,5 +1,6 @@
+use core::hint::cold_path;
 use std::ops::Deref;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::{fs, io};
 
 /// Runs a closure for every file found within `dir` (recursive)
@@ -18,6 +19,24 @@ pub fn visit_dirs<F: FnMut(PathBuf)>(dir: PathBuf, f: &mut F) -> io::Result<()> 
             false => f(path),
             true => visit_dirs(path, f)?,
         }
+    }
+    Ok(())
+}
+
+/// Attempts to write the file to disk, and retries after creating the
+/// directory path in case of an error. If creating the directory or
+/// writing the file fails the second time, the error is propagated.
+///
+/// # Panics
+/// Panics if `path` has no parent
+pub fn write_file_create_dir_all<P: AsRef<Path>, C: AsRef<[u8]>>(
+    path: P,
+    contents: C,
+) -> io::Result<()> {
+    if fs::write(&path, &contents).is_err() {
+        cold_path();
+        fs::create_dir_all(path.as_ref().parent().unwrap())?;
+        fs::write(path, contents)?;
     }
     Ok(())
 }

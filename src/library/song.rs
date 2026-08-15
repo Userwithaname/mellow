@@ -17,7 +17,9 @@ use crate::library::song_rating::{Ratable, SongRating};
 use crate::library::tag_list::{Taggable, Tags};
 use crate::library::{Album, SharedAlbum, tag_list};
 use crate::util::hint::{cold, unlikely};
-use crate::util::{deserialize, deserialize_list, serialize, serialize_list};
+use crate::util::{
+    deserialize, deserialize_list, serialize, serialize_list, write_file_create_dir_all,
+};
 use crate::{cache_dir, cold_expression};
 
 pub struct Song {
@@ -871,10 +873,9 @@ impl SongInfoLoader<'_> {
     #[must_use]
     fn create_thumbnail(&mut self) -> Option<gdk::Texture> {
         let thumbnail_file_path = self.thumbnail_file_path();
-        fs::create_dir_all(thumbnail_file_path.rsplit_once('/').unwrap().0).unwrap();
 
         let Some(artwork) = self.load_detailed_and(|detailed| detailed.artwork.clone()) else {
-            fs::write(thumbnail_file_path, "").unwrap();
+            write_file_create_dir_all(thumbnail_file_path, "").unwrap();
             return None;
         };
 
@@ -901,7 +902,7 @@ impl SongInfoLoader<'_> {
         // The documentation suggests using `glycin`, however
         // using it might not be feasible for other platforms
         let thumbnail = gdk::Texture::for_pixbuf(&pixbuf);
-        thumbnail.save_to_png(thumbnail_file_path).unwrap();
+        write_file_create_dir_all(thumbnail_file_path, thumbnail.save_to_png_bytes()).unwrap();
 
         Some(thumbnail)
     }

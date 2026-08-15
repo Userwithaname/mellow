@@ -108,8 +108,7 @@ impl Window {
 
         let library_tx = library_tx();
         (library_tx.send(LibraryRequest::CancelRebuild(Instant::now()))).expect(EXP_RX);
-        LibraryConfig::create_config_dir(); // IDEA: Add a `write_or_create_dir` function instead
-        library_tx.send(LibraryRequest::Uninit).expect(EXP_RX);
+        let _ = library_tx.send(LibraryRequest::Uninit);
         let _ = player_tx().send(PlayerRequest::Uninit(remember_queue, remember_time));
 
         imp.albums_page.uninit();

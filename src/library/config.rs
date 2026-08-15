@@ -1,7 +1,5 @@
-use std::fs;
 use std::path::PathBuf;
 
-use crate::config_dir;
 use crate::library::{Library, LibraryRequest, library_tx};
 use crate::ui::{UpdateUI, ui_tx};
 
@@ -103,14 +101,5 @@ impl LibraryConfig {
     fn update_library(&self) {
         let _ = ui_tx().send_blocking(UpdateUI::SetLibraryDirs(self.directories_string()));
         Library::rebuild();
-    }
-
-    /// Creates the config directory if it does not exist yet
-    ///
-    /// # Panics
-    /// Panics if directory creation fails
-    #[inline]
-    pub fn create_config_dir() {
-        fs::create_dir_all(config_dir()).expect("Could not create the config directory");
     }
 }

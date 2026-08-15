@@ -11,7 +11,7 @@ use crate::library::{
 };
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{StartupQueueChoice, UpdateUI, ui_tx};
-use crate::util::ReorderVecExt;
+use crate::util::{ReorderVecExt, write_file_create_dir_all};
 use crate::{queue_file, shuffled_queue_file, songs_file};
 
 pub struct SongQueue {
@@ -658,7 +658,7 @@ impl SongQueue {
                 })
                 .collect::<String>()
                 .trim();
-        match fs::write(&queue_file, contents) {
+        match write_file_create_dir_all(&queue_file, contents) {
             Ok(()) => println!("Song queue state successfully written to disk"),
             Err(e) => eprintln!("Problems writing queue state: {e}"),
         }

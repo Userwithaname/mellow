@@ -28,6 +28,7 @@ use crate::ui::{UpdateUI, ui_tx};
 use crate::util::Forever;
 use crate::util::hint::likely;
 use crate::util::tasks::{BoxedTask, Runner};
+use crate::util::write_file_create_dir_all;
 use crate::{songs_file, util::visit_dirs};
 
 /// Controls and reflects the current library state,
@@ -1153,7 +1154,7 @@ impl Library {
         let songs_data = (songs.iter())
             .map(|song| song.serialize() + "\n")
             .collect::<String>();
-        match fs::write(
+        match write_file_create_dir_all(
             songs_file(),
             [
                 "\
