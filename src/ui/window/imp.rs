@@ -1,6 +1,7 @@
 use adw::ApplicationWindow;
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, OnceCell, RefCell};
+use core::hint::cold_path;
 use core::time::Duration;
 use glib::subclass::InitializingObject;
 use gtk::{CompositeTemplate, gio, glib};
@@ -461,9 +462,9 @@ impl Window {
             return;
         };
         if !Arc::ptr_eq(&song, cmp_song) {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "startup-logs")]
             println!("Queue thumbnail not set, because the queue item at {index} has changed");
-            return;
+            return cold_path();
         }
 
         let info = song.info();

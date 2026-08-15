@@ -257,7 +257,7 @@ impl QueuePage {
         let end = (center + NUM_ITEMS_AHEAD).min(queue.len());
 
         let mut items: Vec<QueueItemObject> = Self::items_to_objects(
-            queue.iter().take(end).skip(start).enumerate(),
+            queue.iter().skip(start).take(end - start).enumerate(),
             playing,
             start,
         )
