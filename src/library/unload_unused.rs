@@ -1,6 +1,7 @@
 use core::ops::Deref;
 
 pub enum UsedBy {
+    // NOTE: Values must be power-of-two
     None = 0,
     Library = 1,
     SongQueue = 2,
