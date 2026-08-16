@@ -847,7 +847,7 @@ impl SongInfoLoader<'_> {
     #[inline]
     pub fn invalidate_thumbnail(&self) {
         let _ = fs::remove_file(self.thumbnail_file_path());
-        self.thumbnail.write().unwrap().unload_value()
+        self.thumbnail.write().unwrap().unload_value();
     }
     /// Reads the song's thumbnail from disk and returns it in the
     /// `Ok(Some)` variant if available. If the thumbnail file could

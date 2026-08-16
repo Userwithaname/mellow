@@ -24,11 +24,15 @@ pub fn visit_dirs<F: FnMut(PathBuf)>(dir: PathBuf, f: &mut F) -> io::Result<()> 
 }
 
 /// Attempts to write the file to disk, and retries after creating the
-/// directory path in case of an error. If creating the directory or
-/// writing the file fails the second time, the error is propagated.
+/// directory path in case of an error
+///
+/// # Errors
+/// If creating the directory or writing the file fails the second time,
+/// the error is propagated
 ///
 /// # Panics
-/// Panics if `path` has no parent
+/// Panics if `path` has no parent directory
+#[inline]
 pub fn write_file_create_dir_all<P: AsRef<Path>, C: AsRef<[u8]>>(
     path: P,
     contents: C,

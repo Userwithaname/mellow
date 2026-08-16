@@ -8,8 +8,10 @@ pub enum UsedBy {
 }
 
 /// Stores an `Option<T>`, which is automatically unloaded when no longer
-/// marked as used by anything. Usages are managed manually. Note that marking
-/// as used by the same variant multiple times is the same as marking it once.
+/// marked as used by anything. Usages are managed manually
+///
+/// Note that marking as used by the same variant multiple times is the
+/// same as marking it once
 pub struct UnloadUnused<T> {
     value: Option<T>,
     used_by: u8,
