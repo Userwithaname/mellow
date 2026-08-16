@@ -83,7 +83,8 @@ impl AlbumObject {
             if is_visible.load(Ordering::Acquire) {
                 return;
             }
-            album.lock().unwrap().first_song().info().unload_thumbnail();
+            // <3 because 1: `Song::thumbnail`, 2: UI (checking does not affect the reference count)
+            (album.lock().unwrap().first_song().info()).unload_thumbnail_if(|t| t.ref_count() < 3);
         });
     }
 

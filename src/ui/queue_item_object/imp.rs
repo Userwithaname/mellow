@@ -47,19 +47,17 @@ impl Drop for QueueItemObject {
     fn drop(&mut self) {
         self.is_visible.store(false, Ordering::Release);
         // Reference count of 3 was chosen as the threshold for unused thumbnails based on testing.
-        // The object is dropped before the UI is updated, so I count the following:
+        // The object is dropped before the UI is updated. I count the following:
         // 1. `thumbnail` on `Song`
-        // 2. `prefix_image` on `ListRow`
-        // 3. `artwork` in `QueueItemData` (this object)
-        // Since the thumbnail is usually paired with an object (except in some cases temporarily),
-        // the reference count for in-use thumbnails should be at least 4, even if unloaded from `Song`
+        // 2. `artwork` in `QueueItemData` (this object)
+        // 3. `prefix_image` on `ListRow` (unlike when using a factory, this counts as its own reference)
         if (self.data.borrow().artwork.as_ref()).is_some_and(|a| a.ref_count() <= 3) {
             let Some(QueueItem::Song(song)) = self.queue_item.take() else {
                 return cold_path(); // Only songs have artworks, so this shouldn't be reached
             };
             let mut song_info = song.info();
             song_info.unload_thumbnail();
-            song_info.unload_detailed(); // NOTE: Might require it's own reference count check
+            song_info.unload_detailed(); // NOTE: Might require its own reference count check
         }
     }
 }

@@ -768,7 +768,7 @@ impl SongInfoLoader<'_> {
     /// not currently loaded, or it is unavailable for this song
     ///
     /// # Panics
-    /// The function panics if the detailed info `RwLock` is poisoned
+    /// The function panics if the thumbnail `RwLock` is poisoned
     #[inline]
     pub fn inspect_thumbnail(&self) -> RwLockReadGuard<'_, Option<gdk::Texture>> {
         #[cfg(feature = "lock-warnings")]
@@ -800,7 +800,7 @@ impl SongInfoLoader<'_> {
     /// if the file does not have an artwork available
     ///
     /// # Panics
-    /// The function panics if the detailed info `RwLock` is poisoned
+    /// The function panics if the thumbnail `RwLock` is poisoned
     #[inline]
     pub fn load_thumbnail(&mut self) -> RwLockReadGuard<'_, Option<gdk::Texture>> {
         #[cfg(feature = "lock-warnings")]
@@ -827,10 +827,24 @@ impl SongInfoLoader<'_> {
     /// Unloads this song's thumbnail
     ///
     /// # Panics
-    /// The function panics if the detailed info `RwLock` is poisoned
+    /// The function panics if the thumbnail `RwLock` is poisoned
     #[inline]
     pub fn unload_thumbnail(&mut self) {
         *self.thumbnail.write().unwrap() = None;
+    }
+    /// Unloads this song's thumbnail if `condition` evaluates to `true`
+    ///
+    /// Note that this function always acquires a write lock, regardless
+    /// of the `condition` result
+    ///
+    /// # Panics
+    /// The function panics if the thumbnail `RwLock` is poisoned
+    #[inline]
+    pub fn unload_thumbnail_if<C: FnOnce(&gdk::Texture) -> bool>(&mut self, condition: C) {
+        let mut thumbnail = self.thumbnail.write().unwrap();
+        if thumbnail.as_ref().is_some_and(condition) {
+            *thumbnail = None;
+        }
     }
     /// Unloads the song's thumbnail from memory if it is no longer used,
     /// but only if possible to do so without blocking
@@ -846,7 +860,7 @@ impl SongInfoLoader<'_> {
     /// Unloads the song's thumbnail from memory and removes it from disk
     ///
     /// # Panics
-    /// The function panics if the detailed info `RwLock` is poisoned
+    /// The function panics if the thumbnail `RwLock` is poisoned
     #[inline]
     pub fn invalidate_thumbnail(&mut self) {
         let _ = fs::remove_file(self.thumbnail_file_path());
