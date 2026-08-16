@@ -1,11 +1,11 @@
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{OnceCell, RefCell};
+use core::hint::cold_path;
 use core::sync::atomic::{AtomicBool, Ordering};
 use glib::Properties;
 use gtk::{gdk, glib};
 use std::sync::Arc;
 
-use crate::excuses::EXP_INIT;
 use crate::player::QueueItem;
 use crate::ui::QueueItemData;
 
@@ -48,14 +48,16 @@ impl Drop for QueueItemObject {
         self.is_visible.store(false, Ordering::Release);
         // Reference count of 3 was chosen as the threshold for unused thumbnails based on testing.
         // The object is dropped before the UI is updated, so I count the following:
-        // 1. The thumbnail loaded on `Song`
-        // 2. Reference in `QueueItemData` (this object)
-        // 3. Reference used by the UI row widget
+        // 1. `thumbnail` on `Song`
+        // 2. `prefix_image` on `ListRow`
+        // 3. `artwork` in `QueueItemData` (this object)
         // Since the thumbnail is usually paired with an object (except in some cases temporarily),
         // the reference count for in-use thumbnails should be at least 4, even if unloaded from `Song`
         if (self.data.borrow().artwork.as_ref()).is_some_and(|a| a.ref_count() <= 3) {
-            let song = self.queue_item.take().expect(EXP_INIT);
-            let mut song_info = song.as_song().info();
+            let Some(QueueItem::Song(song)) = self.queue_item.take() else {
+                return cold_path(); // Only songs have artworks, so this shouldn't be reached
+            };
+            let mut song_info = song.info();
             song_info.unload_thumbnail();
             song_info.unload_detailed(); // NOTE: Might require it's own reference count check
         }

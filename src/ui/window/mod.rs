@@ -6,7 +6,7 @@ use gtk::{Orientation, gdk, gio, glib};
 use std::time::Instant;
 
 use crate::excuses::{EXP_INIT, EXP_RX};
-use crate::library::{LibraryConfig, LibraryRequest, library_tx};
+use crate::library::{LibraryRequest, library_tx};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::{Application, UpdateUI, actions::WindowActions, ui_tx};
 use crate::util::serialize_list;
