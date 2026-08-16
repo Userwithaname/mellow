@@ -12,6 +12,7 @@ pub mod config;
 pub mod song;
 pub mod song_rating;
 pub mod tag_list;
+pub mod unload_unused;
 
 pub use album::{Album, SharedAlbum, SortedAlbumSongs};
 pub use artist::{Artist, SharedArtist, SortedArtistAlbums};

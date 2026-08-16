@@ -2,6 +2,7 @@ use adw::subclass::prelude::*;
 use core::cell::{Cell, RefCell};
 use gtk::{CompositeTemplate, glib};
 
+use crate::library::unload_unused::UsedBy;
 use crate::library::{SharedArtist, ToQueue, ToShuffledQueue};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::{UpdateUI, show_queue, ui_tx};
@@ -102,3 +103,20 @@ impl ObjectSubclass for ArtistPage {
 impl ObjectImpl for ArtistPage {}
 impl WidgetImpl for ArtistPage {}
 impl NavigationPageImpl for ArtistPage {}
+
+impl Drop for ArtistPage {
+    fn drop(&mut self) {
+        let Some(artist) = self.artist.take() else {
+            return;
+        };
+        if let Ok(artist) = artist.try_lock() {
+            for album in artist.albums() {
+                if let Ok(album) = album.try_lock() {
+                    let first_song = album.first_song();
+                    // Unload thumbnail if still unused
+                    first_song.info().mark_thumbnail_unused_by(UsedBy::None);
+                }
+            }
+        }
+    }
+}

@@ -5,6 +5,7 @@ use std::sync::{OnceLock, mpsc};
 
 use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_RX, INIT_ERR};
+use crate::library::unload_unused::UsedBy;
 use crate::ui::{UpdateUI, ui_tx};
 use crate::util::hint::{cold_expression, unlikely};
 use crate::util::wrap_index;
@@ -448,7 +449,7 @@ impl Player {
         // Load the current thumbnail and artwork before updating the UI queue
         queue_item.map_song(|song| {
             let mut info = song.info();
-            drop(info.load_thumbnail());
+            drop(info.load_thumbnail(UsedBy::SongQueue));
             info.load_detailed();
         });
 

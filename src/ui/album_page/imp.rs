@@ -1,10 +1,11 @@
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, RefCell};
+use core::sync::atomic::{AtomicBool, Ordering};
 use gtk::{CompositeTemplate, glib};
 use std::sync::Arc;
-use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::excuses::EXP_RX;
+use crate::library::unload_unused::UsedBy;
 use crate::library::{SharedAlbum, ToQueue};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{Rating, show_queue};
@@ -155,7 +156,9 @@ impl Drop for AlbumPage {
             return;
         };
         if let Ok(album) = album.try_lock() {
-            album.first_song().info().try_unload_detailed();
+            let info = album.first_song().info();
+            info.try_unload_detailed();
+            info.mark_thumbnail_unused_by(UsedBy::None); // Unload if still unused
         }
     }
 }

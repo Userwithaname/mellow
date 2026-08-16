@@ -5,6 +5,7 @@ use std::sync::Arc;
 
 use crate::excuses::EXP_RX;
 use crate::library::SharedArtist;
+use crate::library::unload_unused::UsedBy;
 use crate::ui::ListRow;
 use crate::ui::{UpdateUI, fallback_album_image, ui_tx};
 
@@ -68,7 +69,7 @@ impl ArtistPage {
             });
 
             let mut info = album_locked.first_song().info();
-            match info.load_thumbnail().as_ref() {
+            match info.load_thumbnail(UsedBy::None).as_ref() {
                 None => album_row.set_prefix_image(Some(&fallback_image)),
                 thumbnail => album_row.set_prefix_image(thumbnail),
             }

@@ -4,6 +4,7 @@ use glib::{Object, object::ObjectExt};
 use gtk::{gdk, glib};
 use std::sync::Arc;
 
+use crate::library::unload_unused::UsedBy;
 use crate::library::{Library, SharedAlbum, library_tx};
 use crate::ui::{LibraryObject, LibrarySort, Sortable, UpdateUI, ui_tx};
 
@@ -57,7 +58,7 @@ impl AlbumObject {
                 return;
             }
             let song = Arc::clone(album.lock().unwrap().first_song());
-            drop(song.info().load_thumbnail());
+            drop(song.info().load_thumbnail(UsedBy::Library));
             song.info().unload_detailed(); // `load_thumbnail` may have loaded it
             let _ = ui_tx().send_blocking(UpdateUI::LibraryAlbumLoaded { index, song });
         });
@@ -83,8 +84,7 @@ impl AlbumObject {
             if is_visible.load(Ordering::Acquire) {
                 return;
             }
-            // <3 because 1: `Song::thumbnail`, 2: UI (checking does not affect the reference count)
-            (album.lock().unwrap().first_song().info()).unload_thumbnail_if(|t| t.ref_count() < 3);
+            (album.lock().unwrap().first_song().info()).mark_thumbnail_unused_by(UsedBy::Library);
         });
     }
 

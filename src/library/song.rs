@@ -15,6 +15,7 @@ use lofty::probe::Probe;
 
 use crate::library::song_rating::{Ratable, SongRating};
 use crate::library::tag_list::{Taggable, Tags};
+use crate::library::unload_unused::{UnloadUnused, UsedBy};
 use crate::library::{Album, SharedAlbum, tag_list};
 use crate::util::hint::{cold, unlikely};
 use crate::util::{
@@ -28,7 +29,7 @@ pub struct Song {
     info: RwLock<Option<SongInfo>>,
     user_info: Mutex<UserSongInfo>,
     detailed_info: RwLock<Option<DetailedSongInfo>>,
-    thumbnail: RwLock<Option<gdk::Texture>>,
+    thumbnail: RwLock<UnloadUnused<gdk::Texture>>,
 }
 
 pub type SharedSong = Arc<Song>;
@@ -98,7 +99,7 @@ impl<'s> Song {
             info: RwLock::new(None),
             user_info: Mutex::new(UserSongInfo::new()),
             detailed_info: RwLock::new(None),
-            thumbnail: RwLock::new(None),
+            thumbnail: RwLock::new(UnloadUnused::default()),
         }
     }
 
@@ -193,7 +194,7 @@ impl<'s> Song {
             }),
             user_info: Mutex::new(user_info),
             detailed_info: RwLock::new(None),
-            thumbnail: RwLock::new(None),
+            thumbnail: RwLock::new(UnloadUnused::default()),
         })
     }
 
@@ -263,7 +264,7 @@ pub struct SongInfoLoader<'i> {
     info: &'i RwLock<Option<SongInfo>>,
     user_info: &'i Mutex<UserSongInfo>,
     detailed_info: &'i RwLock<Option<DetailedSongInfo>>,
-    thumbnail: &'i RwLock<Option<gdk::Texture>>,
+    thumbnail: &'i RwLock<UnloadUnused<gdk::Texture>>,
     tagged: Option<TaggedFile>,
 }
 
@@ -770,7 +771,7 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the thumbnail `RwLock` is poisoned
     #[inline]
-    pub fn inspect_thumbnail(&self) -> RwLockReadGuard<'_, Option<gdk::Texture>> {
+    pub fn inspect_thumbnail(&self) -> RwLockReadGuard<'_, UnloadUnused<gdk::Texture>> {
         #[cfg(feature = "lock-warnings")]
         if self.thumbnail.try_read().is_err() {
             println!(
@@ -791,7 +792,7 @@ impl SongInfoLoader<'_> {
     #[inline]
     pub fn try_inspect_thumbnail(
         &self,
-    ) -> TryLockResult<RwLockReadGuard<'_, Option<gdk::Texture>>> {
+    ) -> TryLockResult<RwLockReadGuard<'_, UnloadUnused<gdk::Texture>>> {
         self.thumbnail.try_read()
     }
     /// Loads the thumbnail or creates it if necessary
@@ -802,7 +803,10 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the thumbnail `RwLock` is poisoned
     #[inline]
-    pub fn load_thumbnail(&mut self) -> RwLockReadGuard<'_, Option<gdk::Texture>> {
+    pub fn load_thumbnail(
+        &mut self,
+        used_by: UsedBy,
+    ) -> RwLockReadGuard<'_, UnloadUnused<gdk::Texture>> {
         #[cfg(feature = "lock-warnings")]
         if self.thumbnail.try_read().is_err() {
             println!("Note: Blocking on read lock for `load_thumbnail`");
@@ -817,54 +821,33 @@ impl SongInfoLoader<'_> {
         if self.thumbnail.try_write().is_err() {
             println!("Note: Blocking on write lock for `load_thumbnail`");
         }
-        *self.thumbnail.write().unwrap() = match self.read_thumbnail_from_disk() {
-            Ok(thumbnail) => thumbnail,
-            Err(_) => self.create_thumbnail(),
-        };
+        (self.thumbnail.write().unwrap()).set_value(
+            match self.read_thumbnail_from_disk() {
+                Ok(thumbnail) => thumbnail,
+                Err(_) => self.create_thumbnail(),
+            },
+            used_by,
+        );
 
         self.thumbnail.read().unwrap()
     }
-    /// Unloads this song's thumbnail
+    /// Marks the thumbnail as unused by `unused_by`, and unloads it if
+    /// there are no more uses
     ///
     /// # Panics
     /// The function panics if the thumbnail `RwLock` is poisoned
     #[inline]
-    pub fn unload_thumbnail(&mut self) {
-        *self.thumbnail.write().unwrap() = None;
-    }
-    /// Unloads this song's thumbnail if `condition` evaluates to `true`
-    ///
-    /// Note that this function always acquires a write lock, regardless
-    /// of the `condition` result
-    ///
-    /// # Panics
-    /// The function panics if the thumbnail `RwLock` is poisoned
-    #[inline]
-    pub fn unload_thumbnail_if<C: FnOnce(&gdk::Texture) -> bool>(&mut self, condition: C) {
-        let mut thumbnail = self.thumbnail.write().unwrap();
-        if thumbnail.as_ref().is_some_and(condition) {
-            *thumbnail = None;
-        }
-    }
-    /// Unloads the song's thumbnail from memory if it is no longer used,
-    /// but only if possible to do so without blocking
-    #[inline]
-    pub fn try_unload_thumbnail(&mut self) {
-        let Ok(mut writer) = self.thumbnail.try_write() else {
-            return;
-        };
-        if writer.as_ref().is_some_and(|t| t.ref_count() < 2) {
-            *writer = None;
-        }
+    pub fn mark_thumbnail_unused_by(&self, used_by: UsedBy) {
+        self.thumbnail.write().unwrap().mark_unused_by(used_by);
     }
     /// Unloads the song's thumbnail from memory and removes it from disk
     ///
     /// # Panics
     /// The function panics if the thumbnail `RwLock` is poisoned
     #[inline]
-    pub fn invalidate_thumbnail(&mut self) {
+    pub fn invalidate_thumbnail(&self) {
         let _ = fs::remove_file(self.thumbnail_file_path());
-        *self.thumbnail.write().unwrap() = None;
+        self.thumbnail.write().unwrap().unload_value()
     }
     /// Reads the song's thumbnail from disk and returns it in the
     /// `Ok(Some)` variant if available. If the thumbnail file could

@@ -6,6 +6,7 @@ use glib::Properties;
 use gtk::{gdk, glib};
 use std::sync::Arc;
 
+use crate::library::unload_unused::UsedBy;
 use crate::player::QueueItem;
 use crate::ui::QueueItemData;
 
@@ -55,8 +56,8 @@ impl Drop for QueueItemObject {
             let Some(QueueItem::Song(song)) = self.queue_item.take() else {
                 return cold_path(); // Only songs have artworks, so this shouldn't be reached
             };
-            let mut song_info = song.info();
-            song_info.unload_thumbnail();
+            let song_info = song.info();
+            song_info.mark_thumbnail_unused_by(UsedBy::SongQueue);
             song_info.unload_detailed(); // NOTE: Might require its own reference count check
         }
     }

@@ -4,6 +4,7 @@ use gtk::{Orientation, gdk, glib};
 use std::sync::{Arc, atomic::Ordering};
 
 use crate::excuses::EXP_RX;
+use crate::library::unload_unused::UsedBy;
 use crate::library::{Library, SharedAlbum, library_tx};
 use crate::ui::{ListRow, UpdateUI, fallback_album_image, show_queue, ui_tx};
 use crate::util::{format_duration_minutes, format_duration_ms};
@@ -148,7 +149,7 @@ impl AlbumPage {
         let first_song = Arc::clone(album_locked.first_song());
         let mut info = first_song.info();
         let Some(ref detailed_info) = *info.inspect_detailed() else {
-            match info.load_thumbnail().as_ref() {
+            match info.load_thumbnail(UsedBy::None).as_ref() {
                 None => ui.album_cover.set_paintable(Some(&fallback_album_image())),
                 thumbnail => ui.album_cover.set_paintable(thumbnail),
             }

@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::thread;
 
 use crate::excuses::{ACTION_ERR, EXP_RX};
+use crate::library::unload_unused::UsedBy;
 use crate::library::{Albums, Artists, SharedAlbum, SharedArtist, SharedSong, Songs, ToQueue};
 use crate::library::{Library, LibraryRequest, library_tx};
 use crate::mpris::{UpdateMPRIS, mpris_tx};
@@ -237,7 +238,7 @@ impl Window {
             .set_info(&title, &album, &artist, artwork, *song_duration_ms);
         drop(detailed_info);
 
-        match &*info.load_thumbnail() {
+        match &**info.load_thumbnail(UsedBy::SongQueue) {
             Some(thumbnail) => {
                 self.settings_page.set_background_from_artwork(thumbnail);
                 if !has_artwork {

@@ -4,6 +4,7 @@ use glib::Object;
 use gtk::{gdk, glib};
 use std::sync::Arc;
 
+use crate::library::unload_unused::UsedBy;
 use crate::library::{Library, library_tx};
 use crate::player::QueueItem;
 use crate::ui::{UpdateUI, ui_tx};
@@ -72,7 +73,7 @@ impl QueueItemObject {
             let QueueItem::Song(song) = item else {
                 return;
             };
-            drop(song.info().load_thumbnail());
+            drop(song.info().load_thumbnail(UsedBy::SongQueue));
             let _ = ui_tx().send_blocking(UpdateUI::QueueSongLoaded { index, song });
         });
     }
