@@ -59,7 +59,6 @@ impl AlbumObject {
             }
             let song = Arc::clone(album.lock().unwrap().first_song());
             drop(song.info().load_thumbnail(UsedBy::Library));
-            song.info().unload_detailed(); // `load_thumbnail` may have loaded it
             let _ = ui_tx().send_blocking(UpdateUI::LibraryAlbumLoaded { index, song });
         });
     }

@@ -55,11 +55,11 @@ User Experience:
 - [x] Lengthy tasks display a progress bar without blocking the interface
 - [x] All settings load properly (test with non-default values)
 - [ ] Does not leak memory
-  - FIX: Memory leaks related to thumbnails (especially during creation)
-    In my testing, with no thumbnails available prior, it maxed at about 1.2GB then jumped anywhere
-    between 600MB to 1.2GB while scrolling through the library or repeatedly shuffling the queue. If
-    all thumbnails already existed at launch, those interactions caused the usage to slowly increase
-    over time to about 300MB, which only went up and never down.
+  - FIX: Memory usage is higher after thumbnail creation than simply loading them
+    When testing with no thumbnails available prior, it maxed at about 1.2GB during creation while
+    scrolling through the library or repeatedly shuffling the queue, but then settled at 450MB when
+    idle. If all thumbnails already existed at launch, those interactions caused the usage to slowly
+    increase over time to a maximum of about 280MB, which only went up and never down (possible leak).
 - [x] No other issues found while testing
 
 Design Consistency:

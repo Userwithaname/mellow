@@ -873,8 +873,12 @@ impl SongInfoLoader<'_> {
 
         let Some(artwork) = self.load_detailed_and(|detailed| detailed.artwork.clone()) else {
             write_file_create_dir_all(thumbnail_file_path, "").unwrap();
+            *self.detailed_info.write().unwrap() = None; // Also contains lyrics
             return None;
         };
+        if artwork.ref_count() == 2 {
+            *self.detailed_info.write().unwrap() = None; // Unload artwork from loader if unused
+        }
 
         let mut tex_dl = gdk::TextureDownloader::new(&artwork);
         tex_dl.set_format(gdk::MemoryFormat::R8g8b8a8Premultiplied);

@@ -68,7 +68,6 @@ impl SongObject {
             }
             let mut song_info = song.info();
             drop(song_info.load_thumbnail(UsedBy::Library));
-            song_info.unload_detailed(); // `load_thumbnail` may have loaded it
             let _ = ui_tx().send_blocking(UpdateUI::LibrarySongLoaded { index, song });
         });
     }
