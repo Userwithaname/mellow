@@ -1168,7 +1168,7 @@ impl Library {
 |  this one to combine their data (such as ratings and play counts)  |
 \\--------------------------------------------------------------------/
 \n",
-                songs_data.trim(),
+                &songs_data,
             ]
             .concat(),
         ) {
@@ -1186,6 +1186,7 @@ impl Library {
     fn deserialize_songs() -> Songs {
         match fs::read_to_string(songs_file()) {
             Ok(data) => data
+                .trim_end()
                 .split("\n\n")
                 .skip(1) // Skip the note written at the top of the `songs` file
                 .filter_map(SharedSong::deserialize)
