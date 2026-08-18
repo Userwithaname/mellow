@@ -1019,6 +1019,10 @@ impl Library {
     pub fn run_on_build_stopped(&mut self, f: LibraryTask) {
         match STATE.load(atomic::Ordering::Acquire) {
             STATE_READY => f(self),
+            STATE_CANCEL => {
+                self.cancel_library_build_blocking(Instant::now());
+                f(self); // Run directly once fully cancelled
+            }
             _ => self.on_build_stopped.push(f),
         }
     }
