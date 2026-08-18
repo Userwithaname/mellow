@@ -1,3 +1,4 @@
+use core::hint::cold_path;
 use core::sync::atomic::{self, AtomicI8};
 use core::{error::Error, mem};
 use fastrand;
@@ -27,7 +28,6 @@ use crate::library::{album::NewSharedAlbum, artist::NewSharedArtist};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{UpdateUI, ui_tx};
 use crate::util::Forever;
-use crate::util::hint::likely;
 use crate::util::tasks::{BoxedTask, Runner};
 use crate::util::write_file_create_dir_all;
 use crate::{songs_file, util::visit_dirs};
@@ -716,9 +716,12 @@ impl Library {
         .concat()
         .into_iter();
 
-        while let Some(song) = old_songs.next()
-            && likely(song.path.extension().is_some_and(extension_supported))
-        {
+        while let Some(song) = old_songs.next() {
+            if !song.path.extension().is_some_and(extension_supported) {
+                cold_path();
+                continue;
+            }
+
             match songs.find_song(&song.path) {
                 // Valid song entry
                 Err(index) if fs::exists(&song.path).unwrap_or_default() => {
