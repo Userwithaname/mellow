@@ -888,13 +888,18 @@ impl Library {
                 println!("Rebuilding when ready");
 
                 self.run_on_build_stopped(Box::new(|library| {
-                    STATE.store(STATE_BUSY, atomic::Ordering::Release);
+                    // Since `cancel_library_build` sets `STATE` to `STATE_READY`, it is
+                    // possible for the above `Ok` branch to run before this closure, so
+                    // this check is necessary to prevent duplicate rebuilds
+                    if library.rebuild_pending {
+                        STATE.store(STATE_BUSY, atomic::Ordering::Release);
 
-                    #[cfg(feature = "startup-logs")]
-                    println!("Rebuilding now");
+                        #[cfg(feature = "startup-logs")]
+                        println!("Rebuilding now");
 
-                    library.last_build_started = Instant::now();
-                    library.discover_files();
+                        library.last_build_started = Instant::now();
+                        library.discover_files();
+                    }
                 }));
             }
         }
