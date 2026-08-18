@@ -372,6 +372,7 @@ impl Library {
             "`STATE` should be set to `STATE_BUSY` ({STATE_BUSY}) before calling `discover_files`"
         );
 
+        self.rebuild_pending = false;
         for library_path in self.config.directories() {
             let _ = visit_dirs(library_path.to_path_buf(), &mut |path| {
                 // Add the song to the library if it is new, and the extension is supported
@@ -886,13 +887,12 @@ impl Library {
                 #[cfg(feature = "startup-logs")]
                 println!("Rebuilding when ready");
 
-                self.on_build_stopped.push(Box::new(|library| {
+                self.run_on_build_stopped(Box::new(|library| {
                     STATE.store(STATE_BUSY, atomic::Ordering::Release);
 
                     #[cfg(feature = "startup-logs")]
                     println!("Rebuilding now");
 
-                    library.rebuild_pending = false;
                     library.last_build_started = Instant::now();
                     library.discover_files();
                 }));
@@ -1007,10 +1007,15 @@ impl Library {
         self.missing_songs = missing_songs;
     }
 
-    /// Runs the given task once the library build is done, regardless if it succeeded or failed
+    /// Runs the given task once the library build is done,
+    /// regardless if it succeeded or failed. If not building,
+    /// the task will run right away.
     #[inline]
     pub fn run_on_build_stopped(&mut self, f: LibraryTask) {
-        self.on_build_stopped.push(f);
+        match STATE.load(atomic::Ordering::Acquire) {
+            STATE_READY => f(self),
+            _ => self.on_build_stopped.push(f),
+        }
     }
     /// Runs the tasks in `on_build_stopped` and leaves it empty
     ///
