@@ -303,34 +303,32 @@ impl QueuePage {
         let old_visible_items = mem::replace(&mut *queue_item_objects, items);
 
         // Unload unneeded artworks and keep a few surrounding song artworks loaded
-        if !old_visible_items.is_empty() {
-            let old_visible_items: Box<[QueueItem]> = old_visible_items
-                .iter()
-                .map(|object| QueueItem::clone(object.queue_item()))
-                .collect();
-            let keep_loaded: Box<[QueueItem]> = queue_item_objects
-                .iter()
-                .skip(center - start - 1)
-                .take(3) // Keep one detailed artwork ahead and one behind
-                .map(|object| QueueItem::clone(object.queue_item()))
-                .collect();
-            Library::run_task(library_tx(), move || {
-                let mut keep_loaded = keep_loaded.into_iter();
-                let mut keep_loaded_current = keep_loaded.next();
-                for item in old_visible_items {
-                    if let Some(ref keep) = keep_loaded_current
-                        && item == *keep
-                    {
-                        // dbg!(&keep.map_song(|song| song.path.to_owned()));
+        let old_visible_items: Box<[QueueItem]> = old_visible_items
+            .iter()
+            .map(|object| QueueItem::clone(object.queue_item()))
+            .collect();
+        let mut keep_loaded: Vec<QueueItem> = queue_item_objects
+            .iter()
+            .skip((center - start).saturating_sub(1))
+            .take(3) // Keep one detailed artwork ahead and one behind
+            .map(|object| QueueItem::clone(object.queue_item()))
+            .collect();
+        Library::run_task(library_tx(), move || {
+            'outer: for item in old_visible_items {
+                for (i, keep) in keep_loaded.iter().enumerate() {
+                    if *keep == item {
                         keep.map_song(|song| song.info().load_detailed());
-                        keep_loaded_current = keep_loaded.next();
-                    } else if let QueueItem::Song(song) = item {
-                        let info = song.info();
-                        info.unload_detailed();
+                        keep_loaded.remove(i);
+                        continue 'outer;
                     }
                 }
-            });
-        }
+                item.map_song(|song| song.info().unload_detailed());
+            }
+            // Load artworks for new surrounding items as well
+            for keep in keep_loaded {
+                keep.map_song(|song| song.info().load_detailed());
+            }
+        });
         drop(queue_item_objects);
 
         let last_up_button_visible = self.view_further_up.is_visible();
