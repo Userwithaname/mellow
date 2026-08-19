@@ -1,5 +1,6 @@
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, OnceCell, RefCell};
+use core::mem;
 use core::time::Duration;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib, graphene};
@@ -298,7 +299,39 @@ impl QueuePage {
 
         let list_model = self.list_model.get().unwrap();
         list_model.splice(0, list_model.n_items(), &items);
-        self.queue_item_objects.replace(items);
+        let mut queue_item_objects = self.queue_item_objects.borrow_mut();
+        let old_visible_items = mem::replace(&mut *queue_item_objects, items);
+
+        // Unload unneeded artworks and keep a few surrounding song artworks loaded
+        if !old_visible_items.is_empty() {
+            let old_visible_items: Box<[QueueItem]> = old_visible_items
+                .iter()
+                .map(|object| QueueItem::clone(object.queue_item()))
+                .collect();
+            let keep_loaded: Box<[QueueItem]> = queue_item_objects
+                .iter()
+                .skip(center - start - 1)
+                .take(3) // Keep one detailed artwork ahead and one behind
+                .map(|object| QueueItem::clone(object.queue_item()))
+                .collect();
+            Library::run_task(library_tx(), move || {
+                let mut keep_loaded = keep_loaded.into_iter();
+                let mut keep_loaded_current = keep_loaded.next();
+                for item in old_visible_items {
+                    if let Some(ref keep) = keep_loaded_current {
+                        if item == *keep {
+                            // dbg!(&keep.map_song(|song| song.path.to_owned()));
+                            keep.map_song(|song| song.info().load_detailed());
+                            keep_loaded_current = keep_loaded.next();
+                        }
+                    } else if let QueueItem::Song(song) = item {
+                        let info = song.info();
+                        info.try_unload_detailed();
+                    }
+                }
+            });
+        }
+        drop(queue_item_objects);
 
         let last_up_button_visible = self.view_further_up.is_visible();
         let up_button_visible = repeat_mode || center > NUM_ITEMS_BEHIND;
@@ -324,38 +357,6 @@ impl QueuePage {
             ),
             // Scroll to the currently playing item
             QueueScrollAction::ToPlaying => self.scroll_to_item(playing),
-        }
-
-        // Garbage collection for detailed artworks
-        if old_queue_length > 0 {
-            Library::run_task(library_tx(), {
-                // FIX: Should be unloading from the previous queue, not the new one
-                // IDEA: Try remembering/comparing previous and current visible items instead?
-                let queue = queue.to_vec();
-                move || {
-                    let len = queue_length - 1;
-                    let short_start = playing.saturating_sub(2);
-                    let short_end = (playing + 2).min(queue.len());
-                    for (index, song) in queue.into_iter().enumerate() {
-                        let QueueItem::Song(song) = song else {
-                            return;
-                        };
-
-                        // Unload detailed artworks, but keep a few items ahead and behind loaded
-                        if !(short_start..=short_end).contains(&index)
-                            && (!repeat_mode
-                                || !(index > len - 2usize.saturating_sub(playing)
-                                    || index < 2usize.saturating_sub(len - playing)))
-                        {
-                            song.info().try_unload_detailed();
-                        }
-                        // NOTE: Disabled until collection of detailed artworks works reliably
-                        // else {
-                        //     song.info().load_detailed();
-                        // }
-                    }
-                }
-            });
         }
     }
 
