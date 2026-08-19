@@ -1,4 +1,5 @@
 use core::error::Error;
+use core::hint::cold_path;
 use gst::prelude::*;
 use gst::{ClockTime, SeekFlags, State};
 use std::sync::{OnceLock, mpsc};
@@ -7,7 +8,7 @@ use crate::UI_TIMEOUT;
 use crate::excuses::{EXP_RX, INIT_ERR};
 use crate::library::unload_unused::UsedBy;
 use crate::ui::{UpdateUI, ui_tx};
-use crate::util::hint::{cold_expression, unlikely};
+use crate::util::hint::cold_expression;
 use crate::util::wrap_index;
 
 pub mod queue_item;
@@ -416,7 +417,7 @@ impl Player {
     /// Panics if the UI channel is closed
     #[inline]
     fn load_queue(&mut self, queue: Vec<QueueItem>, shuffled: Option<Vec<usize>>, index: usize) {
-        if unlikely(index >= queue.len()) {
+        if index >= queue.len() {
             if !queue.is_empty() {
                 // Fallback to 0 if `index` is out of bounds
                 return self.load_queue(queue, shuffled, 0);
@@ -427,7 +428,7 @@ impl Player {
             self.queue.ui_update_queue();
             self.ui_update_song_info();
             Self::ui_open_playing();
-            return;
+            return cold_path();
         }
 
         // Display the current song info in the UI as soon as possible
@@ -476,8 +477,7 @@ impl Player {
     fn remove_item(&mut self, index: usize) {
         if index == self.queue.index() {
             if self.next_song_loaded {
-                println!("Removing song which was already loaded");
-                self.unload_gapless();
+                self.unload_gapless_restore_time();
                 self.queue.remove(index);
                 self.ui_set_state();
             }
@@ -513,9 +513,9 @@ impl Player {
             && !matches!(self.current_state, State::Null)
         {
             self.request_state(State::Ready);
-            return Ok(());
+        } else {
+            self.move_next(false);
         }
-        self.move_next(false);
         Ok(())
     }
 
@@ -593,17 +593,8 @@ impl Player {
     /// Prepare the palyer for interactive seeking in paused state
     /// Remember to call `seek_done()` to resume playback
     fn begin_seek_paused(&mut self) -> Result<(), gst::StateChangeError> {
-        // If next track is already loaded, move back to the current one
         if self.next_song_loaded {
-            println!("Gapless transition interrupted by seek request");
-            self.backend.set_state(State::Null)?;
-            self.request_state(self.current_state);
-            self.wait_for_gstreamer_state();
-            self.next_song_loaded = false;
-            self.skip_prev();
-            self.update();
-            self.wait_for_gstreamer_state();
-            self.queue.current().as_song().info().deduct_played();
+            let _ = self.unload_gapless();
         }
 
         match self.backend.current_state() {
@@ -643,31 +634,41 @@ impl Player {
         self.request_state(self.current_state);
     }
 
-    /// Unloads the gaplessly loaded track by restarting the stream
+    /// Unloads the gaplessly loaded track by restarting the stream, and
+    /// attempts to restore the playback position. If restoring fails, the
+    /// song is skipped instead.
     ///
     /// Note that this might cause an audible stutter, so use it sparingly
-    pub fn unload_gapless(&mut self) {
-        println!("---- Unloading gapless track ----");
+    fn unload_gapless_restore_time(&mut self) {
         let Some(pos) = self.backend.query_position::<ClockTime>() else {
-            eprintln!("Could not determine playback time, skipping...");
+            eprintln!("Could not determine playback time; skipping");
             let _ = player_tx().send(PlayerRequest::SkipNext);
             return;
         };
 
-        let _ = self.backend.set_state(State::Null);
-        self.request_state(self.current_state);
-        self.wait_for_gstreamer_state();
-        self.next_song_loaded = false;
-        self.skip_prev();
-        self.update();
-        self.wait_for_gstreamer_state();
-        self.queue.current().as_song().info().deduct_played();
+        let _ = self.unload_gapless();
 
         // Seek to the same time the player was at before, or skip the song
         if self.seek_to_time(pos).is_err() {
+            eprintln!("Could not restore playback time; skipping");
             self.queue.current().map_song(|song| song.info().played());
             let _ = player_tx().send(PlayerRequest::SkipNext);
         }
+    }
+    /// Unloads the gaplessly loaded track by restarting the stream
+    ///
+    /// To preserve the playback time, use `unload_gapless_restore_time` instead
+    fn unload_gapless(&mut self) -> Result<(), gst::StateChangeError> {
+        println!("---- Unloading gapless track ----");
+        self.backend.set_state(State::Null)?;
+        self.request_state(self.current_state);
+        self.wait_for_gstreamer_state();
+        self.next_song_loaded = false;
+        self.skip_prev(); // Skip back to the currently playing track
+        self.update();
+        self.wait_for_gstreamer_state();
+        self.queue.current().as_song().info().deduct_played();
+        Ok(())
     }
 
     /// Sets the playback volume
@@ -684,7 +685,7 @@ impl Player {
                 || (from < to && to == self.queue.index() - 1)
                 || (from > to && to == self.queue.index()))
         {
-            self.unload_gapless();
+            self.unload_gapless_restore_time();
         }
         self.queue.reorder(from, to);
     }
@@ -715,7 +716,7 @@ impl Player {
     /// Inserts a `QueueItem` into the current queue at the specified `index`
     fn insert_to_queue(&mut self, index: usize, item: QueueItem) {
         if self.next_song_loaded && index == self.queue.index() {
-            self.unload_gapless();
+            self.unload_gapless_restore_time();
         }
         self.queue.insert(index, item);
     }
@@ -797,12 +798,10 @@ impl Player {
                     self.ui_update_song_info();
                     self.next_song_loaded = false;
                 }
-                gst::MessageType::Eos if self.seeking => {
-                    println!("EOS ignored while seeking");
-                }
                 gst::MessageType::Eos => {
-                    if matches!(self.current_state, State::Null) {
-                        return;
+                    if self.seeking || matches!(self.current_state, State::Null) {
+                        println!("EOS ignored");
+                        continue;
                     }
                     if self.queue.has_next() {
                         println!("Moving to next track due to end of stream");

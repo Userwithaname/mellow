@@ -72,6 +72,9 @@ impl SongQueue {
     }
 
     /// Returns a reference to the current song
+    ///
+    /// # Panics
+    /// Panics if the queue is empty
     #[inline]
     #[must_use]
     pub fn current(&self) -> &QueueItem {
