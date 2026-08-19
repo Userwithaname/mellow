@@ -318,15 +318,15 @@ impl QueuePage {
                 let mut keep_loaded = keep_loaded.into_iter();
                 let mut keep_loaded_current = keep_loaded.next();
                 for item in old_visible_items {
-                    if let Some(ref keep) = keep_loaded_current {
-                        if item == *keep {
-                            // dbg!(&keep.map_song(|song| song.path.to_owned()));
-                            keep.map_song(|song| song.info().load_detailed());
-                            keep_loaded_current = keep_loaded.next();
-                        }
+                    if let Some(ref keep) = keep_loaded_current
+                        && item == *keep
+                    {
+                        // dbg!(&keep.map_song(|song| song.path.to_owned()));
+                        keep.map_song(|song| song.info().load_detailed());
+                        keep_loaded_current = keep_loaded.next();
                     } else if let QueueItem::Song(song) = item {
                         let info = song.info();
-                        info.try_unload_detailed();
+                        info.unload_detailed();
                     }
                 }
             });
