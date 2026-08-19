@@ -307,7 +307,7 @@ impl QueuePage {
             .map(|object| QueueItem::clone(object.queue_item()))
             .collect();
         let mut keep_loaded =
-            queue[playing.saturating_sub(1)..(playing + 2).max(queue_length)].to_vec();
+            queue[playing.saturating_sub(1)..(playing + 2).min(queue_length)].to_vec();
         Library::run_task(library_tx(), move || {
             'outer: for item in old_visible_items {
                 for (i, keep) in keep_loaded.iter().enumerate() {
