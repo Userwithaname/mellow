@@ -299,20 +299,14 @@ impl QueuePage {
 
         let list_model = self.list_model.get().unwrap();
         list_model.splice(0, list_model.n_items(), &items);
-        let mut queue_item_objects = self.queue_item_objects.borrow_mut();
-        let old_visible_items = mem::replace(&mut *queue_item_objects, items);
+        let old_visible_items = mem::replace(&mut *self.queue_item_objects.borrow_mut(), items);
 
         // Unload unneeded artworks and keep a few surrounding song artworks loaded
         let old_visible_items: Box<[QueueItem]> = old_visible_items
             .iter()
             .map(|object| QueueItem::clone(object.queue_item()))
             .collect();
-        let mut keep_loaded: Vec<QueueItem> = queue_item_objects
-            .iter()
-            .skip((center - start).saturating_sub(1))
-            .take(3) // Keep one detailed artwork ahead and one behind
-            .map(|object| QueueItem::clone(object.queue_item()))
-            .collect();
+        let mut keep_loaded = queue[playing.saturating_sub(1)..playing + 1].to_vec();
         Library::run_task(library_tx(), move || {
             'outer: for item in old_visible_items {
                 for (i, keep) in keep_loaded.iter().enumerate() {
@@ -324,12 +318,10 @@ impl QueuePage {
                 }
                 item.map_song(|song| song.info().unload_detailed());
             }
-            // Load artworks for new surrounding items as well
             for keep in keep_loaded {
                 keep.map_song(|song| song.info().load_detailed());
             }
         });
-        drop(queue_item_objects);
 
         let last_up_button_visible = self.view_further_up.is_visible();
         let up_button_visible = repeat_mode || center > NUM_ITEMS_BEHIND;
