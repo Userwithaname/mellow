@@ -56,9 +56,7 @@ impl Drop for QueueItemObject {
             let Some(QueueItem::Song(song)) = self.queue_item.take() else {
                 return cold_path(); // Only songs have artworks, so this shouldn't be reached
             };
-            let song_info = song.info();
-            song_info.mark_thumbnail_unused_by(UsedBy::SongQueue);
-            song_info.unload_detailed(); // NOTE: Might require its own reference count check
+            song.info().mark_thumbnail_unused_by(UsedBy::SongQueue);
         }
     }
 }
