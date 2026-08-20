@@ -302,27 +302,32 @@ impl QueuePage {
         let old_visible_items = mem::replace(&mut *self.queue_item_objects.borrow_mut(), items);
 
         // Unload unneeded artworks and keep a few surrounding song artworks loaded
-        let old_visible_items: Box<[QueueItem]> = old_visible_items
-            .iter()
-            .map(|object| QueueItem::clone(object.queue_item()))
-            .collect();
-        let mut keep_loaded =
-            queue[playing.saturating_sub(1)..(playing + 2).min(queue_length)].to_vec();
-        Library::run_task(library_tx(), move || {
-            'outer: for item in old_visible_items {
-                for (i, keep) in keep_loaded.iter().enumerate() {
-                    if *keep == item {
-                        keep.map_song(|song| song.info().load_detailed());
-                        keep_loaded.remove(i);
-                        continue 'outer;
+        // Items panned off-screen will not keep their detailed artworks loaded
+        let keep_artworks_range = (playing.saturating_sub(1))
+            .max(start.min((queue_length - center).saturating_sub(NUM_ITEMS_AHEAD)))
+            ..(playing + 2).min(if start < end { end } else { queue_length });
+        if !keep_artworks_range.is_empty() {
+            let old_visible_items: Box<[QueueItem]> = old_visible_items
+                .iter()
+                .map(|object| QueueItem::clone(object.queue_item()))
+                .collect();
+            let mut keep_artworks = queue[keep_artworks_range].to_vec();
+            Library::run_task(library_tx(), move || {
+                'outer: for item in old_visible_items {
+                    for (i, keep) in keep_artworks.iter().enumerate() {
+                        if *keep == item {
+                            keep.map_song(|song| song.info().load_detailed());
+                            keep_artworks.remove(i);
+                            continue 'outer;
+                        }
                     }
+                    item.map_song(|song| song.info().unload_detailed());
                 }
-                item.map_song(|song| song.info().unload_detailed());
-            }
-            for keep in keep_loaded {
-                keep.map_song(|song| song.info().load_detailed());
-            }
-        });
+                for keep in keep_artworks {
+                    keep.map_song(|song| song.info().load_detailed());
+                }
+            });
+        }
 
         let last_up_button_visible = self.view_further_up.is_visible();
         let up_button_visible = repeat_mode || center > NUM_ITEMS_BEHIND;
