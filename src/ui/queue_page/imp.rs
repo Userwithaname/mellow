@@ -309,7 +309,7 @@ impl QueuePage {
             .collect();
         let keep_artworks_range = (playing.saturating_sub(1))
             .max(start.min((queue_length - center).saturating_sub(NUM_ITEMS_AHEAD)))
-            ..(playing + 2).min(if start < end { end } else { queue_length });
+            ..(playing + 2).min((start <= playing) as usize * end);
         let mut keep_artworks = queue.get(keep_artworks_range).unwrap_or_default().to_vec();
         Library::run_task(library_tx(), move || {
             'outer: for item in old_visible_items {
