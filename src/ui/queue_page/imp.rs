@@ -416,7 +416,9 @@ impl QueuePage {
                 // Wrapping over the start of the queue
                 if n_items_before > 0 && queue_index > center + NUM_ITEMS_AHEAD {
                     let from = queue_length - n_items_before;
-                    match queue_index - from {
+                    // NOTE: When `queue_index` ahead of the visible items, it relies on overflow to enter
+                    // the first branch (AFAIK, length can be at most `u32::MAX`, so this should be fine)
+                    match queue_index.wrapping_sub(from) {
                         value if value >= model_length => return Err(ItemNotFoundError),
                         value => return Ok(value),
                     };
