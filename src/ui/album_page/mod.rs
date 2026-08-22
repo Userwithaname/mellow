@@ -157,13 +157,13 @@ impl AlbumPage {
             let cancel = Arc::clone(&ui.cancel_artowrk_loading);
             Library::run_task(library_tx(), move || {
                 if cancel.load(Ordering::Relaxed) {
-                    #[cfg(debug_assertions)]
+                    #[cfg(feature = "verbose-logs")]
                     println!("Arwork loading cancelled");
                     return;
                 }
                 first_song.info().load_detailed();
                 if cancel.load(Ordering::Relaxed) {
-                    #[cfg(debug_assertions)]
+                    #[cfg(feature = "verbose-logs")]
                     println!("Arwork assignment cancelled");
                     return;
                 }

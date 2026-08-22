@@ -541,10 +541,7 @@ impl SongInfoLoader<'_> {
         // writer while waiting to acquire the write lock
         #[cfg(debug_assertions)]
         if info_writer.is_some() {
-            println!(
-                "⚠️ Basic song info already loaded (decide whether to include this check it in release builds) ({})",
-                line!()
-            );
+            eprintln!("⚠️ Basic song info was loaded twice ({})", line!());
             return;
         }
         *info_writer = Some(self.basic_or_default());
@@ -678,10 +675,7 @@ impl SongInfoLoader<'_> {
         // writer while waiting to acquire the write lock
         #[cfg(debug_assertions)]
         if info_writer.is_some() {
-            println!(
-                "⚠️ Detailed song info already loaded (decide whether to include this check it in release builds) ({})",
-                line!()
-            );
+            eprintln!("⚠️ Detailed song info was loaded twice ({})", line!());
             return;
         }
         *info_writer = Some(self.detailed_or_default());

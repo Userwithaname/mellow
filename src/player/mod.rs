@@ -272,7 +272,7 @@ impl Player {
                 PlayerRequest::LoadNext if self.seeking => continue,
                 PlayerRequest::SongEnd if let State::Null = self.current_state => continue,
                 PlayerRequest::SongEnd if !self.can_use_gapless() => match self.seeking {
-                    true => println!("Ignoring SongEnd while seeking") != (),
+                    true => println!("Ignoring `SongEnd` while seeking") != (),
                     false => self.request_state(self.current_state) == (),
                 },
                 PlayerRequest::LoadNext | PlayerRequest::SongEnd => self.move_next(true) == (),
@@ -362,7 +362,7 @@ impl Player {
     #[inline]
     fn update(&mut self) {
         if self.queue.is_empty() {
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "verbose-logs")]
             println!("The queue is empty - player state update skipped");
             return;
         }
@@ -748,7 +748,7 @@ impl Player {
         let state = self.backend.state(ClockTime::from_mseconds(150));
         let interactive = !self.queue.is_empty();
         let playing = state.0.is_ok() && matches!(state.1, State::Playing);
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("ui_set_state(playing: {playing}, interactive: {interactive})");
         (ui_tx().send_blocking(UpdateUI::PlayerState {
             playing,
@@ -760,7 +760,7 @@ impl Player {
     /// Sends the current song info to the UI receiver
     #[inline]
     fn ui_update_song_info(&self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("ui_update_song_info()");
         let item = match self.queue.is_empty() {
             false => QueueItem::clone(self.queue.current()),

@@ -54,7 +54,7 @@ impl QueueItemObject {
 
     /// Loads the artwork thumbnail in a background thread
     pub fn load_artwork(&self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         if self.artwork().is_some() {
             println!(
                 "⚠️ Queue artwork already assigned - should this be checked in release builds as well?"

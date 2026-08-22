@@ -38,11 +38,10 @@ impl MainPlayer {
             i += 1;
         }
 
-        // A debug-only check to ensure the above lookup doesn't break in the future
-        #[cfg(debug_assertions)]
-        if i == controllers.n_items() {
-            eprintln!("WARNING: Could not find `GtkGestureClick` controller on the seek bar");
-        }
+        debug_assert!(
+            i < controllers.n_items(),
+            "Could not find `GtkGestureClick` controller on the seek bar"
+        )
     }
 
     #[inline]

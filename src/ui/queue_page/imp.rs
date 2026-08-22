@@ -1025,7 +1025,6 @@ impl QueuePage {
 
     /// Used to verify that `model_index_to_queue` is working correctly
     #[inline]
-    #[allow(unused)]
     #[cfg(debug_assertions)]
     fn model_index_to_queue_discrepancy_check(&self, model_index: usize, expected_index: usize) {
         match self.model_index_to_queue(model_index) {
@@ -1033,22 +1032,26 @@ impl QueuePage {
                 eprintln!("Discrepancy between `queue_index_to_model` and `model_index_to_queue`:");
                 eprintln!("	`queue_index_to_model({expected_index})`:	{model_index}");
                 eprintln!("	`model_index_to_queue({model_index})`:	{to_queue_index}");
+                core::hint::cold_path();
             }
-            _ => (),
-        }
+            _ => self.queue_index_to_model_discrepancy_check(expected_index, model_index),
+        };
     }
     /// Used to verify that `queue_index_to_model` is working correctly
     #[inline]
-    #[allow(unused)]
     #[cfg(debug_assertions)]
     fn queue_index_to_model_discrepancy_check(&self, queue_index: usize, expected_index: usize) {
         match self.queue_index_to_model(queue_index) {
             Ok(to_model_index) if to_model_index != expected_index => {
-                eprintln!("Discrepancy between `queue_index_to_model` and `model_index_to_queue`:");
+                eprintln!("Discrepancy between `model_index_to_queue` and `queue_index_to_model`:");
                 eprintln!("	`model_index_to_queue({expected_index})`:	{queue_index}");
                 eprintln!("	`queue_index_to_model({queue_index})`:	{to_model_index}");
+                core::hint::cold_path();
             }
-            Err(_) => eprintln!("`queue_index_to_model({queue_index})` returned an error"),
+            Err(_) => {
+                eprintln!("`queue_index_to_model({queue_index})` returned an error");
+                core::hint::cold_path();
+            }
             _ => (),
         }
     }

@@ -744,11 +744,11 @@ impl Library {
                             // a library directory which is currently missing
                             // (otherwise, they were either moved or removed)
                             if (missing_libraries.iter()).any(|dir| song.path.starts_with(dir)) {
-                                // #[cfg(debug_assertions)]
-                                // println!(
-                                //     "Remembering {} because its library is missing",
-                                //     info.filename()
-                                // );
+                                #[cfg(feature = "verbose-logs")]
+                                println!(
+                                    "Remembering {:?} because its library is missing",
+                                    song.path
+                                );
                                 missing.insert(index, song);
                                 continue;
                             }
@@ -767,7 +767,7 @@ impl Library {
                 }
                 // Duplicate entry
                 Ok(index) => {
-                    #[cfg(debug_assertions)]
+                    #[cfg(feature = "verbose-logs")]
                     println!("Resolving duplicate entry: {:?}", song.path);
 
                     // SAFETY: `index` is `Ok`, therefore within bounds
@@ -813,7 +813,7 @@ impl Library {
                         found_entry_info.thumbnail_file_path(),
                     );
 
-                    #[cfg(debug_assertions)]
+                    #[cfg(feature = "verbose-logs")]
                     println!(
                         "Found moved file:\n{:?} -> {:?}",
                         old_info.path(),

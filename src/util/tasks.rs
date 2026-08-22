@@ -102,7 +102,7 @@ impl Runner {
         let unblock_rx = Arc::new(Mutex::new(unblock_rx));
         let num_tasks = self.threads.len();
 
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("Awaiting background tasks");
 
         // Occupy all but one of the workers with a blocking operation
@@ -124,7 +124,7 @@ impl Runner {
             waiting.store(false, Ordering::Release);
             library::STATE.store(library::STATE_READY, Ordering::Release);
 
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "verbose-logs")]
             println!("All background tasks have finished running");
         });
     }

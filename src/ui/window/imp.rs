@@ -250,14 +250,14 @@ impl Window {
     }
 
     fn set_song_queue(&self, queue: Box<[QueueItem]>, index: usize) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("set_song_queue(…, {index}): {} items", queue.len());
 
         self.queue_page.set_playing_index(index);
         self.queue_page.update_queue(queue, index);
     }
     fn set_queue_index(&self, index: usize) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("set_queue_index({index})");
 
         self.queue_page.set_playing_index(index);
@@ -320,7 +320,7 @@ impl Window {
         self.queue_subpage.update_stop_after(index, &queue);
     }
     fn close_queue_subpage(&self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("close_queue_subpage()");
         while self.queue_subpage_visible.get() {
             self.playing.pop();

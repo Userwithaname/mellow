@@ -243,7 +243,7 @@ impl SongQueue {
                 let (QueueItem::Song(first_item), QueueItem::Song(last_item)) =
                     (self.nth(0), self.nth(self.len() - 1))
                 else {
-                    #[cfg(debug_assertions)]
+                    #[cfg(feature = "verbose-logs")]
                     println!("One of the candidates is not a song (logic could be improved here)");
                     break 'disambiguate;
                 };
@@ -559,7 +559,7 @@ impl SongQueue {
     /// The function panics if the UI channel receiver is closed
     #[inline]
     fn ui_update_shuffle(&self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("ui_update_shuffle(): {}", self.shuffle);
         (ui_tx().send_blocking(UpdateUI::Shuffle(self.shuffle))).expect(EXP_RX);
     }
@@ -570,7 +570,7 @@ impl SongQueue {
     /// The function panics if the UI channel receiver is closed
     #[inline]
     fn ui_update_repeat(&self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("ui_update_repeat(): {}", self.repeat);
         (ui_tx().send_blocking(UpdateUI::Repeat(self.repeat))).expect(EXP_RX);
     }
@@ -581,7 +581,7 @@ impl SongQueue {
     /// The function panics if the UI channel receiver is closed
     #[inline]
     pub fn ui_update_queue(&mut self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("ui_update_queue()");
         (ui_tx().send_blocking(UpdateUI::SetQueue {
             queue: self.ordered_queue(),
@@ -600,7 +600,7 @@ impl SongQueue {
         if self.index == self.last_ui_index {
             return;
         }
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("ui_update_queue_index(): {}", self.index);
         (ui_tx().send_blocking(UpdateUI::SetQueueIndex(self.index))).expect(EXP_RX);
         self.last_ui_index = self.index;
@@ -612,7 +612,7 @@ impl SongQueue {
     /// The function panics if the UI channel receiver is closed
     #[inline]
     fn ui_close_queue_subpage(&self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("ui_close_queue_subpage()");
         (ui_tx().send_blocking(UpdateUI::CloseQueueSubpage)).expect(EXP_RX);
     }
@@ -624,7 +624,7 @@ impl SongQueue {
     /// The function panics if the UI channel receiver is closed
     #[inline]
     pub fn ui_validate_queue_subpage_index(&self) {
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-logs")]
         println!("ui_validate_queue_subpage_index()");
         ui_tx()
             .send_blocking(UpdateUI::ValidateQueueSubpageIndex)
