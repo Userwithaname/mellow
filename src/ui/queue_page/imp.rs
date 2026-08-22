@@ -182,7 +182,7 @@ impl QueuePage {
         if let Ok(model_index) = self.queue_index_to_model(index) {
             self.scroll_to_model_item(model_index);
 
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "verbose-warnings")]
             self.model_index_to_queue_discrepancy_check(model_index, index);
         }
     }
@@ -556,7 +556,7 @@ impl QueuePage {
             let queue_item_objects = self.queue_item_objects.borrow();
             queue_item_objects[model_index].set_property("artwork", artwork);
 
-            #[cfg(debug_assertions)]
+            #[cfg(feature = "verbose-warnings")]
             self.model_index_to_queue_discrepancy_check(model_index, index);
 
             // Assign artworks for repeat mode wrapped item duplicates as well
@@ -1025,7 +1025,7 @@ impl QueuePage {
 
     /// Used to verify that `model_index_to_queue` is working correctly
     #[inline]
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "verbose-warnings")]
     fn model_index_to_queue_discrepancy_check(&self, model_index: usize, expected_index: usize) {
         match self.model_index_to_queue(model_index) {
             to_queue_index if to_queue_index != expected_index => {
@@ -1039,7 +1039,7 @@ impl QueuePage {
     }
     /// Used to verify that `queue_index_to_model` is working correctly
     #[inline]
-    #[cfg(debug_assertions)]
+    #[cfg(feature = "verbose-warnings")]
     fn queue_index_to_model_discrepancy_check(&self, queue_index: usize, expected_index: usize) {
         match self.queue_index_to_model(queue_index) {
             Ok(to_model_index) if to_model_index != expected_index => {

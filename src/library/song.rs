@@ -212,7 +212,7 @@ impl<'s> Song {
     /// This function panics if the `album`'s `Mutex` is poisoned
     #[inline]
     pub fn get_album(&self) -> MutexGuard<'_, Option<SharedAlbum>> {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.album.try_lock().is_err() {
             eprintln!("Note: Blocking on mutex lock for `Song::get_album`");
         }
@@ -225,7 +225,7 @@ impl<'s> Song {
     /// This function panics if the `album`'s `Mutex` is poisoned
     #[inline]
     pub fn set_album(&self, album: Option<SharedAlbum>) {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.album.try_lock().is_err() {
             eprintln!("Note: Blocking on mutex lock for `Song::set_album`");
         }
@@ -331,7 +331,7 @@ impl SongInfoLoader<'_> {
     /// The function panics if the user info `Mutex` is poisoned
     #[must_use]
     pub fn known_modification_time(&self) -> u64 {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.user_info.try_lock().is_err() {
             eprintln!("Note: Blocking on mutex lock for `known_modification_time`");
         }
@@ -362,7 +362,7 @@ impl SongInfoLoader<'_> {
     /// also panic if either the file modification time or system time
     /// is earlier than `UNIX_EPOCH`
     pub fn update_modification_time(&self) {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.user_info.try_lock().is_err() {
             eprintln!("Note: Blocking on mutex lock for `update_modification_time`");
         }
@@ -376,7 +376,7 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the user info `Mutex` is poisoned
     pub fn user(&self) -> MutexGuard<'_, UserSongInfo> {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.user_info.try_lock().is_err() {
             eprintln!("Note: Blocking on mutex lock for `user`");
         }
@@ -388,7 +388,7 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the user info `Mutex` is poisoned
     pub fn played(&self) {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.user_info.try_lock().is_err() {
             eprintln!("Note: Blocking on mutex lock for `played`");
         }
@@ -400,7 +400,7 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the user info `Mutex` is poisoned
     pub fn deduct_played(&self) {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.user_info.try_lock().is_err() {
             eprintln!("Note: Blocking on mutex lock for `deduct_played`");
         }
@@ -413,7 +413,7 @@ impl SongInfoLoader<'_> {
     /// The function panics if the user info or the album `Mutex` is poisoned
     #[inline]
     pub fn set_rating(&self, rating: SongRating) {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.user_info.try_lock().is_err() {
             eprintln!("Note: Blocking on mutex lock for `set_rating`");
         }
@@ -453,7 +453,7 @@ impl SongInfoLoader<'_> {
     /// The function panics if the basic info `RwLock` is poisoned
     #[inline]
     pub fn inspect_basic(&self) -> RwLockReadGuard<'_, Option<SongInfo>> {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.info.try_read().is_err() {
             eprintln!(
                 "Note: Blocking on read lock for `inspect_basic` (would `try_inspect_basic` make sense here?)"
@@ -476,7 +476,7 @@ impl SongInfoLoader<'_> {
     /// The function panics if the basic info `RwLock` is poisoned
     #[inline]
     pub fn load_basic(&mut self) {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.info.try_read().is_err() {
             eprintln!(
                 "Note: Blocking on read lock for `load_basic` (would `try_load_basic` make sense here?)"
@@ -492,7 +492,7 @@ impl SongInfoLoader<'_> {
     /// The function panics if the basic info `RwLock` is poisoned
     #[inline]
     pub fn load_basic_and<O, F: FnOnce(&SongInfo) -> O>(&mut self, f: F) -> O {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.info.try_read().is_err() {
             eprintln!("Note: Blocking on read lock for `load_basic_and`");
         }
@@ -532,14 +532,14 @@ impl SongInfoLoader<'_> {
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
     fn assign_basic(&mut self) {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.detailed_info.try_write().is_err() {
             eprintln!("Note: Blocking on write lock for `assign_basic`");
         }
         let mut info_writer = self.info.write().unwrap();
         // Check if the info was already loaded by another
         // writer while waiting to acquire the write lock
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-warnings")]
         if info_writer.is_some() {
             eprintln!("⚠️ Basic song info was loaded twice ({})", line!());
             return;
@@ -612,7 +612,7 @@ impl SongInfoLoader<'_> {
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
     pub fn inspect_detailed(&self) -> RwLockReadGuard<'_, Option<DetailedSongInfo>> {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.detailed_info.try_read().is_err() {
             eprintln!(
                 "Note: Blocking on read lock for `inspect_detailed` (would `try_inspect_detailed` make sense here?)"
@@ -647,7 +647,7 @@ impl SongInfoLoader<'_> {
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
     pub fn load_detailed_and<O, F: FnOnce(&DetailedSongInfo) -> O>(&mut self, f: F) -> O {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.detailed_info.try_read().is_err() {
             eprintln!("Note: Blocking on read lock for `load_detailed_and`");
         }
@@ -673,7 +673,7 @@ impl SongInfoLoader<'_> {
         let mut info_writer = self.detailed_info.write().unwrap();
         // Check if the info was already loaded by another
         // writer while waiting to acquire the write lock
-        #[cfg(debug_assertions)]
+        #[cfg(feature = "verbose-warnings")]
         if info_writer.is_some() {
             eprintln!("⚠️ Detailed song info was loaded twice ({})", line!());
             return;
@@ -704,7 +704,7 @@ impl SongInfoLoader<'_> {
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
     pub fn unload_detailed(&self) {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.detailed_info.try_write().is_err() {
             eprintln!(
                 "Note: Blocking on write lock for `unload_detailed` (would `try_unload_detailed` make sense here?)"
@@ -766,7 +766,7 @@ impl SongInfoLoader<'_> {
     /// The function panics if the thumbnail `RwLock` is poisoned
     #[inline]
     pub fn inspect_thumbnail(&self) -> RwLockReadGuard<'_, UnloadUnused<gdk::Texture>> {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.thumbnail.try_read().is_err() {
             println!(
                 "Note: Blocking on read lock for `inspect_thumbnail` (would `try_inspect_thumbnail` make sense here?)"
@@ -801,7 +801,7 @@ impl SongInfoLoader<'_> {
         &mut self,
         used_by: UsedBy,
     ) -> RwLockReadGuard<'_, UnloadUnused<gdk::Texture>> {
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.thumbnail.try_read().is_err() {
             println!("Note: Blocking on read lock for `load_thumbnail`");
         }
@@ -811,7 +811,7 @@ impl SongInfoLoader<'_> {
         }
         drop(thumbnail);
 
-        #[cfg(feature = "lock-warnings")]
+        #[cfg(feature = "verbose-warnings")]
         if self.thumbnail.try_write().is_err() {
             println!("Note: Blocking on write lock for `load_thumbnail`");
         }

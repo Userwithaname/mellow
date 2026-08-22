@@ -6,15 +6,12 @@ license = "GPL-3.0"
 
 [features]
 default = [
-  # "no-meson", # Cargo build support; requires manual gschema setup
-  # "startup-logs", # Enables more verbose output for startup events
-  # "lock-warnings", # Prints warnings if certain locks are not immediately obtainable
-  # "task-counter", # Counts/prints how many threads are busy on the thread pool
+  # Add features here to enable them by default
 ]
-no-meson = ["dep:glib-build-tools"]
-verbose-logs  = []
-lock-warnings = []
-task-counter  = []
+no-meson         = ["dep:glib-build-tools"] # Cargo build support; requires manual gschema setup
+task-counter     = [] # Counts/prints how many threads are busy on the thread pool
+verbose-logs     = [] # Enables more verbose output, intended for debugging and profiling
+verbose-warnings = [] # Performs runtime checks and logs possible issues (may affect performance)
 
 [build-dependencies]
 glib-build-tools = { version = "0.22.0", optional = true }
