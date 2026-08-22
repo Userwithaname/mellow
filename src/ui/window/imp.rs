@@ -470,7 +470,7 @@ impl Window {
 
         let info = song.info();
         let Ok(thumbnail) = info.try_inspect_thumbnail() else {
-            #[cfg(feature = "lock-warnings")]
+            #[cfg(feature = "verbose-warnings")]
             println!("{index}: queue song thumbnail would block; retrying later...");
             Library::run_task(library_tx(), move || {
                 thread::sleep(Duration::from_millis(30));
