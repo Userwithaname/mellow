@@ -119,11 +119,11 @@ impl Application {
                         }),
                         library_rx,
                     );
-                    #[cfg(feature = "startup-logs")]
+                    #[cfg(feature = "verbose-logs")]
                     println!("Library initialized");
 
                     SongQueue::init_queue(&library, startup_queue.into()).unwrap();
-                    #[cfg(feature = "startup-logs")]
+                    #[cfg(feature = "verbose-logs")]
                     println!("Queue was sent to the player");
 
                     library.build_global_tag_list();
@@ -131,7 +131,7 @@ impl Application {
                     // `STATE` does not need to be set here,
                     // because it defaults to `STATE_BUSY`
                     library.discover_files();
-                    #[cfg(feature = "startup-logs")]
+                    #[cfg(feature = "verbose-logs")]
                     println!("Files were checked");
 
                     library.request_handler().unwrap();
@@ -178,7 +178,7 @@ impl Application {
     #[inline]
     fn create_window(&self, settings: gio::Settings, ui_rx: async_channel::Receiver<UpdateUI>) {
         let window = Window::new(self, settings);
-        #[cfg(feature = "startup-logs")]
+        #[cfg(feature = "verbose-logs")]
         println!("Window created");
 
         glib::spawn_future_local({
@@ -189,7 +189,7 @@ impl Application {
         window.set_icon_name(Some(about::app_id()));
         window.set_title(Some(about::app_name()));
         window.present();
-        #[cfg(feature = "startup-logs")]
+        #[cfg(feature = "verbose-logs")]
         println!("Window presented");
 
         let _ = self.imp().window.set(window);

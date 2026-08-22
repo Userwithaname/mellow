@@ -389,7 +389,7 @@ impl Library {
             return;
         }
 
-        #[cfg(feature = "startup-logs")]
+        #[cfg(feature = "verbose-logs")]
         println!(
             "Library song file list built in {:?}",
             self.last_build_started.elapsed()
@@ -438,7 +438,7 @@ impl Library {
                 library.set_missing_songs(missing);
                 library.set_songs(songs.clone());
 
-                #[cfg(feature = "startup-logs")]
+                #[cfg(feature = "verbose-logs")]
                 println!(
                     "Library songs validated in {:?}",
                     library.last_build_started.elapsed()
@@ -541,7 +541,7 @@ impl Library {
             progress += progress_step;
         }
 
-        #[cfg(feature = "startup-logs")]
+        #[cfg(feature = "verbose-logs")]
         println!("Library connections have finished building");
 
         if STATE.load(atomic::Ordering::Acquire) != STATE_CANCEL {
@@ -553,7 +553,7 @@ impl Library {
             (ui_tx.send_blocking(UpdateUI::SetLibrarySongs(songs))).expect(EXP_RX);
         }
 
-        #[cfg(feature = "startup-logs")]
+        #[cfg(feature = "verbose-logs")]
         println!("Merged moved file entries");
 
         let state = STATE.load(atomic::Ordering::Acquire);
@@ -577,7 +577,7 @@ impl Library {
                 // IDEA: Maybe a negative progress value could represent a failure state?
                 ui_tx.send_blocking(UpdateUI::Progress(None)).expect(EXP_RX);
 
-                #[cfg(feature = "startup-logs")]
+                #[cfg(feature = "verbose-logs")]
                 println!(
                     "Library connections finished in {:?}",
                     library.last_build_started.elapsed()
@@ -603,7 +603,7 @@ impl Library {
     /// Checks the file modification times and requests a rebuild if any of them have changed
     #[inline]
     fn check_modification_times(songs: &Songs) {
-        #[cfg(feature = "startup-logs")]
+        #[cfg(feature = "verbose-logs")]
         println!("Checking modification times");
 
         let mut needs_rebuild = false;
@@ -642,7 +642,7 @@ impl Library {
             })));
             println!("Modifications detected, library will rebuild shortly");
         } else {
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             println!("Modification times were checked - nothing to do");
         }
     }
@@ -664,14 +664,14 @@ impl Library {
             }
         }
 
-        #[cfg(feature = "startup-logs")]
+        #[cfg(feature = "verbose-logs")]
         println!("Starting {num_tasks} background tasks to load song info");
 
         for songs in worker_songs {
             Library::run_task(library_tx(), move || {
                 for song in songs {
                     if STATE.load(atomic::Ordering::Relaxed) != STATE_BUSY {
-                        #[cfg(feature = "startup-logs")]
+                        #[cfg(feature = "verbose-logs")]
                         println!("Song info task was cancelled");
                         return;
                     }
@@ -858,7 +858,7 @@ impl Library {
     /// before starting a new one
     pub fn start_library_build(&mut self, requested_at: Instant) {
         if requested_at < self.last_build_started {
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             println!("Rebuild request timed out; skipping");
 
             return;
@@ -871,7 +871,7 @@ impl Library {
             atomic::Ordering::Relaxed,
         ) {
             Ok(_) => {
-                #[cfg(feature = "startup-logs")]
+                #[cfg(feature = "verbose-logs")]
                 println!("Starting rebuild");
 
                 self.last_build_started = Instant::now();
@@ -879,7 +879,7 @@ impl Library {
             }
             Err(_) => {
                 if self.rebuild_pending {
-                    #[cfg(feature = "startup-logs")]
+                    #[cfg(feature = "verbose-logs")]
                     println!("Rebuild already queued; ignoring request");
 
                     return; // Skip duplicate pending rebuild requests
@@ -887,14 +887,14 @@ impl Library {
                 self.rebuild_pending = true;
                 self.cancel_library_build(Instant::now());
 
-                #[cfg(feature = "startup-logs")]
+                #[cfg(feature = "verbose-logs")]
                 println!("Rebuilding when ready");
 
                 self.run_on_build_stopped(Box::new(move |library| {
                     if requested_at > library.last_build_started {
                         STATE.store(STATE_BUSY, atomic::Ordering::Release);
 
-                        #[cfg(feature = "startup-logs")]
+                        #[cfg(feature = "verbose-logs")]
                         println!("Rebuilding now");
 
                         library.last_build_started = Instant::now();
@@ -909,7 +909,7 @@ impl Library {
     #[inline]
     pub fn cancel_library_build(&self, requested_at: Instant) {
         if requested_at < self.last_build_started {
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             println!("Cancellation request timed out; skipping");
 
             return;
@@ -924,7 +924,7 @@ impl Library {
     #[inline]
     pub fn cancel_library_build_blocking(&self, requested_at: Instant) {
         if requested_at < self.last_build_started {
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             println!("Cancellation request timed out; skipping");
 
             return;

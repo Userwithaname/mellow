@@ -285,7 +285,7 @@ impl AlbumsPage {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
                 if self.contents_id.get() != id {
-                    #[cfg(feature = "startup-logs")]
+                    #[cfg(feature = "verbose-logs")]
                     println!(
                         "Albums page contents ID changed during objects construction - stopping"
                     );
@@ -297,7 +297,7 @@ impl AlbumsPage {
         model.extend_from_slice(&album_objects);
         self.update_sort_fields(&model, id).await;
         if self.contents_id.get() != id {
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             println!("Albums page contents ID changed - stopping");
             return;
         }
@@ -341,7 +341,7 @@ impl AlbumsPage {
             self.restore_scroll_pos();
         }
 
-        #[cfg(feature = "startup-logs")]
+        #[cfg(feature = "verbose-logs")]
         println!("Albums page loaded");
     }
 
@@ -388,7 +388,7 @@ impl AlbumsPage {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
                 if self.contents_id.get() != id {
-                    #[cfg(feature = "startup-logs")]
+                    #[cfg(feature = "verbose-logs")]
                     println!(
                         "Albums page contents ID changed while updating sort fields - stopping"
                     );
@@ -481,7 +481,7 @@ impl AlbumsPage {
                 .item()
                 .and_downcast::<AlbumObject>()
                 .expect("Needs to be AlbumObject");
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             if album_object.artwork().is_some() {
                 eprintln!("⚠ Artwork should not have been loaded before coming into view");
                 cold_path();

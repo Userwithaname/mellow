@@ -195,7 +195,7 @@ impl Window {
     }
 
     fn update_song_info(&self, item: &QueueItem, song_duration_ms: &mut u64) {
-        #[cfg(feature = "startup-logs")]
+        #[cfg(feature = "verbose-logs")]
         println!("update_song_info()");
 
         let song = match &item {
@@ -417,7 +417,7 @@ impl Window {
     fn song_loaded(&self, index: usize, song: SharedSong) {
         let info = song.info();
         let Ok(thumbnail) = info.try_inspect_thumbnail() else {
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             println!("⚠️ {index}: library song thumbnail would block; retrying later...");
 
             Library::run_task(library_tx(), move || {
@@ -434,7 +434,7 @@ impl Window {
     fn album_loaded(&self, index: usize, first_song: SharedSong) {
         let info = first_song.info();
         let Ok(thumbnail) = info.try_inspect_thumbnail() else {
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             println!("⚠️ {index}: library album thumbnail would block; retrying later...");
 
             Library::run_task(library_tx(), move || {
@@ -463,7 +463,7 @@ impl Window {
             return;
         };
         if !Arc::ptr_eq(&song, cmp_song) {
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             println!("Queue thumbnail not set, because the queue item at {index} has changed");
             return cold_path();
         }

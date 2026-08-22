@@ -268,7 +268,7 @@ impl SongsPage {
             match SongObject::new(index as u32, Arc::clone(song)) {
                 Ok(song_object) => song_objects.push(song_object),
                 Err(_) => {
-                    #[cfg(feature = "startup-logs")]
+                    #[cfg(feature = "verbose-logs")]
                     eprintln!(
                         "WARNING: Song info was not loaded; refusing to load on the main thread\n{}",
                         "If another function call has succeeded afterwards, this warning can be ignored"
@@ -280,7 +280,7 @@ impl SongsPage {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
                 if self.contents_id.get() != id {
-                    #[cfg(feature = "startup-logs")]
+                    #[cfg(feature = "verbose-logs")]
                     println!(
                         "Songs page contents ID changed during objects construction - stopping"
                     );
@@ -293,7 +293,7 @@ impl SongsPage {
 
         self.update_sort_fields(&model, id).await;
         if self.contents_id.get() != id {
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             println!("Songs page contents ID changed - stopping");
             return;
         }
@@ -331,7 +331,7 @@ impl SongsPage {
         self.songs_grid
             .set_model(Some(&gtk::NoSelection::new(Some(sort_model))));
 
-        #[cfg(feature = "startup-logs")]
+        #[cfg(feature = "verbose-logs")]
         println!("Songs page loaded");
     }
 
@@ -387,7 +387,7 @@ impl SongsPage {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
                 if self.contents_id.get() != id {
-                    #[cfg(feature = "startup-logs")]
+                    #[cfg(feature = "verbose-logs")]
                     println!(
                         "Songs page contents ID changed while updating sort fields - stopping"
                     );
@@ -467,7 +467,7 @@ impl SongsPage {
                 .item()
                 .and_downcast::<SongObject>()
                 .expect("Needs to be SongObject");
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             if song_object.artwork().is_some() {
                 eprintln!("⚠ Artwork should not have been loaded before coming into view");
                 cold_path();

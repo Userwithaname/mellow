@@ -12,7 +12,7 @@ default = [
   # "task-counter", # Counts/prints how many threads are busy on the thread pool
 ]
 no-meson = ["dep:glib-build-tools"]
-startup-logs  = []
+verbose-logs  = []
 lock-warnings = []
 task-counter  = []
 

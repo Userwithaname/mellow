@@ -263,7 +263,7 @@ impl ArtistsPage {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
                 if self.contents_id.get() != id {
-                    #[cfg(feature = "startup-logs")]
+                    #[cfg(feature = "verbose-logs")]
                     println!(
                         "Artists page contents ID changed during objects construction - stopping"
                     );
@@ -276,7 +276,7 @@ impl ArtistsPage {
 
         self.update_sort_fields(&model, id).await;
         if self.contents_id.get() != id {
-            #[cfg(feature = "startup-logs")]
+            #[cfg(feature = "verbose-logs")]
             println!("Artists page contents ID changed - stopping");
             return;
         }
@@ -315,7 +315,7 @@ impl ArtistsPage {
         self.artists_grid
             .set_model(Some(&gtk::NoSelection::new(Some(sort_model))));
 
-        #[cfg(feature = "startup-logs")]
+        #[cfg(feature = "verbose-logs")]
         println!("Artists page loaded");
     }
 
@@ -377,7 +377,7 @@ impl ArtistsPage {
                 glib::timeout_future(wait).await;
                 async_timer = Instant::now();
                 if self.contents_id.get() != id {
-                    #[cfg(feature = "startup-logs")]
+                    #[cfg(feature = "verbose-logs")]
                     println!(
                         "Artists page contents ID changed while updating sort fields - stopping"
                     );
