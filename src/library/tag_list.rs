@@ -1,7 +1,7 @@
 use std::ops::Deref;
 use std::sync::{RwLock, RwLockReadGuard, RwLockWriteGuard};
 
-use crate::util::hint::cold;
+use crate::cold_expression;
 
 static GLOBAL_TAGS: RwLock<TagList> = RwLock::new(TagList::new());
 /// Returns a guard for reading the global tags list
@@ -95,7 +95,7 @@ impl TagList {
             Ok(index) => {
                 self.0.remove(index);
             }
-            Err(_) => cold(eprintln!("Could not remove tag: \"{tag}\" (not found)")),
+            Err(_) => cold_expression!(eprintln!("Could not remove tag: \"{tag}\" (not found)")),
         }
     }
 

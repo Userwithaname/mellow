@@ -1035,7 +1035,7 @@ impl QueuePage {
                 core::hint::cold_path();
             }
             _ => self.queue_index_to_model_discrepancy_check(expected_index, model_index),
-        };
+        }
     }
     /// Used to verify that `queue_index_to_model` is working correctly
     #[inline]

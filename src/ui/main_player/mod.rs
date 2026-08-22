@@ -41,7 +41,7 @@ impl MainPlayer {
         debug_assert!(
             i < controllers.n_items(),
             "Could not find `GtkGestureClick` controller on the seek bar"
-        )
+        );
     }
 
     #[inline]
