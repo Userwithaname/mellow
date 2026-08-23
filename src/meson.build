@@ -31,9 +31,6 @@ custom_target(
   },
   command: [
     cargo,
-    '--version',
-    '&&',
-    cargo,
     'build',
     cargo_options,
     '&&',
