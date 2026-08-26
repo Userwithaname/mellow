@@ -271,6 +271,7 @@ impl Rating {
                 let rename_entry = gtk::Entry::builder().text(&tag).visible(false).build();
                 let remove_tag_button = gtk::Button::builder()
                     .icon_name("window-close-symbolic")
+                    .tooltip_text(format!("Unset \"{tag}\""))
                     .css_classes(["flat", "circular"])
                     .build();
                 tag_box.append(&tag_label);
@@ -312,6 +313,8 @@ impl Rating {
                     tag_label,
                     #[weak]
                     rename_entry,
+                    #[weak]
+                    remove_tag_button,
                     #[weak(rename_to = tags_list)]
                     self.tags_list,
                     move |_, _, _| {
@@ -320,6 +323,8 @@ impl Rating {
                         rename_entry.set_visible(true);
                         rename_entry.grab_focus();
                         tag_label.set_visible(false);
+                        remove_tag_button.set_icon_name("edit-undo-symbolic");
+                        remove_tag_button.set_tooltip_text(Some("Revert"));
                         tags_list.map();
                     }
                 ));
@@ -331,11 +336,14 @@ impl Rating {
                     tag,
                     #[weak]
                     tag_label,
+                    #[weak]
+                    remove_tag_button,
                     move |_| {
-                        // TODO: This should reject invalid tag names
                         tag_label.set_visible(true);
                         rename_entry.set_visible(false);
                         rename_entry.set_text(&tag);
+                        remove_tag_button.set_icon_name("window-close-symbolic");
+                        remove_tag_button.set_tooltip_text(Some(&format!("Unset \"{tag}\"")));
                     }
                 ));
 
