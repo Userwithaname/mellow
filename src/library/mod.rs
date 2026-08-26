@@ -361,7 +361,7 @@ impl Library {
                     tag,
                     new_name,
                     notify_done,
-                } => self.rename_tag(tag, new_name, notify_done),
+                } => self.rename_tag(&tag, &new_name, &notify_done),
 
                 #[allow(clippy::unit_arg)]
                 LibraryRequest::Uninit => return Ok(self.shutdown()),
@@ -1240,12 +1240,15 @@ impl Library {
 
     /// Renames `tag` to `new_tag` on all songs in the library (including missing ones),
     /// and notifies when finished through `notify_done`
-    pub fn rename_tag(&self, tag: String, new_name: String, notify_done: mpsc::Sender<()>) {
+    ///
+    /// # Panics
+    /// The function panics if it encounters a poisoned `Mutex`
+    pub fn rename_tag(&self, tag: &str, new_name: &str, notify_done: &mpsc::Sender<()>) {
         for song in self.songs.iter().chain(self.missing_songs.iter()) {
             if let Some(album) = &*song.get_album() {
                 song.info()
-                    .remove_tag_and(&tag, &mut *album.lock().unwrap(), |info, album| {
-                        info.add_tag(new_name.clone(), album);
+                    .remove_tag_and(tag, &mut album.lock().unwrap(), |info, album| {
+                        info.add_tag(new_name.to_owned(), album);
                     });
             }
         }
