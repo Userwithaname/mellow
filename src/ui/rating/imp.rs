@@ -15,7 +15,7 @@ const SMALL_STAR_MARGIN: i32 = (DEFAULT_STAR_SIZE - SMALL_STAR_SIZE) / 2;
 
 #[inline]
 fn is_valid_tag_name(tag: &str) -> bool {
-    tag != "untagged" && !tag.contains(r"\,")
+    !tag.is_empty() && tag != "untagged" && !tag.contains(r"\,")
 }
 
 #[derive(Default, CompositeTemplate)]
@@ -344,6 +344,12 @@ impl Rating {
                     #[weak(rename_to = this)]
                     self,
                     move |_| {
+                        // If renaming, cancel instead
+                        if !tag_label.is_visible() {
+                            this.tags_list.unmap();
+                            this.tags_list.map();
+                            return;
+                        }
                         this.tags_list.remove(&tag_box);
                         (this.item.borrow().as_ref()).inspect(|item| item.remove_tag(&tag));
                         if this.tags_list.first_child().is_none() {
