@@ -996,6 +996,13 @@ impl UserSongInfo {
         &self.tags
     }
 
+    /// Returns the list of user-assigned tags for this song
+    #[inline]
+    #[must_use]
+    pub fn tags_mut(&mut self) -> &mut Tags {
+        &mut self.tags
+    }
+
     /// Adds `tag` to the list of user-assigned tags
     /// and updates the album tags and global tag list
     #[inline]

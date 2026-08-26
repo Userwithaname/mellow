@@ -361,7 +361,12 @@ impl Library {
                     tag,
                     new_name,
                     notify_done,
-                } => self.rename_tag(&tag, &new_name, &notify_done),
+                } => match STATE.load(atomic::Ordering::Acquire) {
+                    STATE_READY => self.rename_tag(&tag, &new_name, &notify_done),
+                    _ => self.run_on_build_succeeded(Box::new(move |library| {
+                        library.rename_tag(&tag, &new_name, &notify_done)
+                    })),
+                },
 
                 #[allow(clippy::unit_arg)]
                 LibraryRequest::Uninit => return Ok(self.shutdown()),
@@ -1241,15 +1246,31 @@ impl Library {
     /// Renames `tag` to `new_tag` on all songs in the library (including missing ones),
     /// and notifies when finished through `notify_done`
     ///
+    /// Note that calling this before library connections have finished building may
+    /// leave some instances of `tag` unchanged
+    ///
     /// # Panics
-    /// The function panics if it encounters a poisoned `Mutex`
+    /// - If a poisoned song or album `Mutex` is encountered
+    /// - In debug mode if library connections have not yet finished building
     pub fn rename_tag(&self, tag: &str, new_name: &str, notify_done: &mpsc::Sender<()>) {
-        for song in self.songs.iter().chain(self.missing_songs.iter()) {
+        debug_assert!(STATE.load(atomic::Ordering::Acquire) == STATE_READY);
+        for song in &self.songs {
             if let Some(album) = &*song.get_album() {
-                song.info()
-                    .remove_tag_and(tag, &mut album.lock().unwrap(), |info, album| {
-                        info.add_tag(new_name.to_owned(), album);
-                    });
+                let mut album = album.lock().unwrap();
+                song.info().remove_tag_and(tag, &mut album, |info, album| {
+                    info.add_tag(new_name.to_owned(), album);
+                });
+            } else {
+                cold_path(); // Unreachable unless library is still building
+            }
+        }
+        for song in &self.missing_songs {
+            let info = song.info();
+            let mut info = info.user();
+            let tags = info.tags_mut();
+            if let Ok(index) = tags.find(tag) {
+                tags.remove_at(index);
+                tags.add(new_name.to_owned());
             }
         }
         notify_done.send(()).expect(EXP_RX);

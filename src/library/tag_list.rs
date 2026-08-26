@@ -149,6 +149,14 @@ impl Tags {
             self.0.remove(index);
         }
     }
+    /// Removes the tag at the provided `index`
+    ///
+    /// # Panics
+    /// Panics if `index` is out of bounds
+    #[inline]
+    pub fn remove_at(&mut self, index: usize) {
+        self.0.remove(index);
+    }
 }
 
 impl Deref for Tags {
