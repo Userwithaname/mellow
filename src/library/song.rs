@@ -423,24 +423,23 @@ impl SongInfoLoader<'_> {
     /// Adds `tag` to the list of user-assigned tags
     /// and updates the album tags and global tag list
     #[inline]
-    pub fn add_tag(&mut self, tag: String, album: &mut Album) {
-        let mut user_info = self.user();
-        if let Err(index) = user_info.tags.find(&tag) {
-            tag_list::write_global_tags().add(tag.clone());
-            user_info.tags.get_mut().insert(index, tag.clone());
-            album.user_info.tags.add(tag);
-        }
+    pub fn add_tag(&self, tag: String, album: &mut Album) {
+        self.user().add_tag(tag, album);
     }
     /// Removes `tag` from the list of user-assigned tags
     /// and updates the album tags and global tag list
     #[inline]
-    pub fn remove_tag(&mut self, tag: &str, album: &mut Album) {
-        let mut user_info = self.user();
-        if let Ok(index) = user_info.tags.find(tag) {
-            tag_list::write_global_tags().remove(tag);
-            user_info.tags.get_mut().remove(index);
-            album.user_info.tags.remove(tag);
-        }
+    pub fn remove_tag(&self, tag: &str, album: &mut Album) {
+        self.user().remove_tag(tag, album);
+    }
+
+    /// Removes `tag` from the list of user-assigned tags and updates the album tags and
+    /// global tag list. Ifthe tag previously existed, `if_exists` will run afterwards.
+    pub fn remove_tag_and<F>(&self, tag: &str, album: &mut Album, if_exists: F)
+    where
+        F: FnOnce(&mut UserSongInfo, &mut Album),
+    {
+        self.user().remove_tag_and(tag, album, if_exists);
     }
 
     /// Returns the basic song info if loaded, but does not load it
@@ -995,6 +994,41 @@ impl UserSongInfo {
     #[must_use]
     pub fn tags(&self) -> &[String] {
         &self.tags
+    }
+
+    /// Adds `tag` to the list of user-assigned tags
+    /// and updates the album tags and global tag list
+    #[inline]
+    pub fn add_tag(&mut self, tag: String, album: &mut Album) {
+        if let Err(index) = self.tags.find(&tag) {
+            tag_list::write_global_tags().add(tag.clone());
+            self.tags.get_mut().insert(index, tag.clone());
+            album.user_info.tags.add(tag);
+        }
+    }
+    /// Removes `tag` from the list of user-assigned tags
+    /// and updates the album tags and global tag list
+    #[inline]
+    pub fn remove_tag(&mut self, tag: &str, album: &mut Album) {
+        if let Ok(index) = self.tags.find(tag) {
+            tag_list::write_global_tags().remove(tag);
+            self.tags.get_mut().remove(index);
+            album.user_info.tags.remove(tag);
+        }
+    }
+
+    /// Removes `tag` from the list of user-assigned tags and updates the album tags and
+    /// global tag list. Ifthe tag previously existed, `if_exists` will run afterwards.
+    pub fn remove_tag_and<F>(&mut self, tag: &str, album: &mut Album, if_exists: F)
+    where
+        F: FnOnce(&mut UserSongInfo, &mut Album),
+    {
+        if let Ok(index) = self.tags.find(tag) {
+            tag_list::write_global_tags().remove(tag);
+            self.tags.get_mut().remove(index);
+            album.user_info.tags.remove(tag);
+            if_exists(self, album);
+        }
     }
 
     /// Copies info from `other` and merges into `self`:

@@ -31,8 +31,10 @@ Music library:
     - [x] It should be possible to assign pre-existing tags without needing to type
     - [x] Typing should only be necessary when creating a new tag
     - [x] While typing, filter existing tags and confirm to add the best candidate
+  - [x] Ability to rename existing tags (through the rating widget)
+    - TODO: There should be buttons to confirm or cancel the rename without pressing enter
+    - TODO: Keyboard navigation: make the entire tag widget focusable, and rename using F2
   - IDEA: Choose which tag suggestion is active using the arrow keys, without un-focusing the entry box
-  - IDEA: Ability to rename existing tags
 - [x] Artists page
   - [x] Artist subpage, accessed from each item
     - IDEA: Display average rating

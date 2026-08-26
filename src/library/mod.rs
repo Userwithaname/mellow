@@ -272,6 +272,14 @@ pub enum LibraryRequest {
     /// Runs the given task on the library thread directly, with mutable access to the `Library`
     RunLibraryTask(LibraryTask),
 
+    /// Renames `tag` to `new_tag` on all songs in the library (including missing ones),
+    /// and notifies when finished through `notify_done`
+    RenameTag {
+        tag: String,
+        new_name: String,
+        notify_done: mpsc::Sender<()>,
+    },
+
     /// Cleanly shuts down the library and thread pool, and writes the configuration data to disk
     Uninit,
 }
@@ -348,6 +356,12 @@ impl Library {
                     self.register_undo_directory(&dir);
                 }
                 LibraryRequest::UndoRemovedDirectory(dir) => self.undo_removed_directory(dir),
+
+                LibraryRequest::RenameTag {
+                    tag,
+                    new_name,
+                    notify_done,
+                } => self.rename_tag(tag, new_name, notify_done),
 
                 #[allow(clippy::unit_arg)]
                 LibraryRequest::Uninit => return Ok(self.shutdown()),
@@ -1222,6 +1236,20 @@ impl Library {
                 global_tags_writer.add(tag.to_owned());
             }
         }
+    }
+
+    /// Renames `tag` to `new_tag` on all songs in the library (including missing ones),
+    /// and notifies when finished through `notify_done`
+    pub fn rename_tag(&self, tag: String, new_name: String, notify_done: mpsc::Sender<()>) {
+        for song in self.songs.iter().chain(self.missing_songs.iter()) {
+            if let Some(album) = &*song.get_album() {
+                song.info()
+                    .remove_tag_and(&tag, &mut *album.lock().unwrap(), |info, album| {
+                        info.add_tag(new_name.clone(), album);
+                    });
+            }
+        }
+        notify_done.send(()).expect(EXP_RX);
     }
 
     /// Consumes `self`, writes the configuration to disk and shuts down gracefully

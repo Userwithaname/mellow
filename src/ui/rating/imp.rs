@@ -2,14 +2,21 @@ use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, OnceCell, RefCell};
 use gtk::CompositeTemplate;
 use gtk::glib;
+use std::sync::mpsc;
 
 use crate::excuses::EXP_INIT;
+use crate::library::{LibraryRequest, library_tx};
 use crate::library::{RatableAndTaggable, song_rating::SongRating, tag_list};
 
 const NUM_STARS: u8 = 5;
 const DEFAULT_STAR_SIZE: i32 = 16;
 const SMALL_STAR_SIZE: i32 = 14;
 const SMALL_STAR_MARGIN: i32 = (DEFAULT_STAR_SIZE - SMALL_STAR_SIZE) / 2;
+
+#[inline]
+fn is_valid_tag_name(tag: &str) -> bool {
+    tag != "untagged" && !tag.contains(r"\,")
+}
 
 #[derive(Default, CompositeTemplate)]
 #[template(file = "rating.ui")]
@@ -75,7 +82,7 @@ impl Rating {
             .propagation_phase(gtk::PropagationPhase::Capture)
             .build();
         motion.connect_motion(glib::clone!(
-            #[weak(rename_to=rating)]
+            #[weak(rename_to = rating)]
             self,
             move |_, pos_x, _| match rating.pixels_to_stars(pos_x) {
                 Ok(new_rating) => rating.preview_stars(rating.rating.get().stars(), new_rating),
@@ -83,7 +90,7 @@ impl Rating {
             }
         ));
         motion.connect_leave(glib::clone!(
-            #[weak(rename_to=rating)]
+            #[weak(rename_to = rating)]
             self,
             move |_| rating.show_stars(rating.rating.get().stars())
         ));
@@ -93,7 +100,7 @@ impl Rating {
             .propagation_phase(gtk::PropagationPhase::Capture)
             .build();
         click.connect_released(glib::clone!(
-            #[weak(rename_to=rating)]
+            #[weak(rename_to = rating)]
             self,
             move |_, _, pos_x, pos_y| if let Ok(new_rating) = rating.pixels_to_stars(pos_x) {
                 if pos_y < 0.0 || pos_y > rating.stars.height() as f64 {
@@ -240,6 +247,7 @@ impl Rating {
             panic!("Could not add tag - `item` is not assigned to the rating widget");
         }
     }
+
     fn refresh_tags(&self) {
         if let Some(item) = &*self.item.borrow() {
             self.tags_list.remove_all();
@@ -254,20 +262,84 @@ impl Rating {
             };
             let tags = item.get_tags();
             if tags.is_empty() {
-                self.tags_list.append(&placeholder_label());
+                return self.tags_list.append(&placeholder_label());
             }
 
             for tag in tags {
                 let tag_box = gtk::Box::builder().build();
-                tag_box.append(&gtk::Label::new(Some(&tag)));
+                let tag_label = gtk::Label::new(Some(&tag));
+                let rename_entry = gtk::Entry::builder().text(&tag).visible(false).build();
                 let remove_tag_button = gtk::Button::builder()
                     .icon_name("window-close-symbolic")
                     .css_classes(["flat", "circular"])
                     .build();
+                tag_box.append(&tag_label);
+                tag_box.append(&rename_entry);
                 tag_box.append(&remove_tag_button);
-
                 self.tags_list.append(&tag_box);
 
+                // Rename tag
+                rename_entry.connect_activate(glib::clone!(
+                    #[weak(rename_to = this)]
+                    self,
+                    #[weak]
+                    tag_label,
+                    move |entry| if !entry.has_css_class("error") {
+                        tag_label.set_visible(true);
+                        entry.set_visible(false);
+                        let (tx, rx) = mpsc::channel::<()>();
+                        let _ = library_tx().send(LibraryRequest::RenameTag {
+                            tag: tag_label.text().to_string(),
+                            new_name: entry.text().to_string(),
+                            notify_done: tx,
+                        });
+                        let _ = rx.recv();
+                        this.refresh_tags();
+                        this.update_tag_buttons();
+                    }
+                ));
+
+                // Validate new tag name
+                rename_entry.connect_changed(|entry| match is_valid_tag_name(&entry.text()) {
+                    true => entry.remove_css_class("error"),
+                    false => entry.add_css_class("error"),
+                });
+
+                // Enter tag edit mode
+                let edit_controller = gtk::GestureLongPress::new();
+                edit_controller.connect_pressed(glib::clone!(
+                    #[weak]
+                    tag_label,
+                    #[weak]
+                    rename_entry,
+                    #[weak(rename_to = tags_list)]
+                    self.tags_list,
+                    move |_, _, _| {
+                        tags_list.unmap(); // Unmap to cancel any active edits (see `connect_unmap` below)
+                        rename_entry.set_width_request(tag_label.width()); // FIX: Width request is ignored
+                        rename_entry.set_visible(true);
+                        rename_entry.grab_focus();
+                        tag_label.set_visible(false);
+                        tags_list.map();
+                    }
+                ));
+                tag_label.add_controller(edit_controller);
+
+                // Exit tag edit mode
+                tag_box.connect_unmap(glib::clone!(
+                    #[strong]
+                    tag,
+                    #[weak]
+                    tag_label,
+                    move |_| {
+                        // TODO: This should reject invalid tag names
+                        tag_label.set_visible(true);
+                        rename_entry.set_visible(false);
+                        rename_entry.set_text(&tag);
+                    }
+                ));
+
+                // Remove tag
                 remove_tag_button.connect_clicked(glib::clone!(
                     #[weak(rename_to = this)]
                     self,
@@ -339,11 +411,6 @@ impl Rating {
 
         if !entry.is_empty() {
             if !exact_match {
-                #[inline]
-                fn is_valid_tag_name(tag: &str) -> bool {
-                    tag != "untagged" && !tag.contains(r"\,")
-                }
-
                 // Add an extra button for creating new tags
                 self.available_tags.append(&match is_valid_tag_name(entry) {
                     true => new_tag_button(
@@ -422,13 +489,10 @@ impl ObjectImpl for Rating {
         self.stars.connect_map(glib::clone!(
             #[weak(rename_to = this)]
             self,
-            move |_| this.refresh_rating()
-        ));
-
-        self.tags_list.connect_map(glib::clone!(
-            #[weak(rename_to = this)]
-            self,
-            move |_| this.refresh_tags()
+            move |_| {
+                this.refresh_rating();
+                this.refresh_tags();
+            }
         ));
 
         self.available_tags.connect_map(glib::clone!(
