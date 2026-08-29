@@ -503,10 +503,13 @@ impl ObjectImpl for Rating {
         self.stars.connect_map(glib::clone!(
             #[weak(rename_to = this)]
             self,
-            move |_| {
-                this.refresh_rating();
-                this.refresh_tags();
-            }
+            move |_| this.refresh_rating()
+        ));
+
+        self.add_tags_toggle.connect_map(glib::clone!(
+            #[weak(rename_to = this)]
+            self,
+            move |_| this.refresh_tags()
         ));
 
         self.available_tags.connect_map(glib::clone!(
