@@ -450,7 +450,7 @@ impl Library {
         let library_tx = library_tx();
 
         let times_task = Arc::new(Mutex::new(()));
-        let _ = library_tx.send(LibraryRequest::RunLibraryTask(Box::new({
+        Library::run_library_task(library_tx, {
             let songs = songs.clone();
             let times_task = Arc::clone(&times_task);
             move |library| {
@@ -478,7 +478,7 @@ impl Library {
                     }),
                 );
             }
-        })));
+        });
 
         let mut albums = Vec::with_capacity(songs.len() / 16);
         let mut artists = Vec::with_capacity(songs.len() / 64);
@@ -576,7 +576,7 @@ impl Library {
         println!("Merged moved file entries");
 
         let state = STATE.load(atomic::Ordering::Acquire);
-        library_tx.send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
+        Library::run_library_task(library_tx, move |library| {
             if state != STATE_CANCEL {
                 library.set_artists(artists);
                 library.set_albums(albums);
@@ -611,7 +611,7 @@ impl Library {
             }
 
             library.build_stopped();
-        })))?;
+        });
 
         match state {
             STATE_BUSY => Ok(()),
@@ -653,12 +653,12 @@ impl Library {
 
         // If files were modified, queue another rebuild so the new info gets loaded
         if needs_rebuild && STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_CANCEL {
-            let _ = library_tx().send(LibraryRequest::RunLibraryTask(Box::new(|library| {
+            Library::run_library_task(library_tx(), |library| {
                 library.cancel_library_build_blocking(Instant::now());
                 (ui_tx().send_blocking(UpdateUI::Progress(Some(0.0)))).expect(EXP_RX);
                 println!("Rebuilding because files were modified");
                 library.start_library_build(Instant::now());
-            })));
+            });
             println!("Modifications detected, library will rebuild shortly");
         } else {
             #[cfg(feature = "verbose-logs")]
@@ -719,8 +719,8 @@ impl Library {
     ) {
         let mut libraries = Vec::with_capacity(config.directories().len());
         let mut missing_libraries = Vec::new();
-        for (index, dir) in config.directories().iter().enumerate() {
-            match fs::exists(&config.directories()[index]) {
+        for dir in config.directories() {
+            match fs::exists(dir) {
                 Ok(true) => libraries.push(dir),
                 _ => missing_libraries.push(dir),
             }
@@ -971,6 +971,16 @@ impl Library {
     {
         if let Err(e) = library_tx.send(LibraryRequest::RunTask(task.into())) {
             eprintln!("Could not run task: {e}");
+        }
+    }
+    /// Uses `library_tx` to send the `task` to run on the `Library` instance
+    #[inline]
+    pub fn run_library_task<T>(library_tx: &mpsc::Sender<LibraryRequest>, task: T)
+    where
+        T: FnOnce(&mut Library) + Into<Box<T>> + Send + 'static,
+    {
+        if let Err(e) = library_tx.send(LibraryRequest::RunLibraryTask(task.into())) {
+            eprintln!("Could not run library task: {e}");
         }
     }
 

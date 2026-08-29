@@ -6,8 +6,7 @@ use std::sync::Arc;
 
 use crate::excuses::EXP_RX;
 use crate::library::{
-    Albums, Artists, Library, LibraryRequest, Songs, SortedArtists, ToQueue, ToShuffledQueue,
-    library_tx,
+    Albums, Artists, Library, Songs, SortedArtists, ToQueue, ToShuffledQueue, library_tx,
 };
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{StartupQueueChoice, UpdateUI, ui_tx};
@@ -497,10 +496,6 @@ impl SongQueue {
     ///
     /// For proper behavior, only call this function after the
     /// library has successfully been built
-    ///
-    /// # Panics
-    /// This function panics if the song file path could not be
-    /// determined, or if the library channel is closed
     pub fn validate_file_paths(&mut self) {
         let mut missing_items = Vec::new();
         for (index, item) in self.songs.iter().enumerate() {
@@ -517,40 +512,38 @@ impl SongQueue {
 
         let queue = self.songs.clone();
         let playing_index = self.index;
-        library_tx()
-            .send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
-                let moved = (missing_items.into_iter())
-                    .filter_map(|index| {
-                        // SAFETY: Explained inside the block
-                        let song = unsafe {
-                            queue
-                                // SAFETY: `missing_items` (`index`) is built using `.enumerate`
-                                // (`queue` is assigned from `self.songs.clone()`, which could
-                                // not have changed because the song queue is single-threaded)
-                                .get_unchecked(index)
-                                // SAFETY: The above loop returns early if item is not a song
-                                .as_song_unchecked()
-                        };
-                        let new_song = song.info().load_basic_and(|new_song_info| {
-                            library.artists().locate_song_by_info(new_song_info)
-                        })?;
+        Library::run_library_task(library_tx(), move |library| {
+            let moved = (missing_items.into_iter())
+                .filter_map(|index| {
+                    // SAFETY: Explained inside the block
+                    let song = unsafe {
+                        queue
+                            // SAFETY: `missing_items` (`index`) is built using `.enumerate`
+                            // (`queue` is assigned from `self.songs.clone()`, which could
+                            // not have changed because the song queue is single-threaded)
+                            .get_unchecked(index)
+                            // SAFETY: The above loop returns early if item is not a song
+                            .as_song_unchecked()
+                    };
+                    let new_song = song.info().load_basic_and(|new_song_info| {
+                        library.artists().locate_song_by_info(new_song_info)
+                    })?;
 
-                        let ui_tx = ui_tx();
-                        if index == playing_index {
-                            // If the currently playing song has been moved, there is likely an
-                            // error shown in the interface; dismissing if found
-                            let _ = ui_tx.send_blocking(UpdateUI::DismissNotifications);
-                        }
+                    let ui_tx = ui_tx();
+                    if index == playing_index {
+                        // If the currently playing song has been moved, there is likely an
+                        // error shown in the interface; dismissing if found
+                        let _ = ui_tx.send_blocking(UpdateUI::DismissNotifications);
+                    }
 
-                        // Causes any open subpages to be redrawn
-                        let _ = ui_tx.send_blocking(UpdateUI::Progress(None));
+                    // Causes any open subpages to be redrawn
+                    let _ = ui_tx.send_blocking(UpdateUI::Progress(None));
 
-                        Some((index, QueueItem::from_song(&new_song)))
-                    })
-                    .collect();
-                let _ = player_tx().send(PlayerRequest::ReplaceItems(moved));
-            })))
-            .expect(EXP_RX);
+                    Some((index, QueueItem::from_song(&new_song)))
+                })
+                .collect();
+            let _ = player_tx().send(PlayerRequest::ReplaceItems(moved));
+        });
     }
 
     /// Updates the UI with the current queue shuffle mode setting
@@ -733,9 +726,9 @@ impl SongQueue {
         // If the queue was not loaded from file, load by preference instead
         // Sending this as a library task ensures the library thread has time
         // to check the song files, so the startup choices can work correctly
-        let _ = library_tx().send(LibraryRequest::RunLibraryTask(Box::new(move |library| {
+        Library::run_library_task(library_tx(), move |library| {
             Self::init_by_startup_choice(library, queue_startup_choice);
-        })));
+        });
 
         Ok(())
     }
