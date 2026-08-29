@@ -996,10 +996,10 @@ impl UserSongInfo {
         &self.tags
     }
 
-    /// Returns the list of user-assigned tags for this song
+    /// Returns a mutable reference to this song's `Tags`
     #[inline]
     #[must_use]
-    pub fn tags_mut(&mut self) -> &mut Tags {
+    pub const fn tags_mut(&mut self) -> &mut Tags {
         &mut self.tags
     }
 

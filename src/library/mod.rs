@@ -364,7 +364,7 @@ impl Library {
                 } => match STATE.load(atomic::Ordering::Acquire) {
                     STATE_READY => self.rename_tag(&tag, &new_name, &notify_done),
                     _ => self.run_on_build_succeeded(Box::new(move |library| {
-                        library.rename_tag(&tag, &new_name, &notify_done)
+                        library.rename_tag(&tag, &new_name, &notify_done);
                     })),
                 },
 
