@@ -6,7 +6,7 @@ use std::thread::{self, JoinHandle};
 use std::sync::atomic::AtomicU16;
 
 use crate::excuses::INIT_ERR;
-use crate::library;
+use crate::{cold_expression, library};
 
 pub type BoxedTask = Box<dyn FnOnce() + Send + 'static>;
 
@@ -82,7 +82,7 @@ impl Runner {
         T: FnOnce() + Into<Box<T>> + Send + 'static,
     {
         if let Err(e) = self.request.send(task.into()) {
-            eprintln!("Could not send task to the thread pool: {e}");
+            cold_expression! { eprintln!("Could not send task to the thread pool: {e}") };
         }
     }
 

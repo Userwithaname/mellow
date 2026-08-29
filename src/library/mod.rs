@@ -20,7 +20,6 @@ pub use artist::{Artist, SharedArtist, SortedArtistAlbums};
 pub use config::{FILE_SUPPORT, LibraryConfig};
 pub use song::{SharedSong, SharedSongExt, Song, SongInfo, SongInfoLoader};
 
-use crate::UI_TIMEOUT;
 use crate::excuses::EXP_RX;
 use crate::library::song_rating::Ratable;
 use crate::library::tag_list::Taggable;
@@ -30,6 +29,7 @@ use crate::ui::{UpdateUI, ui_tx};
 use crate::util::Forever;
 use crate::util::tasks::{BoxedTask, Runner};
 use crate::util::write_file_create_dir_all;
+use crate::{UI_TIMEOUT, cold_expression};
 use crate::{songs_file, util::visit_dirs};
 
 /// Controls and reflects the current library state,
@@ -970,7 +970,7 @@ impl Library {
         T: FnOnce() + Into<Box<T>> + Send + 'static,
     {
         if let Err(e) = library_tx.send(LibraryRequest::RunTask(task.into())) {
-            eprintln!("Could not run task: {e}");
+            cold_expression! { eprintln!("Could not run task: {e}") };
         }
     }
     /// Uses `library_tx` to send the `task` to run on the `Library` instance
@@ -980,7 +980,7 @@ impl Library {
         T: FnOnce(&mut Library) + Into<Box<T>> + Send + 'static,
     {
         if let Err(e) = library_tx.send(LibraryRequest::RunLibraryTask(task.into())) {
-            eprintln!("Could not run library task: {e}");
+            cold_expression! { eprintln!("Could not run library task: {e}") };
         }
     }
 
