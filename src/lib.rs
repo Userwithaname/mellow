@@ -1,6 +1,6 @@
 use glib::{UserDirectory, home_dir, user_cache_dir, user_config_dir, user_special_dir};
 use gtk::glib;
-use std::sync::{OnceLock, mpsc};
+use std::sync::{LazyLock, mpsc};
 use std::time::Duration;
 
 use crate::library::{LibraryRequest, init_library_tx};
@@ -17,26 +17,18 @@ pub mod shortcuts;
 pub mod ui;
 pub mod util;
 
-pub static CACHE_DIR: OnceLock<String> = OnceLock::new();
-pub static CONFIG_DIR: OnceLock<String> = OnceLock::new();
-pub static MUSIC_DIR: OnceLock<String> = OnceLock::new();
-
-pub const UI_TIMEOUT: Duration = Duration::from_millis(1000 / 60);
-
-/// Initializes the `CONFIG_DIR` and `MUSIC_DIR` global variables
-/// (does nothing if already initialized)
-///
-/// # Panics
-/// The function panics if user directories are not valid UTF-8
-#[inline]
-pub fn init_globals() {
-    let _ = CACHE_DIR.set([user_cache_dir().to_str().unwrap(), "/mellow/"].concat());
-    let _ = CONFIG_DIR.set([user_config_dir().to_str().unwrap(), "/mellow/"].concat());
-    let _ = MUSIC_DIR.set(user_special_dir(UserDirectory::Music).map_or_else(
+static CACHE_DIR: LazyLock<String> =
+    LazyLock::new(|| [user_cache_dir().to_str().unwrap(), "/mellow/"].concat());
+static CONFIG_DIR: LazyLock<String> =
+    LazyLock::new(|| [user_config_dir().to_str().unwrap(), "/mellow/"].concat());
+static MUSIC_DIR: LazyLock<String> = LazyLock::new(|| {
+    user_special_dir(UserDirectory::Music).map_or_else(
         || [home_dir().to_str().unwrap(), "/Music/"].concat(),
         |dir| dir.to_str().unwrap().to_owned(),
-    ));
-}
+    )
+});
+
+pub const UI_TIMEOUT: Duration = Duration::from_millis(1000 / 60);
 
 type ChannelReceivers = (
     mpsc::Receiver<PlayerRequest>,
@@ -70,39 +62,24 @@ pub fn init_channels() -> Result<ChannelReceivers, AlreadyInitializedError> {
 }
 
 /// Returns the music directory path
-///
-/// # Safety
-/// Causes undefined behavior if called before `init_globals`
 #[inline]
 #[must_use]
 pub fn music_dir() -> &'static String {
-    // SAFETY: `init_globals` is called in `main`, before the application starts
-    unsafe { MUSIC_DIR.get().unwrap_unchecked() }
+    &MUSIC_DIR
 }
 /// Returns the cache directory path
-///
-/// # Safety
-/// Causes undefined behavior if called before `init_globals`
 #[inline]
 #[must_use]
 pub fn cache_dir() -> &'static String {
-    // SAFETY: `init_globals` is called in `main`, before the application starts
-    unsafe { CACHE_DIR.get().unwrap_unchecked() }
+    &CACHE_DIR
 }
 /// Returns the configuration directory path
-///
-/// # Safety
-/// Causes undefined behavior if called before `init_globals`
 #[inline]
 #[must_use]
 pub fn config_dir() -> &'static String {
-    // SAFETY: `init_globals` is called in `main`, before the application starts
-    unsafe { CONFIG_DIR.get().unwrap_unchecked() }
+    &CONFIG_DIR
 }
 /// Returns the `songs` file path, which contains the serialized info of library songs
-///
-/// # Safety
-/// Causes undefined behavior if called before `init_globals`
 #[inline]
 #[must_use]
 pub fn songs_file() -> String {
@@ -119,9 +96,6 @@ pub fn queue_file() -> String {
 }
 /// Returns the `shuffled_queue` file path, used to remember
 /// the previous shuffled songs order in the restored queue
-///
-/// # Safety
-/// Causes undefined behavior if called before `init_globals`
 #[inline]
 #[must_use]
 pub fn shuffled_queue_file() -> String {

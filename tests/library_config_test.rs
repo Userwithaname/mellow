@@ -14,7 +14,6 @@ mod tests {
 
     #[test]
     fn library_config_correctness() {
-        mellow::init_globals();
         let mut config_tester = ConfigTester::default();
         config_tester.test_empty_by_default();
         config_tester.test_add_library();
