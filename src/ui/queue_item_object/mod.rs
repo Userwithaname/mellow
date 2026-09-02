@@ -60,14 +60,12 @@ impl QueueItemObject {
         let is_visible = Arc::clone(&imp.is_visible);
         is_visible.store(true, Ordering::Release);
         Library::run_task(library_tx(), move || {
-            if !is_visible.load(Ordering::Acquire) {
-                return;
+            if is_visible.load(Ordering::Acquire)
+                && let QueueItem::Song(song) = item
+            {
+                drop(song.info().load_thumbnail(UsedBy::SongQueue));
+                let _ = ui_tx().send_blocking(UpdateUI::QueueSongLoaded { index, song });
             }
-            let QueueItem::Song(song) = item else {
-                return;
-            };
-            drop(song.info().load_thumbnail(UsedBy::SongQueue));
-            let _ = ui_tx().send_blocking(UpdateUI::QueueSongLoaded { index, song });
         });
     }
 

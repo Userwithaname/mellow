@@ -54,12 +54,11 @@ impl AlbumObject {
         let album = Arc::clone(self.shared_album());
 
         Library::run_task(library_tx(), move || {
-            if !is_visible.load(Ordering::Acquire) {
-                return;
+            if is_visible.load(Ordering::Acquire) {
+                let song = Arc::clone(album.lock().unwrap().first_song());
+                drop(song.info().load_thumbnail(UsedBy::Library));
+                let _ = ui_tx().send_blocking(UpdateUI::LibraryAlbumLoaded { index, song });
             }
-            let song = Arc::clone(album.lock().unwrap().first_song());
-            drop(song.info().load_thumbnail(UsedBy::Library));
-            let _ = ui_tx().send_blocking(UpdateUI::LibraryAlbumLoaded { index, song });
         });
     }
 
@@ -80,10 +79,10 @@ impl AlbumObject {
 
         // NOTE: Unloading in the background in case the `RwLock` is busy
         Library::run_task(library_tx(), move || {
-            if is_visible.load(Ordering::Acquire) {
-                return;
+            if !is_visible.load(Ordering::Acquire) {
+                (album.lock().unwrap().first_song().info())
+                    .mark_thumbnail_unused_by(UsedBy::Library);
             }
-            (album.lock().unwrap().first_song().info()).mark_thumbnail_unused_by(UsedBy::Library);
         });
     }
 

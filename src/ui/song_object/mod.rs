@@ -63,12 +63,11 @@ impl SongObject {
         let song = Arc::clone(imp.shared_song());
 
         Library::run_task(library_tx(), move || {
-            if !is_visible.load(Ordering::Acquire) {
-                return;
+            if is_visible.load(Ordering::Acquire) {
+                let mut song_info = song.info();
+                drop(song_info.load_thumbnail(UsedBy::Library));
+                let _ = ui_tx().send_blocking(UpdateUI::LibrarySongLoaded { index, song });
             }
-            let mut song_info = song.info();
-            drop(song_info.load_thumbnail(UsedBy::Library));
-            let _ = ui_tx().send_blocking(UpdateUI::LibrarySongLoaded { index, song });
         });
     }
 
@@ -86,10 +85,9 @@ impl SongObject {
 
         // NOTE: Unloading in the background in case the `RwLock` is busy
         Library::run_task(library_tx(), move || {
-            if is_visible.load(Ordering::Acquire) {
-                return;
+            if !is_visible.load(Ordering::Acquire) {
+                song.info().mark_thumbnail_unused_by(UsedBy::Library);
             }
-            song.info().mark_thumbnail_unused_by(UsedBy::Library);
         });
     }
 
