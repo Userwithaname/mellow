@@ -128,14 +128,14 @@ impl Album {
     pub fn add_tag_to_songs(&mut self, tag: &str) {
         let songs = self.songs.clone(); // Borrow checker wasn't happy passing `&mut self`
         for song in songs {
-            song.info().add_tag(tag.to_owned(), self);
+            song.info().user().add_tag(tag.to_owned(), self);
         }
     }
     /// Removes the given tag from all album songs
     pub fn remove_tag_from_songs(&mut self, tag: &str) {
         let songs = self.songs.clone(); // Borrow checker wasn't happy passing `&mut self`
         for song in songs {
-            song.info().remove_tag(tag, self);
+            song.info().user().remove_tag(tag, self);
         }
     }
 }

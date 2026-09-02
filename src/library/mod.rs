@@ -1267,7 +1267,7 @@ impl Library {
         for song in &self.songs {
             if let Some(album) = &*song.get_album() {
                 let mut album = album.lock().unwrap();
-                song.info().remove_tag_and(tag, &mut album, |info, album| {
+                (song.info().user()).remove_tag_and(tag, &mut album, |info, album| {
                     info.add_tag(new_name.to_owned(), album);
                 });
             } else {

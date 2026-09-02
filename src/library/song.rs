@@ -63,7 +63,7 @@ impl Taggable for SharedSong {
         self.info().user().tags().into()
     }
     fn add_tag(&self, tag: String) {
-        self.info().add_tag(
+        self.info().user().add_tag(
             tag,
             &mut (self.album.lock().unwrap().as_ref())
                 .unwrap() // Panic if `album` is not assigned on `self`
@@ -72,7 +72,7 @@ impl Taggable for SharedSong {
         );
     }
     fn remove_tag(&self, tag: &str) {
-        self.info().remove_tag(
+        self.info().user().remove_tag(
             tag,
             &mut (self.album.lock().unwrap().as_ref())
                 .unwrap() // Panic if `album` is not assigned on `self`
@@ -418,28 +418,6 @@ impl SongInfoLoader<'_> {
             eprintln!("Note: Blocking on mutex lock for `set_rating`");
         }
         self.user_info.lock().unwrap().rating = rating;
-    }
-
-    /// Adds `tag` to the list of user-assigned tags
-    /// and updates the album tags and global tag list
-    #[inline]
-    pub fn add_tag(&self, tag: String, album: &mut Album) {
-        self.user().add_tag(tag, album);
-    }
-    /// Removes `tag` from the list of user-assigned tags
-    /// and updates the album tags and global tag list
-    #[inline]
-    pub fn remove_tag(&self, tag: &str, album: &mut Album) {
-        self.user().remove_tag(tag, album);
-    }
-
-    /// Removes `tag` from the list of user-assigned tags and updates the album tags and
-    /// global tag list. Ifthe tag previously existed, `if_exists` will run afterwards.
-    pub fn remove_tag_and<F>(&self, tag: &str, album: &mut Album, if_exists: F)
-    where
-        F: FnOnce(&mut UserSongInfo, &mut Album),
-    {
-        self.user().remove_tag_and(tag, album, if_exists);
     }
 
     /// Returns the basic song info if loaded, but does not load it
