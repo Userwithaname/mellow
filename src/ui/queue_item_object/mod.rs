@@ -54,13 +54,6 @@ impl QueueItemObject {
 
     /// Loads the artwork thumbnail in a background thread
     pub fn load_artwork(&self) {
-        #[cfg(feature = "verbose-logs")]
-        if self.artwork().is_some() {
-            println!(
-                "⚠️ Queue artwork already assigned - should this be checked in release builds as well?"
-            );
-            return;
-        }
         let imp = self.imp();
         let index = self.index() as usize;
         let item = imp.queue_item().clone();
