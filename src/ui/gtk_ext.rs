@@ -19,7 +19,7 @@ impl GtkPictureExt for gtk::Picture {
     #[inline]
     fn set_paintable_or_blank(&self, paintable: Option<&impl IsA<gdk::Paintable>>) {
         match paintable {
-            None => Self::BLANK_TEXTURE.with(|blank| self.set_paintable(Some(blank))),
+            None => self.set_blank(),
             paintable => self.set_paintable(paintable),
         }
     }

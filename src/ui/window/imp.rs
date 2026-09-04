@@ -218,7 +218,7 @@ impl Window {
         });
 
         let detailed_info = info.try_inspect_detailed();
-        let (artwork, has_artwork) = match detailed_info.as_deref() {
+        let (artwork, artwork_loaded) = match detailed_info.as_deref() {
             Ok(Some(detailed)) => {
                 self.lyrics_page.set_content(&title, &detailed.lyrics);
                 (detailed.artwork.as_ref(), true)
@@ -241,7 +241,7 @@ impl Window {
         match &**info.load_thumbnail(UsedBy::SongQueue) {
             Some(thumbnail) => {
                 self.settings_page.set_background_from_artwork(thumbnail);
-                if !has_artwork {
+                if !artwork_loaded {
                     self.main_player.set_artwork(Some(thumbnail));
                 }
             }
@@ -401,7 +401,6 @@ impl Window {
         self.sheet.set_open(!self.sheet.is_open());
     }
 
-    // FIX: Slight stutter when the library songs/albums/artists are assigned
     fn load_library_songs(&self, songs: Songs) {
         self.library_page.set_empty(songs.is_empty());
         self.songs.replace(songs.clone());
