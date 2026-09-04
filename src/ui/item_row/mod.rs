@@ -1,6 +1,6 @@
 use adw::{prelude::*, subclass::prelude::*};
-use glib::{Object, object::IsA};
-use gtk::{gdk, glib};
+use glib::Object;
+use gtk::glib;
 
 mod imp;
 
@@ -28,8 +28,9 @@ impl ItemRow {
     }
 
     #[inline]
-    pub fn set_artwork(&self, image: &impl IsA<gdk::Paintable>) {
-        self.imp().image.set_paintable(Some(image));
+    #[must_use]
+    pub fn prefix_image(&self) -> &gtk::Picture {
+        &self.imp().image
     }
 
     #[inline]
@@ -60,13 +61,6 @@ pub struct ItemRowBuilder {
 }
 
 impl ItemRowBuilder {
-    #[inline]
-    #[must_use]
-    pub fn artwork(self, artwork: &impl IsA<gdk::Paintable>) -> Self {
-        self.item_row.set_artwork(artwork);
-        self
-    }
-
     #[inline]
     #[must_use]
     pub fn titles(self, album: &str, artist: &str) -> Self {

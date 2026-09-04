@@ -1,4 +1,3 @@
-use gtk::gdk;
 use std::sync::OnceLock;
 
 mod actions;
@@ -9,6 +8,7 @@ mod application;
 mod artist_object;
 mod artist_page;
 mod artists_page;
+mod gtk_ext;
 mod item_row;
 mod item_tile;
 mod library_page;
@@ -205,21 +205,4 @@ pub fn show_queue() {
 
     // Re-open the overlay in case it was closed
     let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(true));
-}
-
-// IDEA: The fallback images could be cached somehow
-// (might be tricky since `gdk::Paintable` cannot be const)
-
-// Returns a fallback image intended for albums with missing artwork
-#[must_use]
-pub fn fallback_album_image() -> gdk::Paintable {
-    // TODO: Fallback image for albums (maybe a symbolic disc icon?)
-    gdk::Paintable::new_empty(1, 1)
-}
-
-// Returns a fallback image intended for songs with missing album covers
-#[must_use]
-pub fn fallback_song_image() -> gdk::Paintable {
-    // TODO: Fallback image for songs (maybe a symbolic note icon?)
-    gdk::Paintable::new_empty(1, 1)
 }

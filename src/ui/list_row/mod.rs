@@ -1,8 +1,8 @@
 use adw::{prelude::*, subclass::prelude::*};
-use glib::{Object, object::IsA};
-use gtk::{gdk, glib};
+use glib::Object;
+use gtk::glib;
 
-use crate::ui::fallback_song_image;
+use crate::ui::gtk_ext::GtkPictureExt;
 
 mod imp;
 
@@ -28,13 +28,9 @@ impl ListRow {
     }
 
     #[inline]
-    pub fn set_prefix_image(&self, image: Option<&impl IsA<gdk::Paintable>>) {
-        self.imp().prefix_image.set_paintable(image);
-    }
-
     #[must_use]
-    pub fn get_paintable(&self) -> Option<gdk::Paintable> {
-        self.imp().prefix_image.paintable()
+    pub fn prefix_image(&self) -> &gtk::Picture {
+        &self.imp().prefix_image
     }
 
     #[inline]
@@ -68,7 +64,7 @@ impl ListRow {
         self.set_subtitle("");
 
         let row = self.imp();
-        row.prefix_image.set_paintable(Some(&fallback_song_image()));
+        row.prefix_image.set_blank();
         row.suffix_label.set_label("");
     }
 

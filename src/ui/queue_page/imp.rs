@@ -8,9 +8,10 @@ use gtk::{gdk, gio, glib, graphene};
 use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::{Library, library_tx};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
+use crate::ui::gtk_ext::GtkPictureExt;
 use crate::ui::queue_page::QueueScrollAction;
 use crate::ui::{ListRow, QueueItemObject, QueueSubpage};
-use crate::ui::{UpdateUI, fallback_song_image, ui_tx};
+use crate::ui::{UpdateUI, ui_tx};
 use crate::util::{Forever, wrap_index};
 
 const NUM_ITEMS_AHEAD: usize = 45;
@@ -578,7 +579,6 @@ impl QueuePage {
     fn setup_model(&self) {
         let model = gio::ListStore::new::<QueueItemObject>();
         let selections = self.selections.static_ref();
-        let fallback_image = fallback_song_image();
         let queue_page = self.to_owned();
 
         self.list_box.bind_model(Some(&model), move |object| {
@@ -603,7 +603,7 @@ impl QueuePage {
                 QueueItem::Song(_) => {
                     if queue_item_object.artwork().is_none() {
                         queue_item_object.load_artwork();
-                        queue_row.set_prefix_image(Some(&fallback_image));
+                        queue_row.prefix_image().set_blank();
                     }
 
                     if queue_item_object.playing() {

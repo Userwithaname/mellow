@@ -14,8 +14,9 @@ use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::tag_list::{self, Tags};
 use crate::library::{Songs, ToQueue};
 use crate::player::{PlayerRequest, player_tx};
+use crate::ui::gtk_ext::GtkPictureExt;
 use crate::ui::{FilterMode, ItemRow, LibraryFilters, LibrarySort, LibrarySortMode, SongObject};
-use crate::ui::{UpdateUI, fallback_song_image, ui_tx};
+use crate::ui::{UpdateUI, ui_tx};
 use crate::util::{Forever, search};
 
 #[derive(Default, CompositeTemplate)]
@@ -451,7 +452,6 @@ impl SongsPage {
     }
 
     fn setup_factory(&self) {
-        let fallback_image = fallback_song_image();
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_, list_item| {
             list_item
@@ -478,7 +478,7 @@ impl SongsPage {
                 .child()
                 .and_downcast::<ItemRow>()
                 .expect("Needs to be ItemRow");
-            song_row.set_artwork(&fallback_image);
+            song_row.prefix_image().set_blank();
             song_row.set_info(&song_object.song(), &song_object.artist());
             song_row.add_binding(
                 song_object

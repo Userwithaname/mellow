@@ -7,7 +7,8 @@ use crate::excuses::EXP_RX;
 use crate::library::SharedArtist;
 use crate::library::unload_unused::UsedBy;
 use crate::ui::ListRow;
-use crate::ui::{UpdateUI, fallback_album_image, ui_tx};
+use crate::ui::gtk_ext::GtkPictureExt;
+use crate::ui::{UpdateUI, ui_tx};
 
 mod imp;
 
@@ -57,7 +58,6 @@ impl ArtistPage {
 
         ui.albums_list.remove_all();
 
-        let fallback_image = fallback_album_image();
         for album in albums {
             let album_row = ListRow::new();
 
@@ -69,10 +69,8 @@ impl ArtistPage {
             });
 
             let mut info = album_locked.first_song().info();
-            match info.load_thumbnail(UsedBy::None).as_ref() {
-                None => album_row.set_prefix_image(Some(&fallback_image)),
-                thumbnail => album_row.set_prefix_image(thumbnail),
-            }
+            (album_row.prefix_image())
+                .set_paintable_or_blank(info.load_thumbnail(UsedBy::None).as_ref());
 
             drop(album_locked);
             let album = Arc::clone(album);

@@ -14,8 +14,9 @@ use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::tag_list::{self, Tags};
 use crate::library::{Albums, ToQueue, ToShuffledQueue};
 use crate::player::{PlayerRequest, player_tx};
+use crate::ui::gtk_ext::GtkPictureExt;
 use crate::ui::{AlbumObject, FilterMode, ItemTile, LibraryFilters, LibrarySort, LibrarySortMode};
-use crate::ui::{UpdateUI, fallback_album_image, ui_tx};
+use crate::ui::{UpdateUI, ui_tx};
 use crate::util::{Forever, search};
 
 #[derive(Default, CompositeTemplate)]
@@ -465,7 +466,6 @@ impl AlbumsPage {
     }
 
     fn setup_factory(&self) {
-        let fallback_image = fallback_album_image();
         let factory = gtk::SignalListItemFactory::new();
         factory.connect_setup(move |_, list_item| {
             list_item
@@ -492,7 +492,7 @@ impl AlbumsPage {
                 .child()
                 .and_downcast::<ItemTile>()
                 .expect("Needs to be ItemTile");
-            album_tile.set_artwork(&fallback_image);
+            album_tile.artwork_image().set_blank();
             album_tile.set_info(&album_object.album(), &album_object.artist());
             album_tile.add_binding(
                 album_object

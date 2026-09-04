@@ -4,7 +4,7 @@ use gtk::glib;
 
 use crate::excuses::EXP_RX;
 use crate::player::{PlayerRequest, player_tx};
-use crate::ui::fallback_song_image;
+use crate::ui::gtk_ext::GtkPictureExt;
 use crate::util::approx_eq;
 
 #[derive(Default, CompositeTemplate)]
@@ -75,7 +75,7 @@ impl ObjectSubclass for MainPlayer {
 
 impl ObjectImpl for MainPlayer {
     fn constructed(&self) {
-        self.album_cover.set_paintable(Some(&fallback_song_image()));
+        self.album_cover.set_blank();
         self.obj().set_state(false, false);
     }
 }

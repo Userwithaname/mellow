@@ -1,6 +1,6 @@
 use adw::{prelude::*, subclass::prelude::*};
-use glib::{Object, object::IsA};
-use gtk::{gdk, glib};
+use glib::Object;
+use gtk::glib;
 
 mod imp;
 
@@ -28,8 +28,8 @@ impl ItemTile {
     }
 
     #[inline]
-    pub fn set_artwork(&self, artwork: &impl IsA<gdk::Paintable>) {
-        self.imp().image.set_paintable(Some(artwork));
+    pub fn artwork_image(&self) -> &gtk::Picture {
+        &self.imp().image
     }
 
     #[inline]
@@ -60,13 +60,6 @@ pub struct ItemTileBuilder {
 }
 
 impl ItemTileBuilder {
-    #[inline]
-    #[must_use]
-    pub fn artwork(self, artwork: &impl IsA<gdk::Paintable>) -> Self {
-        self.item_tile.set_artwork(artwork);
-        self
-    }
-
     #[inline]
     #[must_use]
     pub fn info(self, title: &str, subtitle: &str) -> Self {

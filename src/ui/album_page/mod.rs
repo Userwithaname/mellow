@@ -6,7 +6,8 @@ use std::sync::{Arc, atomic::Ordering};
 use crate::excuses::EXP_RX;
 use crate::library::unload_unused::UsedBy;
 use crate::library::{Library, SharedAlbum, library_tx};
-use crate::ui::{ListRow, UpdateUI, fallback_album_image, show_queue, ui_tx};
+use crate::ui::gtk_ext::GtkPictureExt;
+use crate::ui::{ListRow, UpdateUI, show_queue, ui_tx};
 use crate::util::{format_duration_minutes, format_duration_ms};
 
 mod imp;
@@ -149,10 +150,8 @@ impl AlbumPage {
         let first_song = Arc::clone(album_locked.first_song());
         let mut info = first_song.info();
         let Some(ref detailed_info) = *info.inspect_detailed() else {
-            match info.load_thumbnail(UsedBy::None).as_ref() {
-                None => ui.album_cover.set_paintable(Some(&fallback_album_image())),
-                thumbnail => ui.album_cover.set_paintable(thumbnail),
-            }
+            ui.album_cover
+                .set_paintable_or_blank(info.load_thumbnail(UsedBy::None).as_ref());
 
             let cancel = Arc::clone(&ui.cancel_artowrk_loading);
             Library::run_task(library_tx(), move || {
@@ -176,10 +175,8 @@ impl AlbumPage {
             return;
         };
 
-        match detailed_info.artwork.as_ref() {
-            None => ui.album_cover.set_paintable(Some(&fallback_album_image())),
-            artwork => ui.album_cover.set_paintable(artwork),
-        }
+        ui.album_cover
+            .set_paintable_or_blank(detailed_info.artwork.as_ref());
     }
 
     /// Refreshes the artist page by reinitializing it
@@ -197,13 +194,7 @@ impl AlbumPage {
     /// Assigns the album artwork to be shown on the page
     #[inline]
     pub fn assign_artwork(&self, artwork: Option<&gdk::Texture>) {
-        if artwork.is_some() {
-            self.imp().album_cover.set_paintable(artwork);
-        } else {
-            self.imp()
-                .album_cover
-                .set_paintable(Some(&fallback_album_image()));
-        }
+        self.imp().album_cover.set_paintable_or_blank(artwork);
     }
 
     /// Sets the shuffle mode for the play button

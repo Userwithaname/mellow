@@ -4,7 +4,7 @@ use gtk::{gdk, glib};
 
 use crate::excuses::EXP_RX;
 use crate::player::{PlayerRequest, player_tx};
-use crate::ui::fallback_song_image;
+use crate::ui::gtk_ext::GtkPictureExt;
 use crate::util::format_duration_ms;
 
 pub mod imp;
@@ -65,12 +65,7 @@ impl MainPlayer {
     ) {
         let ui = self.imp();
 
-        if artwork.is_some() {
-            ui.album_cover.set_paintable(artwork);
-        } else {
-            ui.album_cover.set_paintable(Some(&fallback_song_image()));
-        }
-
+        ui.album_cover.set_paintable_or_blank(artwork);
         ui.song_title.set_label(song);
         ui.album_title.set_label(album);
         ui.artist_name.set_label(artist);
@@ -82,17 +77,12 @@ impl MainPlayer {
     }
     #[inline]
     pub fn set_artwork(&self, artwork: Option<&gdk::Texture>) {
-        if artwork.is_some() {
-            self.imp().album_cover.set_paintable(artwork);
-        } else {
-            (self.imp().album_cover).set_paintable(Some(&fallback_song_image()));
-        }
+        self.imp().album_cover.set_paintable_or_blank(artwork);
     }
     pub fn reset_info(&self) {
         let ui = self.imp();
 
-        ui.album_cover.set_paintable(Some(&fallback_song_image()));
-
+        ui.album_cover.set_blank();
         ui.song_title.set_label("");
         ui.album_title.set_label("");
         ui.artist_name.set_label("");
