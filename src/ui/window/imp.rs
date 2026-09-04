@@ -453,15 +453,11 @@ impl Window {
     }
     fn queue_song_loaded(&self, index: usize, song: SharedSong) {
         let song_queue = self.queue_page.borrow_queue();
-        if index >= song_queue.len() {
-            return;
-        }
-
-        // Ensure the queue item hasn't changed before the message was handled
-        // SAFETY: Function returns early if `index` is out of bounds
-        let QueueItem::Song(cmp_song) = (unsafe { song_queue.get_unchecked(index) }) else {
+        let Some(QueueItem::Song(cmp_song)) = &song_queue.get(index) else {
             return;
         };
+
+        // Ensure the queue item hasn't changed before the message was handled
         if !Arc::ptr_eq(&song, cmp_song) {
             #[cfg(feature = "verbose-logs")]
             println!("Queue thumbnail not set, because the queue item at {index} has changed");
