@@ -467,7 +467,7 @@ impl SongsPage {
                 .item()
                 .and_downcast::<SongObject>()
                 .expect("Needs to be SongObject");
-            #[cfg(feature = "verbose-logs")]
+            #[cfg(feature = "verbose-warnings")]
             if song_object.artwork().is_some() {
                 eprintln!("⚠ Artwork should not have been loaded before coming into view");
                 cold_path();

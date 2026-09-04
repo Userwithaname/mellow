@@ -52,16 +52,22 @@ impl Runner {
 
                         #[cfg(feature = "task-counter")]
                         {
-                            busy_count.fetch_add(1, Ordering::Relaxed);
-                            dbg!(busy_count.load(Ordering::Relaxed));
+                            busy_count.fetch_add(1, Ordering::Release);
+                            println!(
+                                "Background task started  (busy: {}/{count})",
+                                busy_count.load(Ordering::Acquire)
+                            );
                         }
 
                         task();
 
                         #[cfg(feature = "task-counter")]
                         {
-                            busy_count.fetch_sub(1, Ordering::Relaxed);
-                            dbg!(busy_count.load(Ordering::Relaxed));
+                            busy_count.fetch_sub(1, Ordering::Release);
+                            println!(
+                                "Background task finished (busy: {}/{count})",
+                                busy_count.load(Ordering::Acquire)
+                            );
                         }
                     }
                 })
@@ -125,7 +131,7 @@ impl Runner {
             library::STATE.store(library::STATE_READY, Ordering::Release);
 
             #[cfg(feature = "verbose-logs")]
-            println!("All background tasks have finished running");
+            println!("Thread pool workers are ready");
         });
     }
 

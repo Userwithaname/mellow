@@ -481,7 +481,7 @@ impl AlbumsPage {
                 .item()
                 .and_downcast::<AlbumObject>()
                 .expect("Needs to be AlbumObject");
-            #[cfg(feature = "verbose-logs")]
+            #[cfg(feature = "verbose-warnings")]
             if album_object.artwork().is_some() {
                 eprintln!("⚠ Artwork should not have been loaded before coming into view");
                 cold_path();
