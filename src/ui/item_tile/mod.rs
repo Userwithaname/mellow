@@ -28,6 +28,7 @@ impl ItemTile {
     }
 
     #[inline]
+    #[must_use]
     pub fn artwork_image(&self) -> &gtk::Picture {
         &self.imp().image
     }
