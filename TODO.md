@@ -113,16 +113,13 @@ Ideas for improvements:
 
 Meta:
 
-- [ ] Offline build support
-      https://docs.flathub.org/docs/for-app-authors/requirements#no-network-access-during-build
-- [ ] Provide MetaInfo
-      https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines
-- [ ] SVG icon which meets the Flathub quality guidelines
-      (The current one might be okay if the shadow was removed, but it is poorly anti-aliased,
-       and looks stylistically inconsistent when compared to other Gnome apps)
-      https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#app-icon
-- [ ] Decide on the brand colors
-      https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#brand-colors
+- [x] Provide MetaInfo: <https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines>
+- [ ] Comply with Flathub quality guidelines: <https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines>
+  - TODO: Create a compliant SVG icon: <https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#app-icon>
+  - TODO: Use unedited screenshots: <https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#just-the-app-window>
+  - TODO: Add release notes: <https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#release-notes>
+- [ ] Offline build support: <https://docs.flathub.org/docs/for-app-authors/requirements#no-network-access-during-build>
+> Go through everything again in detail before submitting (<https://docs.flathub.org/docs/category/for-app-authors>)
 
 GitHub:
 

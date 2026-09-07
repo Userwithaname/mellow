@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.userwithaname.Mellow</id>
+  <url type="homepage">https://github.com/userwithaname/Mellow/</url>
+  <url type="bugtracker">https://github.com/userwithaname/Mellow/issues</url>
+
+  <name>Mellow</name>
+  <summary>Distraction-free music listening</summary>
+  <project_license>GPL-3.0-or-later</project_license>
+  <metadata_license>CC0-1.0</metadata_license>
+  <content_rating type="oars-1.1"/>
+  <developer id="io.github.userwithaname">
+    <name>Iva Kotar</name>
+  </developer>
+
+  <description>
+    <p>
+      Mellow is an experimental music player which strives for an immersive listening experience by minimizing distractions. Non-crucial elements of the interface are hidden away, bringing music to the spotlight.
+    </p>
+    <p>Features:</p>
+    <ul>
+      <li>Editable song queue</li>
+      <li>Fully-featured local music library</li>
+      <li>Library categorization using custom tags</li>
+      <li>Detects moved files, so their library data is preserved</li>
+      <li>Gapless playback</li>
+      <li>MPRIS integration</li>
+      <li>Sleek and minimal interface with adaptive colors</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">io.github.userwithaname.Mellow.desktop</launchable>
+
+  <screenshots>
+    <screenshot type="default">
+      <caption>Song queue/main player/library albums page</caption>
+      <image>https://github.com/user-attachments/assets/2d76d5d3-a9b8-451d-920d-68d4b217a1b5</image>
+    </screenshot>
+  </screenshots>
+  <branding>
+    <color type="primary" scheme_preference="light">#6fcef2</color>
+    <color type="primary" scheme_preference="dark">#b50ef4</color>
+  </branding>
+
+  <supports>
+    <control>keyboard</control>
+    <control>pointing</control>
+    <control>touch</control>
+  </supports>
+  <requires>
+    <display_length compare="ge">360</display_length>
+  </requires>
+
+  <releases>
+    <release version="0.4.3" date="2026-08-21"/>
+    <release version="0.4.2" date="2026-08-08"/>
+    <release version="0.4.1" date="2026-08-04"/>
+    <release version="0.4.0" date="2026-08-01"/>
+    <release version="0.3.0" date="2026-06-30"/>
+    <release version="0.3.0" date="2026-06-30"/>
+    <release version="0.2.2" date="2026-06-10"/>
+    <release version="0.2.1" date="2026-06-04"/>
+    <release version="0.1.6" date="2026-05-26"/>
+    <release version="0.1.5" date="2026-05-24"/>
+    <release version="0.1.4" date="2026-05-09"/>
+    <release version="0.1.3" date="2026-05-03"/>
+    <release version="0.1.2" date="2026-04-25"/>
+    <release version="0.1.1" date="2026-04-22"/>
+    <release version="0.1.0" date="2026-04-18"/>
+  </releases>
+</component>

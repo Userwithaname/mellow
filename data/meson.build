@@ -34,4 +34,16 @@ if host_machine.system() == 'linux'
     install: true,
     install_dir: datadir / 'dbus-1' / 'services',
   )
+
+  if get_option('flatpak').enabled()
+    metainfo_conf = configuration_data()
+    metainfo_conf.set('APP_ID', application_id)
+    configure_file(
+      input: '@0@.metainfo.xml.in'.format(base_id),
+      output: '@0@.metainfo.xml'.format(application_id),
+      configuration: metainfo_conf,
+      install: true,
+      install_dir: datadir / 'metainfo',
+    )
+  endif
 endif
