@@ -1294,8 +1294,8 @@ impl Library {
         (self.missing_songs).extend(mem::take(&mut *self.check_moved.lock().unwrap()));
         for missing in self.missing_songs {
             // Re-insert missing songs so their info is kept
-            if let Err(index) = self.songs.find_song(&missing.path) {
-                self.songs.insert(index, missing);
+            match self.songs.find_song(&missing.path) {
+                Err(index) | Ok(index) => self.songs.insert(index, missing),
             }
         }
         Library::serialize_songs(&self.songs);
