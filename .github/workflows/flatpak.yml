@@ -22,11 +22,11 @@ jobs:
         include:
           - arch: x86_64
             name: amd64
-            os: ubuntu-24.04
+            os: ubuntu-latest
 
           - arch: aarch64
             name: aarch64
-            os: ubuntu-24.04-arm
+            os: ubuntu-latest-arm
 
       # Don't fail the whole workflow if one architecture fails
       fail-fast: false
