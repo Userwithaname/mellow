@@ -1,13 +1,14 @@
 cargo = find_program('cargo')
-cargo_options = ['--manifest-path', meson.project_source_root() / 'Cargo.toml']
-cargo_options += ['--target-dir', meson.project_build_root() / 'target']
+cargo_options = [
+  '--manifest-path', meson.project_source_root() / 'Cargo.toml',
+  '--target-dir', meson.project_build_root() / 'target',
+]
 
 if get_option('profile') == 'devel'
   rust_target = 'debug'
 elif get_option('profile') == 'bench'
   environment().append('RUSTFLAGS', '-C force-frame-pointers=yes')
-  cargo_options += ['--profile=bench']
-  cargo_options += ['--features=verbose-logs']
+  cargo_options += ['--profile=bench', '--features=verbose-logs']
   rust_target = 'release'
 else
   cargo_options += ['--release']
