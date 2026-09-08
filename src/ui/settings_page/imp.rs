@@ -99,7 +99,7 @@ impl SettingsPage {
     pub fn handle_add_directory(&self) {
         self.allow_library_changes(false); // Will be re-activated later
         self.add_directory_button
-            .activate_action("win.add_library", None)
+            .activate_action("app.add_library", None)
             .expect(ACTION_ERR);
     }
 

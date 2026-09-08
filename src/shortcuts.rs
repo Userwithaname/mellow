@@ -15,7 +15,7 @@ impl Shortcuts for Application {
         self.set_accels_for_action("player.skip_prev", &["<Ctrl>Left", "<Ctrl>Up"]);
         self.set_accels_for_action("player.skip_next", &["<Ctrl>Right", "<Ctrl>Down"]);
         self.set_accels_for_action("player.refresh_library", &["<Ctrl>R"]);
-        self.set_accels_for_action("win.queue_from_disk", &["<Ctrl>O"]);
+        self.set_accels_for_action("app.queue_from_disk", &["<Ctrl>O"]);
         // TODO: Ignore shortcut when the overlay is open
         // self.set_accels_for_action("player.play_pause", &["space"]);
 

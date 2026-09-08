@@ -17,9 +17,12 @@ pub trait Actions {
 impl Actions for Application {
     #[inline]
     fn setup_actions(&self) {
+        let window = self.window();
         self.add_action_entries([
+            actions::app::add_library(window.to_owned()),
+            actions::app::queue_from_disk(window.to_owned()),
             actions::app::show_window(self),
-            actions::app::quit(self, self.window()),
+            actions::app::quit(self, window),
         ]);
     }
 }

@@ -8,12 +8,11 @@ use gtk::{CompositeTemplate, gio, glib};
 use std::sync::Arc;
 use std::thread;
 
-use crate::excuses::{ACTION_ERR, EXP_RX};
+use crate::excuses::ACTION_ERR;
 use crate::library::unload_unused::UsedBy;
 use crate::library::{Albums, Artists, SharedAlbum, SharedArtist, SharedSong, Songs, ToQueue};
-use crate::library::{Library, LibraryRequest, library_tx};
+use crate::library::{Library, library_tx};
 use crate::mpris::{UpdateMPRIS, mpris_tx};
-use crate::music_dir;
 use crate::player::QueueItem;
 use crate::ui::{
     AlbumPage, AlbumsPage, ArtistPage, ArtistsPage, SongPage, SongsPage, ToastButtonAction,
@@ -547,54 +546,7 @@ impl ObjectSubclass for Window {
 
     fn class_init(class: &mut Self::Class) {
         class.bind_template();
-
-        class.install_action_async("win.add_library", None, async |window, _, _| {
-            let filter = gtk::FileFilter::new();
-            filter.add_mime_type("inode/directory");
-            let library_picker = gtk::FileDialog::builder()
-                .modal(true)
-                .default_filter(&filter)
-                .accept_label("Add Library")
-                .initial_folder(&gio::File::for_path(music_dir()))
-                .build();
-
-            if let Ok(dir) = library_picker.select_folder_future(Some(&window)).await {
-                library_tx()
-                    .send(LibraryRequest::AddLibrary(dir.path().unwrap()))
-                    .expect(EXP_RX);
-            } else {
-                // Allow changing the library through the UI again if canceled,
-                // otherwise it will re-activate when the directory list is updated
-                window.imp().settings_page.allow_library_changes(true);
-            }
-        });
-
-        class.install_action_async("win.queue_from_disk", None, async |window, _, _| {
-            let filter = gtk::FileFilter::new();
-            filter.add_mime_type("audio/*");
-            filter.add_mime_type("inode/directory");
-            let file_picker = gtk::FileDialog::builder()
-                .modal(true)
-                .default_filter(&filter)
-                .accept_label("Play Now")
-                .initial_folder(&gio::File::for_path(music_dir()))
-                .build();
-
-            // TODO: If possible, allow files _and_ folders
-            if let Ok(dirs) = file_picker.open_multiple_future(Some(&window)).await {
-                let mut paths = vec![];
-                let mut index = 0;
-                while let Some(path) = dirs.item(index) {
-                    paths.push(path.downcast::<gio::File>().unwrap().path().unwrap());
-                    index += 1;
-                }
-                library_tx()
-                    .send(LibraryRequest::QueueFromPaths(paths))
-                    .expect(EXP_RX);
-            }
-        });
     }
-
     fn instance_init(obj: &InitializingObject<Self>) {
         obj.init_template();
     }

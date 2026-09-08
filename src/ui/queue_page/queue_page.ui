@@ -10,7 +10,7 @@
               <object class="GtkToggleButton">
                 <property name="icon-name">document-open-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Open from Disk</property>
-                <property name="action-name">win.queue_from_disk</property>
+                <property name="action-name">app.queue_from_disk</property>
               </object>
             </child>
             <child type="start">
@@ -84,7 +84,7 @@
                             </child>
                             <child>
                               <object class="GtkButton">
-                                <property name="action-name">win.queue_from_disk</property>
+                                <property name="action-name">app.queue_from_disk</property>
                                 <property name="label">Open from Disk</property>
                                 <style>
                                   <class name="pill"/>
