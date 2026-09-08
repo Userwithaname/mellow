@@ -123,7 +123,7 @@ impl SongRating {
     #[inline]
     pub const fn merge_with(&mut self, other: &SongRating) {
         let (own_stars, other_stars) = (self.stars(), other.stars());
-        let favorite = self.0 & other.0 & Self::FAVORITE_MASK;
+        let favorite = self.0 | other.0 & Self::FAVORITE_MASK;
         self.0 = if own_stars == 0 {
             other_stars | favorite
         } else if other_stars == 0 {
