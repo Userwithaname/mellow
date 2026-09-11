@@ -5,6 +5,7 @@ use core::time::Duration;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib, graphene};
 
+use crate::cold_expression;
 use crate::excuses::{EXP_INIT, EXP_RX};
 use crate::library::{Library, library_tx};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
@@ -601,9 +602,15 @@ impl QueuePage {
 
             match queue_item_object.queue_item() {
                 QueueItem::Song(_) => {
-                    if queue_item_object.artwork().is_none() {
-                        queue_item_object.load_artwork();
-                        queue_row.prefix_image().set_blank();
+                    let prefix_image = queue_row.prefix_image();
+                    match queue_item_object.artwork() {
+                        None => {
+                            queue_item_object.load_artwork();
+                            prefix_image.set_blank();
+                        }
+                        Some(artwork) => cold_expression! {{
+                            prefix_image.set_paintable(Some(&artwork));
+                        }},
                     }
 
                     if queue_item_object.playing() {
