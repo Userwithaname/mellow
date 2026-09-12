@@ -33,7 +33,7 @@ impl Window {
         imp.init_settings_page(app.style_manager());
 
         window.load_and_setup_actions(&settings);
-        window.setup_drag_and_drop();
+        window.setup_drop_files();
 
         let _ = imp.settings.set(settings);
 
@@ -51,21 +51,18 @@ impl Window {
     /// The function panics if the file path is not valid UTF-8,
     /// or if the library channel is closed
     #[inline]
-    fn setup_drag_and_drop(&self) {
+    fn setup_drop_files(&self) {
         let drop_target =
             gtk::DropTarget::new(FileList::static_type(), DragAction::COPY | DragAction::MOVE);
-        let window = self.imp();
+        let drop_overlay = self.imp().drop_overlay.get();
         drop_target.connect_accept({
-            let window = window.to_owned();
+            let drop_overlay = drop_overlay.clone();
             move |_, _| {
-                window.drag_overlay.set_visible(true);
+                drop_overlay.set_visible(true);
                 true
             }
         });
-        drop_target.connect_leave({
-            let window = window.to_owned();
-            move |_| window.drag_overlay.set_visible(false)
-        });
+        drop_target.connect_leave(move |_| drop_overlay.set_visible(false));
         drop_target.connect_drop(|_, value, _, _| {
             let files = (value.get::<FileList>().unwrap().files().iter())
                 .map(|file| file.path().unwrap())

@@ -14,12 +14,10 @@ use crate::library::{Albums, Artists, SharedAlbum, SharedArtist, SharedSong, Son
 use crate::library::{Library, library_tx};
 use crate::mpris::{UpdateMPRIS, mpris_tx};
 use crate::player::QueueItem;
-use crate::ui::{
-    AlbumPage, AlbumsPage, ArtistPage, ArtistsPage, SongPage, SongsPage, ToastButtonAction,
-};
-use crate::ui::{LibraryPage, LyricsPage, MainPlayer, SettingsPage, SubpageType};
-use crate::ui::{QueuePage, QueueSubpage};
-use crate::ui::{UpdateUI, ui_tx};
+use crate::ui::{AlbumPage, ArtistPage, SongPage, SubpageType};
+use crate::ui::{AlbumsPage, ArtistsPage, SongsPage};
+use crate::ui::{LibraryPage, LyricsPage, MainPlayer, QueuePage, QueueSubpage, SettingsPage};
+use crate::ui::{ToastButtonAction, UpdateUI, ui_tx};
 use crate::util::Forever;
 
 #[derive(Default, CompositeTemplate)]
@@ -29,7 +27,7 @@ pub struct Window {
     pub main_player: TemplateChild<MainPlayer>,
 
     #[template_child]
-    pub drag_overlay: TemplateChild<adw::StatusPage>,
+    pub drop_overlay: TemplateChild<adw::StatusPage>,
     #[template_child]
     bottom_bar: TemplateChild<gtk::Box>,
     #[template_child]

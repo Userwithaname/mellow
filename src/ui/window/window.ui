@@ -11,7 +11,7 @@
           <object class="GtkOverlay">
 
             <child type="overlay">
-              <object class="AdwStatusPage" id="drag_overlay">
+              <object class="AdwStatusPage" id="drop_overlay">
                 <property name="visible">false</property>
                 <property name="sensitive">false</property>
                 <property name="icon-name">audio-x-generic-symbolic</property>
