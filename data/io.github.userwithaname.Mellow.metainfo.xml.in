@@ -52,6 +52,23 @@
   </requires>
 
   <releases>
+    <release version="0.4.4" date="2026-09-12">
+      <description>
+        <p>Features &amp; improvements:</p>
+        <ul>
+          <li>Tags can now be renamed by long-pressing on an item's assigned tag - renaming a tag will change all instances of that tag to the new name (including on unavailable libraries)</li>
+          <li>Buttons for managing item tags now have tooltips</li>
+          <li>Improved performance for assigning placeholder artworks</li>
+          <li>Small memory and performance optimizations</li>
+        </ul>
+        <p>Fixes:</p>
+        <ul>
+          <li>Restoring the favorite status of moved song files and duplicate entries now works as expected</li>
+          <li>No longer loses info for missing songs when rebuilding after a previously unavailable library directory becomes available, then closing the application before the missing song entries finish processing</li>
+          <li>Fixed queue items losing their thumbnails in some cases</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.4.3" date="2026-08-21"/>
     <release version="0.4.2" date="2026-08-08"/>
     <release version="0.4.1" date="2026-08-04"/>

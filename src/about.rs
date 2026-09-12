@@ -4,6 +4,7 @@ use gtk::{License, glib::object::IsA};
 const APP_ID: Option<&str> = option_env!("APP_ID");
 const APP_NAME: Option<&str> = option_env!("APP_NAME");
 const APP_VERSION: Option<&str> = option_env!("APP_VERSION");
+const RELEASE_NOTES: Option<&str> = option_env!("RELEASE_NOTES");
 const RESOURCES_FILE: Option<&str> = option_env!("RESOURCES_FILE");
 
 const COPYRIGHT: &str = "© 2026 Iva Kotar";
@@ -16,12 +17,14 @@ pub fn show_about_dialog(parent: &impl IsA<gtk::Widget>) {
     let about = adw::AboutDialog::builder()
         .application_icon(app_id())
         .application_name(app_name())
+        .version(app_version())
+        .release_notes(app_version())
+        .release_notes(release_notes())
         .issue_url("https://github.com/Userwithaname/mellow/issues/")
         .developers(DEVELOPERS)
         .designers(DESIGNERS)
         .copyright(COPYRIGHT)
         .license_type(LICENSE_TYPE)
-        .version(app_version())
         .build();
     about.present(Some(parent));
 }
@@ -55,6 +58,15 @@ pub const fn app_name() -> &'static str {
 #[must_use]
 pub const fn app_version() -> &'static str {
     APP_VERSION.expect("APP_VERSION env var not set at compile time")
+}
+/// Returns release notes for the current version, which are assigned
+/// from the `RELEASE_NOTES` environment variable during compilation
+///
+/// # Panics
+/// Panics if the `RELEASE_NOTES` environment variable was not set before building
+#[must_use]
+pub const fn release_notes() -> &'static str {
+    RELEASE_NOTES.expect("RELEASE_NOTES env var not set at compile time")
 }
 /// Returns the resources file path, which is assigned from
 /// the `RESOURCES_FILE` environment variable during compilation
@@ -164,6 +176,12 @@ mod tests {
         assert!(
             gschema.contains(&app_id_path),
             "Incorrect path in `{app_id_meson}.gschema.xml.in`\nExpected: {app_id_path}"
+        );
+        let metainfo =
+            fs::read_to_string(format!("{project_dir}/data/{app_id_meson}.metainfo.xml.in"))?;
+        assert!(
+            metainfo.contains(&format!("<release version=\"{version_meson}\"")),
+            "MetaInfo does not contain release information for version {version_meson}"
         );
 
         // Test if licenses match
