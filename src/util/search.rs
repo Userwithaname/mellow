@@ -69,16 +69,3 @@ pub fn query_score(query: &str, item: &str) -> f64 {
     }
     score / query_words.len() as f64
 }
-
-#[inline]
-#[must_use]
-pub fn query_score_simple(query: &str, item: &str) -> f64 {
-    let words = query.split(' ').collect::<Vec<&str>>();
-    let mut missed_words = 0.0;
-    for word in &words {
-        if !item.contains(word) {
-            missed_words += 1.0;
-        }
-    }
-    1.0 - missed_words * (1.0 / words.len() as f64)
-}
