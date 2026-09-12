@@ -55,6 +55,7 @@ impl Window {
         let drop_target =
             gtk::DropTarget::new(FileList::static_type(), DragAction::COPY | DragAction::MOVE);
         let drop_overlay = self.imp().drop_overlay.get();
+        // TODO: Only show overlay for supported files
         drop_target.connect_accept({
             let drop_overlay = drop_overlay.clone();
             move |_, _| {

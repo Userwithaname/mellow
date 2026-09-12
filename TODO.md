@@ -2,10 +2,11 @@ Song queue:
 
 - [x] Reorder using drag-&-drop
   - TODO: Improvement: Scroll when reaching top/bottom edges
-    - IDEA: Also pan if dragging onto the pan button, once panning is implemented
+    - IDEA: Also pan when dragging onto the pan button
 - [-] Multi-selection mode
   - IDEA: Shift+click to select everything between the last selected item and the clicked item
   - IDEA: Long-press+drag to select multiple items
+  - IDEA: Allow reordering multiple items at once
   - [x] Removing multiple items at once
   - [ ] Rating multiple items at once
 - [x] Display a landing page
@@ -14,8 +15,6 @@ Song queue:
 
 Music library:
 
-- IDEA: Artist/album average calculations could be optimized further using [algebraic operators](https://doc.rust-lang.org/std/primitive.f32.html#algebraic-operators)
-  methods which are supposed to be stabilized in Rust 1.98 (source: <https://pythonspeed.com/articles/faster-float-math-rust/>)
 - IDEA: It might be possible to reduce UI code repetition for songs/albums/artists using proc macros
 
 - [x] Save/load user settings and application state
