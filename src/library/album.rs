@@ -101,8 +101,8 @@ impl Album {
         for song in &self.songs {
             let rating = song.info().user().rating.as_raw();
             let contribution = (rating > 0) as u8;
-            rating_total +=
-                fallback.mul_add(1.0 - contribution as f64, (rating * contribution) as f64);
+            rating_total = (rating * contribution) as f64
+                + fallback.mul_add((1 - contribution) as f64, rating_total);
         }
         rating_total / self.songs.len() as f64
     }
