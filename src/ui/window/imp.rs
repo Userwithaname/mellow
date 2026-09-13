@@ -116,8 +116,7 @@ impl Window {
                 }
                 UpdateUI::PlayerTime { time } => {
                     self.main_player.set_time(time, song_duration_ms as f64);
-                    self.lyrics_page
-                        .update_synced_lyrics(time.unwrap_or(0) as u64);
+                    self.lyrics_page.update_synced_lyrics(time.unwrap_or(0));
                 }
                 UpdateUI::PlayerState {
                     playing,
