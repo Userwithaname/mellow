@@ -45,6 +45,7 @@ Music library:
 
 Other:
 
+- [ ] Highlight timed lyrics
 - [ ] Redesign the library directory settings
   > For example, opening a separate "Directory Settings" popup window and requiring the user
   > to apply all changes at once could work around the Flatpak freezing issue ([#21](https://github.com/Userwithaname/mellow/issues/21))

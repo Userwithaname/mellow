@@ -10,6 +10,7 @@ use std::{fs, thread};
 pub mod album;
 pub mod artist;
 pub mod config;
+pub mod lyrics;
 pub mod song;
 pub mod song_rating;
 pub mod tag_list;

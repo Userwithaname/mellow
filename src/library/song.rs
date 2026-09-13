@@ -13,15 +13,16 @@ use lofty::file::TaggedFile;
 use lofty::prelude::*;
 use lofty::probe::Probe;
 
+use crate::cache_dir;
+use crate::library::lyrics::Lyrics;
 use crate::library::song_rating::{Ratable, SongRating};
 use crate::library::tag_list::{Taggable, Tags};
 use crate::library::unload_unused::{UnloadUnused, UsedBy};
 use crate::library::{Album, SharedAlbum, tag_list};
-use crate::util::hint::{cold, unlikely};
+use crate::util::hint::{cold, cold_expression, unlikely};
 use crate::util::{
     deserialize, deserialize_list, serialize, serialize_list, write_file_create_dir_all,
 };
-use crate::{cache_dir, cold_expression};
 
 pub struct Song {
     album: Mutex<Option<SharedAlbum>>,
@@ -258,6 +259,8 @@ impl<'s> Song {
         }
     }
 }
+
+// TODO: Move the `SongInfoLoader` (and info structs?) into separate module(s)
 
 pub struct SongInfoLoader<'i> {
     path: &'i PathBuf,
@@ -659,17 +662,21 @@ impl SongInfoLoader<'_> {
     }
     /// Attempts to read detailed info from tags and returns it,
     /// or returns a default value if it cannot
+    ///
+    /// # Panics
+    /// Panics if the file path is not valid UTF-8
     #[inline]
     fn detailed_or_default(&mut self) -> DetailedSongInfo {
+        let file_path = self.path.to_str().unwrap();
         match self
             .tagged_file()
-            .map(|tagged| Self::load_tags_detailed(tagged))
+            .map(move |tagged| Self::load_tags_detailed(tagged, file_path))
         {
             Ok(Ok(result)) => result,
             Err(e) | Ok(Err(e)) => {
                 eprintln!("Problem loading tags (detailed): {:?}: {e}", self.path);
                 DetailedSongInfo {
-                    lyrics: String::new(),
+                    lyrics: Lyrics::default(),
                     artwork: None,
                 }
             }
@@ -709,28 +716,33 @@ impl SongInfoLoader<'_> {
     }
 
     #[inline]
-    fn load_tags_detailed(tagged: &TaggedFile) -> Result<DetailedSongInfo, Box<dyn Error>> {
-        // TODO: Would it be possible to cancel artowrk loading while it is in progress?
+    fn load_tags_detailed(
+        tagged: &TaggedFile,
+        path: &str,
+    ) -> Result<DetailedSongInfo, Box<dyn Error>> {
         let tag = tagged
             .primary_tag()
             .or_else(|| tagged.first_tag())
             .ok_or("No tags found")?;
         Ok(DetailedSongInfo {
-            lyrics: tag
-                .get_string(ItemKey::Lyrics)
-                .unwrap_or_default()
-                .to_owned(),
             // TODO: Look for a `cover` file in the song directroy
             // IDEA: Once `cover` files are supported, load both and compare their resolutions
             // and average color delta (to see if they differ) to pick the best one
             // (for average colors, the logic could be factored out from the `settings_page`)
-            artwork: if tag.picture_count() > 0 {
-                Some(gdk::Texture::from_bytes(&glib::Bytes::from(
-                    tag.pictures()[0].data(),
-                ))?)
-            } else {
-                None
+            artwork: match tag.pictures().first() {
+                Some(picture) => Some(gdk::Texture::from_bytes(&glib::Bytes::from(
+                    picture.data(),
+                ))?),
+                None => None,
             },
+            lyrics: Lyrics::try_parse_synced(
+                fs::read_to_string([path.rsplit_once('.').unwrap().0, ".lrc"].concat())
+                    .unwrap_or_else(move |_| {
+                        tag.get_string(ItemKey::Lyrics)
+                            .unwrap_or_default()
+                            .to_owned()
+                    }),
+            ),
         })
     }
 
@@ -906,8 +918,9 @@ pub struct UserSongInfo {
 }
 /// Fields which do not need to be held in memory at all times
 pub struct DetailedSongInfo {
-    pub lyrics: String,
+    // TODO: It would be more efficient to load the artwork and lyrics separately
     pub artwork: Option<gdk::Texture>,
+    pub lyrics: Lyrics,
 }
 
 impl PartialEq for SongInfo {

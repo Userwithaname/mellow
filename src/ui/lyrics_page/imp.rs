@@ -2,6 +2,8 @@ use adw::subclass::prelude::*;
 use gtk::CompositeTemplate;
 use gtk::glib;
 
+use crate::library::lyrics::Lyrics;
+
 #[derive(Default, CompositeTemplate)]
 #[template(file = "lyrics_page.ui")]
 pub struct LyricsPage {
@@ -27,7 +29,7 @@ impl ObjectSubclass for LyricsPage {
 }
 impl ObjectImpl for LyricsPage {
     fn constructed(&self) {
-        self.obj().set_content("", "");
+        self.obj().set_content("", &Lyrics::default());
     }
 }
 impl WidgetImpl for LyricsPage {}
