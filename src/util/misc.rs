@@ -23,7 +23,7 @@ pub fn visit_dirs<F: FnMut(PathBuf)>(dir: PathBuf, f: &mut F) -> io::Result<()> 
 }
 
 /// Runs a closure for every file found within `dir` (non-recursive),
-/// or until the closure returns `true`
+/// or stops when the closure returns `true`
 ///
 /// Adapted from the official Rust documentation:
 /// <https://doc.rust-lang.org/std/fs/fn.read_dir.html#examples>
