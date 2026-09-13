@@ -34,6 +34,10 @@ fn main() {
         let app_name = app_id.rsplit_once('.').expect("Invalid APP_ID").1;
         println!("cargo:rustc-env=APP_NAME={app_name}");
 
+        #[allow(
+            clippy::option_env_unwrap,
+            reason = "Missing APP_VERSION should panic; using `env!` would prevent running tests without specifying `no-meson`"
+        )]
         let app_version =
             option_env!("APP_VERSION").expect("APP_VERSION env var should be set in Meson");
         let release_notes = release_notes_from_metainfo(app_id, app_version);
