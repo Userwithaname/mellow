@@ -19,7 +19,7 @@ impl LyricsPage {
 
         match lyrics {
             Lyrics::Unsynced(lyrics) if !lyrics.is_empty() => {
-                lyrics_page.lyrics.set_label(&lyrics);
+                lyrics_page.lyrics.set_label(lyrics);
             }
             Lyrics::Synced(synced_lyrics) => {
                 // TODO: Highlight the current synced lyric line
@@ -39,7 +39,7 @@ impl LyricsPage {
                 lyrics_page.lyrics.set_label(&lyrics);
             }
             // TODO: Support translations (see `gettext-rs`)
-            _ => lyrics_page.lyrics.set_label("Lyrics not available"),
+            Lyrics::Unsynced(_) => lyrics_page.lyrics.set_label("Lyrics not available"),
         }
     }
 }
