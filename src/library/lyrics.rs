@@ -31,6 +31,7 @@ impl Lyrics {
     #[inline]
     #[must_use]
     pub fn try_parse_synced(contents: String) -> Lyrics {
+        // TODO: Support repeating lyrics
         let synced_lyrics: Vec<SyncedLyric> = (contents.lines())
             .filter_map(|line| {
                 let (time, lyric) = line.split_once(']')?;

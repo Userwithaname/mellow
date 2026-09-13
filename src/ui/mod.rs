@@ -13,6 +13,7 @@ mod item_row;
 mod item_tile;
 mod library_page;
 mod list_row;
+mod lyric_object;
 mod lyrics_page;
 mod main_player;
 mod queue_item_object;

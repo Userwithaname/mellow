@@ -95,6 +95,7 @@ impl Window {
             vec![
                 self.sheet_content.get().upcast::<gtk::Widget>(),
                 (self.main_player.imp().media_controls.get()).upcast::<gtk::Widget>(),
+                self.lyrics_page.imp().lyrics.get().upcast::<gtk::Widget>(),
             ],
             // Responsive OSD style widgets
             vec![
@@ -115,6 +116,8 @@ impl Window {
                 }
                 UpdateUI::PlayerTime { time } => {
                     self.main_player.set_time(time, song_duration_ms as f64);
+                    self.lyrics_page
+                        .update_synced_lyrics(time.unwrap_or(0) as u64);
                 }
                 UpdateUI::PlayerState {
                     playing,

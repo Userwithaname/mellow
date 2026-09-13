@@ -17,6 +17,8 @@
               <object class="GtkBox">
                 <property name="orientation">vertical</property>
                 <property name="halign">center</property>
+                <property name="hexpand">true</property>
+                <property name="vexpand">true</property>
                 <property name="spacing">16</property>
                 <child>
                   <object class="GtkLabel" id="song_title">
@@ -34,17 +36,10 @@
                   </object>
                 </child>
                 <child>
-                  <object class="GtkLabel" id="lyrics">
-                    <property name="justify">center</property>
-                    <property name="wrap-mode">word</property>
-                    <property name="wrap">true</property>
-                    <property name="hexpand">true</property>
-                    <property name="halign">center</property>
-                    <property name="margin-start">12</property>
-                    <property name="margin-end">12</property>
-                    <property name="wrap-mode">word</property>
+                  <object class="GtkListView" id="lyrics">
+                    <property name="can-target">false</property>
                     <style>
-                      <class name="body"/>
+                      <class name="osd"/>
                     </style>
                   </object>
                 </child>
