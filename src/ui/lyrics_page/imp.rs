@@ -78,6 +78,10 @@ impl LyricsPage {
             lyric_objects[old_index].set_styles(vec!["body".to_owned()]);
             lyric_objects[new_index].set_styles(vec!["heading".to_owned()]);
             self.lyric_index.set(new_index);
+            // IDEA: Use the scroll position to determine whether `new_index` is above
+            // or below, and offset it so a few extra items are kept in view as well
+            self.lyrics
+                .scroll_to(new_index as u32, gtk::ListScrollFlags::FOCUS, None);
         }
     }
 
