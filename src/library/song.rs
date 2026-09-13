@@ -4,7 +4,7 @@ use gtk::{gdk, gio, glib};
 use std::fs;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::Read;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard};
 use std::sync::{TryLockError, TryLockResult};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -21,7 +21,7 @@ use crate::library::unload_unused::{UnloadUnused, UsedBy};
 use crate::library::{Album, SharedAlbum, tag_list};
 use crate::util::hint::{cold, cold_expression, unlikely};
 use crate::util::{
-    deserialize, deserialize_list, serialize, serialize_list, write_file_create_dir_all,
+    deserialize, deserialize_list, serialize, serialize_list, visit_dir, write_file_create_dir_all,
 };
 
 pub struct Song {
@@ -725,15 +725,39 @@ impl SongInfoLoader<'_> {
             .or_else(|| tagged.first_tag())
             .ok_or("No tags found")?;
         Ok(DetailedSongInfo {
-            // TODO: Look for a `cover` file in the song directroy
-            // IDEA: Once `cover` files are supported, load both and compare their resolutions
-            // and average color delta (to see if they differ) to pick the best one
-            // (for average colors, the logic could be factored out from the `settings_page`)
-            artwork: match tag.pictures().first() {
-                Some(picture) => Some(gdk::Texture::from_bytes(&glib::Bytes::from(
-                    picture.data(),
-                ))?),
-                None => None,
+            artwork: {
+                let mut artwork_from_file: Option<gdk::Texture> = None;
+                let _ = visit_dir(&Path::new(path.rsplit_once('/').unwrap().0), &mut |file| {
+                    if let Some(file) = file.to_str()
+                        && (file.rsplit_once('/'))
+                            .is_some_and(|(_, filename)| filename.starts_with("cover."))
+                        && let Ok(mut thumbnail_file) = fs::File::open(file)
+                    {
+                        let mut buffer = Vec::new();
+                        thumbnail_file.read_to_end(&mut buffer).unwrap();
+                        if let Ok(texture) = gdk::Texture::from_bytes(&glib::Bytes::from(&*buffer))
+                        {
+                            artwork_from_file = Some(texture);
+                            return true;
+                        }
+                    }
+                    false
+                });
+                // IDEA: Compare resolutions and average colors of the two artworks to see if
+                // they differ, and pick the best one (for average colors, the logic could be
+                // factored out from the `settings_page`)
+                if let Some(from_file) = artwork_from_file {
+                    // FIX: Artwork image may differ from existing thumbnail cache; the
+                    // modification times check may need to consider the image file as well
+                    Some(from_file)
+                } else if let Some(picture) = tag.pictures().first()
+                    && let Ok(from_tags) =
+                        gdk::Texture::from_bytes(&glib::Bytes::from(picture.data()))
+                {
+                    Some(from_tags)
+                } else {
+                    None
+                }
             },
             lyrics: Lyrics::try_parse_synced(
                 fs::read_to_string([path.rsplit_once('.').unwrap().0, ".lrc"].concat())
