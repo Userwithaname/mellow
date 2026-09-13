@@ -738,9 +738,11 @@ impl SongInfoLoader<'_> {
             lyrics: Lyrics::try_parse_synced(
                 fs::read_to_string([path.rsplit_once('.').unwrap().0, ".lrc"].concat())
                     .unwrap_or_else(move |_| {
-                        tag.get_string(ItemKey::Lyrics)
-                            .unwrap_or_default()
-                            .to_owned()
+                        match tag.get_string(ItemKey::Lyrics) {
+                            Some(lyrics) => lyrics,
+                            None => tag.get_string(ItemKey::UnsyncLyrics).unwrap_or_default(),
+                        }
+                        .to_owned()
                     }),
             ),
         })
