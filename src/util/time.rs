@@ -67,16 +67,16 @@ pub fn format_duration_minutes(minutes_total: u64) -> String {
     }
 }
 
-/// Takes a `timestamp` formatted as _minutes:seconds.hundreds_
+/// Takes a `timestamp` formatted as _minutes:seconds.hundredths_
 /// (such as `"11:22.33"`) and converts it to milliseconds.
 /// Returns `None` if the format is incorrect.
 #[must_use]
 pub fn timestamp_to_ms(timestamp: &str) -> Option<usize> {
-    let (minutes, seconds_hundreds) = timestamp.split_once(':')?;
-    let (seconds, hundreds) = seconds_hundreds.split_once('.')?;
+    let (minutes, seconds_hundredths) = timestamp.split_once(':')?;
+    let (seconds, hundredths) = seconds_hundredths.split_once('.')?;
     Some(
         ((minutes.parse::<usize>().ok()? * 60 + seconds.parse::<usize>().ok()?) * 100
-            + hundreds.parse::<usize>().ok()?)
+            + hundredths.parse::<usize>().ok()?)
             * 10,
     )
 }
