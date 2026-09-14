@@ -30,6 +30,7 @@ fn main() {
     let release_notes = release_notes_from_metainfo(app_id, app_version);
     println!("cargo:rustc-env=RELEASE_NOTES={release_notes}");
 
+    #[cfg(feature = "gresources")]
     #[cfg(feature = "no-meson")]
     glib_build_tools::compile_resources(
         &["data/resources"],
