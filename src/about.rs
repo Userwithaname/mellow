@@ -1,10 +1,10 @@
 use adw::prelude::AdwDialogExt;
 use gtk::{License, glib::object::IsA};
 
-const APP_ID: Option<&str> = option_env!("APP_ID");
-const APP_NAME: Option<&str> = option_env!("APP_NAME");
-const APP_VERSION: Option<&str> = option_env!("APP_VERSION");
-const RELEASE_NOTES: Option<&str> = option_env!("RELEASE_NOTES");
+pub const APP_ID: &str = env!("APP_ID");
+pub const APP_NAME: &str = env!("APP_NAME");
+pub const APP_VERSION: &str = env!("APP_VERSION");
+pub const RELEASE_NOTES: &str = env!("RELEASE_NOTES");
 const RESOURCES_FILE: Option<&str> = option_env!("RESOURCES_FILE");
 
 const COPYRIGHT: &str = "© 2026 Iva Kotar";
@@ -15,11 +15,11 @@ const DESIGNERS: &[&str] = &["Iva Kotar"];
 /// Creates and opens a new 'About' window
 pub fn show_about_dialog(parent: &impl IsA<gtk::Widget>) {
     let about = adw::AboutDialog::builder()
-        .application_icon(app_id())
-        .application_name(app_name())
-        .version(app_version())
-        .release_notes(app_version())
-        .release_notes(release_notes())
+        .application_icon(APP_ID)
+        .application_name(APP_NAME)
+        .version(APP_VERSION)
+        .release_notes_version(APP_VERSION)
+        .release_notes(RELEASE_NOTES)
         .issue_url("https://github.com/Userwithaname/mellow/issues/")
         .developers(DEVELOPERS)
         .designers(DESIGNERS)
@@ -29,45 +29,6 @@ pub fn show_about_dialog(parent: &impl IsA<gtk::Widget>) {
     about.present(Some(parent));
 }
 
-/// Returns the application ID, which is assigned from
-/// the `APP_ID` environment variable during compilation
-///
-/// # Panics
-/// Panics if the `APP_ID` environment variable
-/// was not set before building
-#[must_use]
-pub const fn app_id() -> &'static str {
-    APP_ID.expect("APP_ID env var not set at compile time")
-}
-/// Returns the application name, which is assigned from
-/// the `APP_NAME` environment variable during compilation
-///
-/// # Panics
-/// Panics if the `APP_NAME` environment variable
-/// was not set before building
-#[must_use]
-pub const fn app_name() -> &'static str {
-    APP_NAME.expect("APP_NAME env var not set at compile time")
-}
-/// Returns the application version, which is assigned from
-/// the `APP_VERSION` environment variable during compilation
-///
-/// # Panics
-/// Panics if the `APP_VERSION` environment variable
-/// was not set before building
-#[must_use]
-pub const fn app_version() -> &'static str {
-    APP_VERSION.expect("APP_VERSION env var not set at compile time")
-}
-/// Returns release notes for the current version, which are assigned
-/// from the `RELEASE_NOTES` environment variable during compilation
-///
-/// # Panics
-/// Panics if the `RELEASE_NOTES` environment variable was not set before building
-#[must_use]
-pub const fn release_notes() -> &'static str {
-    RELEASE_NOTES.expect("RELEASE_NOTES env var not set at compile time")
-}
 /// Returns the resources file path, which is assigned from
 /// the `RESOURCES_FILE` environment variable during compilation
 ///

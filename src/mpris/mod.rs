@@ -5,7 +5,7 @@ use gtk::{gio, glib};
 use mpris_server::{self, LoopStatus, Metadata, PlaybackStatus, zbus};
 use std::sync::OnceLock;
 
-use crate::about::app_id;
+use crate::about;
 use crate::excuses::EXP_RX;
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{UpdateUI, ui_tx};
@@ -47,8 +47,8 @@ pub enum UpdateMPRIS {
 /// # Panics
 /// May panic if the player or UI channel is closed
 pub async fn controller(rx: async_channel::Receiver<UpdateMPRIS>) -> zbus::Result<()> {
-    let mpris_player = mpris_server::Player::builder(app_id())
-        .identity("Mellow")
+    let mpris_player = mpris_server::Player::builder(about::APP_ID)
+        .identity(about::APP_NAME)
         .can_play(true)
         .can_pause(true)
         .can_go_previous(true)

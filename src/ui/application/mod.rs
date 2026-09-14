@@ -28,7 +28,7 @@ impl Application {
     #[inline]
     pub fn run() -> glib::ExitCode {
         let app: Self = glib::Object::builder()
-            .property("application-id", about::app_id())
+            .property("application-id", about::APP_ID)
             .property("flags", gio::ApplicationFlags::HANDLES_OPEN)
             .build();
 
@@ -101,7 +101,7 @@ impl Application {
         player_rx: mpsc::Receiver<PlayerRequest>,
         library_rx: mpsc::Receiver<LibraryRequest>,
     ) -> gio::Settings {
-        let settings = gio::Settings::new(about::app_id());
+        let settings = gio::Settings::new(about::APP_ID);
         let startup_queue = settings.enum_("startup-queue");
         let directories = settings.string("directories");
 
@@ -158,8 +158,8 @@ impl Application {
         //     &gio::Resource::load(about::resources_file()).expect("Could not load resources file"),
         // );
 
-        glib::set_application_name(about::app_name());
-        glib::set_program_name(Some(about::app_name().to_lowercase()));
+        glib::set_application_name(about::APP_NAME);
+        glib::set_program_name(Some(about::APP_NAME.to_lowercase()));
 
         settings
     }
@@ -186,8 +186,8 @@ impl Application {
             async move { window.imp().event_handler(ui_rx).await }
         });
 
-        window.set_icon_name(Some(about::app_id()));
-        window.set_title(Some(about::app_name()));
+        window.set_icon_name(Some(about::APP_ID));
+        window.set_title(Some(about::APP_NAME));
         window.present();
         #[cfg(feature = "verbose-logs")]
         println!("Window presented");
