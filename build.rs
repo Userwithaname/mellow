@@ -1,49 +1,41 @@
 use std::fs;
 
-#[cfg(feature = "no-meson")]
 fn main() {
-    const APP_ID: &str = "io.github.userwithaname.Mellow";
-    println!("cargo:rustc-env=APP_ID={APP_ID}");
+    // Rerun if any files within the `data` directory have changed
+    println!("cargo::rerun-if-changed=data");
 
-    let app_name = APP_ID.rsplit_once('.').expect("Invalid APP_ID").1;
+    let app_id = option_env!("APP_ID").unwrap_or_else(|| {
+        let app_id = "io.github.userwithaname.Mellow";
+        println!("cargo:rustc-env=APP_ID={app_id}");
+        app_id
+    });
+
+    let app_name = app_id.rsplit_once('.').expect("Invalid APP_ID").1;
     println!("cargo:rustc-env=APP_NAME={app_name}");
 
-    let cargo_toml = fs::read_to_string(env!("CARGO_MANIFEST_DIR").to_owned() + "/Cargo.toml")
-        .expect("Failed to read Cargo.toml");
-    for line in cargo_toml.lines() {
-        if line.starts_with("version") {
-            let mut version = line.split_once("=").unwrap().1.trim();
-            version = &version[1..version.len() - 1];
-            println!("cargo:rustc-env=APP_VERSION={version}");
-
-            let release_notes = release_notes_from_metainfo(APP_ID, version);
-            println!("cargo:rustc-env=RELEASE_NOTES={release_notes}");
+    let app_version = option_env!("APP_VERSION").unwrap_or_else(|| {
+        let cargo_toml = fs::read_to_string(env!("CARGO_MANIFEST_DIR").to_owned() + "/Cargo.toml")
+            .expect("Failed to read Cargo.toml");
+        let cargo_toml = Box::leak(Box::new(cargo_toml));
+        for line in cargo_toml.lines() {
+            if line.starts_with("version") {
+                let version = line.split_once("=").unwrap().1.trim();
+                return &version[1..version.len() - 1];
+            }
         }
-    }
+        panic!("No version found in Cargo.toml");
+    });
+    println!("cargo:rustc-env=APP_VERSION={app_version}");
 
+    let release_notes = release_notes_from_metainfo(app_id, app_version);
+    println!("cargo:rustc-env=RELEASE_NOTES={release_notes}");
+
+    #[cfg(feature = "no-meson")]
     glib_build_tools::compile_resources(
         &["data/resources"],
         "data/resources/resources.gresource.xml",
         "mellow.gresource",
     );
-}
-
-#[cfg(not(feature = "no-meson"))]
-fn main() {
-    if let Some(app_id) = option_env!("APP_ID") {
-        let app_name = app_id.rsplit_once('.').expect("Invalid APP_ID").1;
-        println!("cargo:rustc-env=APP_NAME={app_name}");
-
-        #[allow(
-            clippy::option_env_unwrap,
-            reason = "Missing APP_VERSION should panic; using `env!` would prevent running tests without specifying `no-meson`"
-        )]
-        let app_version =
-            option_env!("APP_VERSION").expect("APP_VERSION env var should be set in Meson");
-        let release_notes = release_notes_from_metainfo(app_id, app_version);
-        println!("cargo:rustc-env=RELEASE_NOTES={release_notes}");
-    }
-    // Everything else is done in Meson
 }
 
 fn release_notes_from_metainfo(app_id: &str, app_version: &str) -> String {

@@ -134,7 +134,7 @@ mod tests {
         let build_rs = fs::read_to_string([project_dir, "/build.rs"].concat())
             .inspect_err(|_| eprintln!("Could not read {project_dir}/build.rs"))?;
         for line in build_rs.lines() {
-            if line.contains("const APP_ID") {
+            if line.contains("let app_id = \"") {
                 app_id_build_rs = line.split_once("=").unwrap().1.trim();
                 app_id_build_rs = &app_id_build_rs[1..app_id_build_rs.len() - 2];
             }
