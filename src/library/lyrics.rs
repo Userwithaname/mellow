@@ -21,8 +21,10 @@ impl Lyrics {
     /// or `Lyrics::Unsynced` with the original `contents` upon failure.
     ///
     /// # Limitations
-    /// - Only supports one timestamp per lyric line (non-repeating)
-    /// - Lines prefixed with unsupported tags will be skipped
+    /// - Lines must begin with a timestamp, or they will be skipped
+    /// - Only timestamp tags are supported, others will be skipped
+    /// - Unsupported tags appearing after the timestamp may be included
+    ///   in the actual lyrics text
     /// - Does not support extension features
     ///
     /// The _LRC (file format)_ page from Wikipedia was used as reference
