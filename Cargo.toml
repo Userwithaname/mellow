@@ -9,6 +9,7 @@ default = [
   # Add features here to enable them by default
 ]
 no-meson         = ["dep:glib-build-tools"] # Cargo build support; requires manual gschema setup
+gresources       = [] # Loads GResources at startup (see `data/resources/resources.gresource.xml`)
 task-counter     = [] # Counts/prints how many threads are busy on the thread pool
 verbose-logs     = [] # Enables more verbose output, intended for debugging and profiling
 verbose-warnings = [] # Performs runtime checks and logs possible issues (may affect performance)

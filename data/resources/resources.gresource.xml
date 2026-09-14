@@ -4,8 +4,7 @@
 
   To enable:
   - Uncomment lines with "resources" in 'data/meson.build' and 'src/meson.build'
-  - Uncomment the lines near the bottom of `Application::init_components()`
-    (in 'src/ui/application/mod.rs')
+  - Enable the `gresources` feature in Cargo
 -->
 <gresources>
   <gresource prefix="/io/github/userwithaname/Mellow/">

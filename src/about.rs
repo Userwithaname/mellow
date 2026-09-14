@@ -5,6 +5,9 @@ pub const APP_ID: &str = env!("APP_ID");
 pub const APP_NAME: &str = env!("APP_NAME");
 pub const APP_VERSION: &str = env!("APP_VERSION");
 pub const RELEASE_NOTES: &str = env!("RELEASE_NOTES");
+
+#[cfg(feature = "gresources")]
+#[cfg(not(feature = "no-meson"))]
 const RESOURCES_FILE: Option<&str> = option_env!("RESOURCES_FILE");
 
 const COPYRIGHT: &str = "© 2026 Iva Kotar";
@@ -35,7 +38,10 @@ pub fn show_about_dialog(parent: &impl IsA<gtk::Widget>) {
 /// # Panics
 /// Panics if the `RESOURCES_FILE` environment variable
 /// was not set before building
+#[inline]
 #[must_use]
+#[cfg(feature = "gresources")]
+#[cfg(not(feature = "no-meson"))]
 pub const fn resources_file() -> &'static str {
     RESOURCES_FILE.expect("RESOURCES_FILE env var not set at compile time")
 }

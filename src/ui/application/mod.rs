@@ -148,18 +148,18 @@ impl Application {
 
         let _ = gtk::init();
 
-        // NOTE: Uncomment the lines below to enable GResources
-
-        // #[cfg(feature = "no-meson")]
-        // gio::resources_register_include!("mellow.gresource").expect("Failed to register resources");
-
-        // #[cfg(not(feature = "no-meson"))]
-        // gio::resources_register(
-        //     &gio::Resource::load(about::resources_file()).expect("Could not load resources file"),
-        // );
-
         glib::set_application_name(about::APP_NAME);
         glib::set_program_name(Some(about::APP_NAME.to_lowercase()));
+
+        #[cfg(feature = "gresources")]
+        #[cfg(feature = "no-meson")]
+        gio::resources_register_include!("mellow.gresource").expect("Failed to register resources");
+
+        #[cfg(feature = "gresources")]
+        #[cfg(not(feature = "no-meson"))]
+        gio::resources_register(
+            &gio::Resource::load(about::resources_file()).expect("Could not load resources file"),
+        );
 
         settings
     }
