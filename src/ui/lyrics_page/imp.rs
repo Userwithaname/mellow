@@ -40,6 +40,7 @@ impl LyricsPage {
 
         let selection_model = gtk::NoSelection::new(Some(model));
         self.lyrics.set_model(Some(&selection_model));
+        self.lyric_index.replace(!0);
     }
 
     #[inline]
@@ -51,9 +52,10 @@ impl LyricsPage {
             return;
         }
         if time_ms < lyric_objects[0].time() {
-            lyric_objects[old_index].set_styles(vec!["body".to_owned()]);
-            lyric_objects[new_index].set_styles(vec!["body".to_owned()]);
-            self.lyric_index.set(0);
+            if old_index < lyric_objects.len() {
+                lyric_objects[old_index].set_styles(vec!["body".to_owned()]);
+            }
+            self.lyric_index.set(!0);
             return;
         }
 
@@ -62,7 +64,7 @@ impl LyricsPage {
         for (index, object) in lyric_objects.iter().enumerate().take(old_index).rev() {
             let lyric_time = object.time();
             match lyric_time >= time_ms {
-                true => new_index = index,
+                true => new_index = index.saturating_sub(1),
                 false => break,
             }
         }
@@ -75,7 +77,9 @@ impl LyricsPage {
         }
 
         if new_index != old_index {
-            lyric_objects[old_index].set_styles(vec!["body".to_owned()]);
+            if old_index < lyric_objects.len() {
+                lyric_objects[old_index].set_styles(vec!["body".to_owned()]);
+            }
             lyric_objects[new_index].set_styles(vec!["heading".to_owned()]);
             self.lyric_index.set(new_index);
             // IDEA: Use the scroll position to determine whether `new_index` is above
