@@ -22,7 +22,6 @@ impl Lyrics {
     ///
     /// # Limitations
     /// - Only supports one timestamp per lyric line (non-repeating)
-    /// - Lines with multiple timestamps (repeating lines) are not supported
     /// - Lines prefixed with unsupported tags will be skipped
     /// - Does not support extension features
     ///
@@ -31,16 +30,42 @@ impl Lyrics {
     #[inline]
     #[must_use]
     pub fn try_parse_synced(contents: String) -> Lyrics {
-        // TODO: Support repeating lyrics
-        let synced_lyrics: Vec<SyncedLyric> = (contents.lines())
-            .filter_map(|line| {
-                let (time, lyric) = line.split_once(']')?;
-                Some(SyncedLyric {
-                    time_ms: timestamp_to_ms(time.get(1..)?)?,
-                    lyric: lyric.to_owned(),
-                })
-            })
-            .collect();
+        let mut synced_lyrics = Vec::<SyncedLyric>::new();
+        for line in contents.lines() {
+            let mut split = line.split(']');
+            let Some(lyric) = split.next_back() else {
+                continue;
+            };
+
+            let mut times = Vec::new();
+            let mut cur_split = split.next();
+            while let Some(Some(Some(time))) = cur_split.map(|s| s.get(1..).map(timestamp_to_ms)) {
+                cur_split = split.next();
+                times.push(time);
+            }
+
+            // Handling for the ']' character in the actual lyrics
+            let mut lyric = lyric.to_owned();
+            let mut reinsert = String::new();
+            while let Some(part) = cur_split {
+                cur_split = split.next();
+                reinsert.push_str(part);
+                reinsert.push(']');
+            }
+            if !reinsert.is_empty() {
+                lyric = [reinsert, lyric].concat();
+            }
+
+            for time_ms in times {
+                match synced_lyrics.binary_search_by(|existing| existing.time_ms.cmp(&time_ms)) {
+                    Err(index) | Ok(index) => {
+                        let lyric = lyric.to_owned();
+                        synced_lyrics.insert(index, SyncedLyric { time_ms, lyric });
+                    }
+                }
+            }
+        }
+
         match synced_lyrics.is_empty() {
             false => Lyrics::Synced(synced_lyrics),
             true => Lyrics::Unsynced(contents),
