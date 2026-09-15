@@ -22,16 +22,17 @@ impl Lyrics {
     ///
     /// # Limitations
     /// - Lines must begin with a timestamp, or they will be skipped
-    /// - Only timestamp tags are supported, others will be skipped
+    /// - Only timestamps and `offset` tags are supported, others will be skipped
     /// - Unsupported tags appearing after the timestamp may be included
     ///   in the actual lyrics text
-    /// - Does not support extension features
+    /// - Does not support extended features
     ///
     /// The _LRC (file format)_ page from Wikipedia was used as reference
     /// for implementation: <https://en.wikipedia.org/wiki/LRC_(file_format)>
     #[inline]
     #[must_use]
     pub fn try_parse_synced(contents: String) -> Lyrics {
+        let mut offset_ms = 0isize;
         let mut synced_lyrics = Vec::<SyncedLyric>::new();
         for line in contents.lines() {
             let mut split = line.split(']');
@@ -46,10 +47,13 @@ impl Lyrics {
                 times.push(time);
             }
 
-            // Handling for the ']' character in the actual lyrics
+            // Handling for the ']' character in the actual lyrics and tags
             let mut lyric = lyric.to_owned();
             let mut reinsert = String::new();
             while let Some(part) = cur_split {
+                if let Some(Ok(offset)) = part.split_once("offset:").map(|o| o.1.trim().parse()) {
+                    offset_ms = offset;
+                }
                 cur_split = split.next();
                 reinsert.push_str(part);
                 reinsert.push(']');
@@ -61,8 +65,13 @@ impl Lyrics {
             for time_ms in times {
                 match synced_lyrics.binary_search_by(|existing| existing.time_ms.cmp(&time_ms)) {
                     Err(index) | Ok(index) => {
-                        let lyric = lyric.to_owned();
-                        synced_lyrics.insert(index, SyncedLyric { time_ms, lyric });
+                        synced_lyrics.insert(
+                            index,
+                            SyncedLyric {
+                                time_ms: time_ms.saturating_sub_signed(offset_ms),
+                                lyric: lyric.to_owned(),
+                            },
+                        );
                     }
                 }
             }
