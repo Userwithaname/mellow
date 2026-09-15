@@ -6,7 +6,6 @@ use mpris_server::{self, LoopStatus, Metadata, PlaybackStatus, zbus};
 use std::sync::OnceLock;
 
 use crate::about;
-use crate::excuses::EXP_RX;
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{UpdateUI, ui_tx};
 
@@ -59,17 +58,19 @@ pub async fn controller(rx: async_channel::Receiver<UpdateMPRIS>) -> zbus::Resul
         .await?;
 
     mpris_player.connect_play_pause(|_| {
-        player_tx()
-            .send(PlayerRequest::TogglePlay(None))
-            .expect(EXP_RX);
+        let _ = player_tx().send(PlayerRequest::TogglePlay(None));
     });
-    mpris_player.connect_previous(|_| player_tx().send(PlayerRequest::SkipPrevious).expect(EXP_RX));
-    mpris_player.connect_next(|_| player_tx().send(PlayerRequest::SkipNext).expect(EXP_RX));
+    mpris_player.connect_previous(|_| {
+        let _ = player_tx().send(PlayerRequest::SkipPrevious);
+    });
+    mpris_player.connect_next(|_| {
+        let _ = player_tx().send(PlayerRequest::SkipNext);
+    });
     mpris_player.connect_quit(|_| {
-        (ui_tx().send_blocking(UpdateUI::RunAction("app.quit"))).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::RunAction("app.quit"));
     });
     mpris_player.connect_raise(|_| {
-        (ui_tx().send_blocking(UpdateUI::RunAction("app.show_window"))).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::RunAction("app.show_window"));
     });
 
     glib::spawn_future_local(mpris_player.run());

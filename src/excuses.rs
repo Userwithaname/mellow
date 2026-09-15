@@ -2,13 +2,13 @@
 //! for why the `Err` or `None` variant is not handled.
 
 /// # Reason
-/// Must always succeed - you guarantee that the failure state is impossible
-pub const EXP_SAFE: &str = "Unexpected error";
-/// # Reason
 /// You guarantee the item was properly initialized and the unwrap will succeed
 pub const EXP_INIT: &str = "Item was not properly initialized";
 /// # Reason
 /// You guarantee that the channel receiver is open and the unwrap will succeed
+///
+/// Note: For crash handling to work correctly, the main thread should _not_ panic
+/// for closed channel errors; channel `send` results should be ignored instead
 pub const EXP_RX: &str = "Channel receiver is unavailable";
 
 /// # Reason

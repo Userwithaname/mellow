@@ -1,6 +1,6 @@
 use adw::{prelude::*, subclass::prelude::*};
+use core::cell::RefCell;
 use gtk::{gio, glib};
-use std::cell::RefCell;
 use std::panic::{self, PanicHookInfo};
 use std::path::PathBuf;
 use std::sync::mpsc;
@@ -9,7 +9,7 @@ use std::{process, thread};
 
 mod imp;
 
-use crate::excuses::{EXP_INIT, EXP_RX};
+use crate::excuses::EXP_INIT;
 use crate::library::{Library, LibraryConfig, LibraryRequest, library_tx};
 use crate::player::{Player, PlayerRequest, SongQueue};
 use crate::shortcuts::Shortcuts;
@@ -52,9 +52,7 @@ impl Application {
                 );
                 eprintln!("{info}\n");
 
-                // IDEA: Create a crash file on disk and attempt to correct the issue
-                // on next launch (for example, if the `library` thread crashed, it
-                // could perform a lengthy check to ensure the `songs` file is valid)
+                // TODO: Add handling for bad `shuffled_queue` file (which may crash on launch)
 
                 if ui_tx().send_blocking(UpdateUI::CrashNotice(info)).is_err() {
                     process::exit(1);
@@ -199,7 +197,7 @@ impl Application {
     #[inline]
     fn open_files(&self, files: &[gio::File], _: &str) {
         let files = files.iter().map(|file| file.path().unwrap()).collect();
-        (library_tx().send(LibraryRequest::QueueFromPaths(files))).expect(EXP_RX);
+        let _ = library_tx().send(LibraryRequest::QueueFromPaths(files));
     }
 
     /// Shows the window if it is hidden

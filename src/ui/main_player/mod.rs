@@ -2,7 +2,6 @@ use adw::{prelude::*, subclass::prelude::*};
 use gtk::Orientation;
 use gtk::{gdk, glib};
 
-use crate::excuses::EXP_RX;
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::gtk_ext::GtkPictureExt;
 use crate::util::format_duration_ms;
@@ -31,7 +30,7 @@ impl MainPlayer {
         while let Some(controller) = controllers.item(i) {
             if let Some(gesture_click) = controller.downcast_ref::<gtk::GestureClick>() {
                 gesture_click.connect_released(|_, _, _, _| {
-                    player_tx().send(PlayerRequest::SeekDone).expect(EXP_RX);
+                    let _ = player_tx().send(PlayerRequest::SeekDone);
                 });
                 break;
             }

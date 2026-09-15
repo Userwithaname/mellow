@@ -4,7 +4,7 @@ use gtk::CompositeTemplate;
 use gtk::glib;
 use std::sync::Arc;
 
-use crate::excuses::{ACTION_ERR, EXP_RX};
+use crate::excuses::ACTION_ERR;
 use crate::library::SharedAlbum;
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::Rating;
@@ -54,59 +54,53 @@ impl QueueSubpage {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
 
         let index = self.index.get();
-        (ui_tx().send_blocking(UpdateUI::RecenterQueue(index as isize))).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::RecenterQueue(index as isize));
 
         let player_tx = player_tx();
-        (player_tx.send(PlayerRequest::SkipTo(index))).expect(EXP_RX);
-        (player_tx.send(PlayerRequest::TogglePlay(Some(true)))).expect(EXP_RX);
+        let _ = player_tx.send(PlayerRequest::SkipTo(index));
+        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
     }
     #[template_callback]
     pub fn handle_stop_after(&self) {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
         let index = self.index.get() + 1;
         let stop_after = !self.stop_after.get();
-        (player_tx().send(match stop_after {
+        let _ = player_tx().send(match stop_after {
             true => PlayerRequest::InsertAt(Box::new((index, QueueItem::new_stopper(false)))),
             false => PlayerRequest::RemoveItem(index),
-        }))
-        .expect(EXP_RX);
-        // self.obj().set_stop_after(stop_after);
+        });
     }
     #[template_callback]
     pub fn handle_remove_item(&self) {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
 
         let index = self.index.get();
-        player_tx()
-            .send(PlayerRequest::RemoveItem(index))
-            .expect(EXP_RX);
-
-        (ui_tx().send_blocking(UpdateUI::Notification(
+        let _ = player_tx().send(PlayerRequest::RemoveItem(index));
+        let _ = ui_tx().send_blocking(UpdateUI::Notification(
             format!("Removed from the queue: \"{}\"", self.song_title.label()),
             Some(Box::new((
                 "Undo",
-                Box::new(|| player_tx().send(PlayerRequest::Undo).expect(EXP_RX)),
+                Box::new(|| {
+                    let _ = player_tx().send(PlayerRequest::Undo);
+                }),
             ))),
-        )))
-        .expect(EXP_RX);
+        ));
     }
     #[template_callback]
     pub fn handle_move_up(&self) {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
-        (player_tx().send(PlayerRequest::Shift {
+        let _ = player_tx().send(PlayerRequest::Shift {
             from: self.index.get(),
             by: -1,
-        }))
-        .expect(EXP_RX);
+        });
     }
     #[template_callback]
     pub fn handle_move_down(&self) {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
-        (player_tx().send(PlayerRequest::Shift {
+        let _ = player_tx().send(PlayerRequest::Shift {
             from: self.index.get(),
             by: 1,
-        }))
-        .expect(EXP_RX);
+        });
     }
     #[template_callback]
     pub fn handle_go_to_album(&self) {
@@ -115,7 +109,7 @@ impl QueueSubpage {
             None => return, // Early-return for non-library songs
         };
         let ui_tx = ui_tx();
-        ui_tx.send_blocking(UpdateUI::FocusLibrary).expect(EXP_RX);
+        let _ = ui_tx.send_blocking(UpdateUI::FocusLibrary);
         let _ = ui_tx.send_blocking(UpdateUI::AlbumPage(album));
     }
     #[template_callback]
@@ -125,7 +119,7 @@ impl QueueSubpage {
             None => return, // Early-return for non-library songs
         };
         let ui_tx = ui_tx();
-        ui_tx.send_blocking(UpdateUI::FocusLibrary).expect(EXP_RX);
+        let _ = ui_tx.send_blocking(UpdateUI::FocusLibrary);
         let _ = ui_tx.send_blocking(UpdateUI::ArtistPage(artist));
     }
     #[template_callback]

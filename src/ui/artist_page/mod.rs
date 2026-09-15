@@ -3,12 +3,10 @@ use glib::Object;
 use gtk::glib;
 use std::sync::Arc;
 
-use crate::excuses::EXP_RX;
 use crate::library::SharedArtist;
 use crate::library::unload_unused::UsedBy;
-use crate::ui::ListRow;
 use crate::ui::gtk_ext::GtkPictureExt;
-use crate::ui::{UpdateUI, ui_tx};
+use crate::ui::{ListRow, UpdateUI, ui_tx};
 
 mod imp;
 
@@ -75,7 +73,7 @@ impl ArtistPage {
             drop(album_locked);
             let album = Arc::clone(album);
             album_row.connect_activated(move |_| {
-                (ui_tx().send_blocking(UpdateUI::AlbumPage(Arc::clone(&album)))).expect(EXP_RX);
+                let _ = ui_tx().send_blocking(UpdateUI::AlbumPage(Arc::clone(&album)));
             });
 
             ui.albums_list.append(&album_row);

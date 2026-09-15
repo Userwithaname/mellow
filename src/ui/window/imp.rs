@@ -179,15 +179,19 @@ impl Window {
 
                 UpdateUI::CrashNotice(error_info) => {
                     let dialog = gtk::AlertDialog::builder()
-                        .modal(true)
-                        .buttons(["Quit"])
                         .message("A component has crashed")
                         .detail(error_info)
+                        .buttons(["Quit"])
+                        .modal(true)
                         .build();
                     let window = self.obj().to_owned();
                     dialog.choose(Some(&window.clone()), gio::Cancellable::NONE, move |_| {
                         WidgetExt::activate_action(&window, "app.quit", None).expect(ACTION_ERR);
                     });
+                    loop {
+                        // Only display the first error message and ignore further requests
+                        ui_rx.recv().await.unwrap();
+                    }
                 }
             }
         }

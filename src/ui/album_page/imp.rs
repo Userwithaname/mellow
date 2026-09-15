@@ -4,7 +4,6 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use gtk::{CompositeTemplate, glib};
 use std::sync::Arc;
 
-use crate::excuses::EXP_RX;
 use crate::library::unload_unused::UsedBy;
 use crate::library::{SharedAlbum, ToQueue};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
@@ -103,10 +102,9 @@ impl AlbumPage {
     }
     #[template_callback]
     pub fn handle_go_to_artist(&self) {
-        (ui_tx().send_blocking(UpdateUI::ArtistPage(
+        let _ = ui_tx().send_blocking(UpdateUI::ArtistPage(
             (self.album.borrow().as_ref().unwrap().lock().unwrap()).artist_cloned(),
-        )))
-        .expect(EXP_RX);
+        ));
     }
 }
 

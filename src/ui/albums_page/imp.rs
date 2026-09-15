@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crate::UI_TIMEOUT;
-use crate::excuses::{EXP_INIT, EXP_RX};
+use crate::excuses::EXP_INIT;
 use crate::library::tag_list::{self, Tags};
 use crate::library::{Albums, ToQueue, ToShuffledQueue};
 use crate::player::{PlayerRequest, player_tx};
@@ -164,20 +164,18 @@ impl AlbumsPage {
         }
 
         let player_tx = player_tx();
-        player_tx
-            .send(PlayerRequest::LoadQueue {
-                queue: match self.shuffle.get() {
-                    true => albums.to_shuffled_queue(),
-                    false => albums.to_queue(),
-                },
-                shuffled: None,
-                track: 0,
-            })
-            .expect(EXP_RX);
+        let _ = player_tx.send(PlayerRequest::LoadQueue {
+            queue: match self.shuffle.get() {
+                true => albums.to_shuffled_queue(),
+                false => albums.to_queue(),
+            },
+            shuffled: None,
+            track: 0,
+        });
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
-        (ui_tx.send_blocking(UpdateUI::OpenSheet(false))).expect(EXP_RX);
-        ui_tx.send_blocking(UpdateUI::FocusPlaying).expect(EXP_RX);
+        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
+        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
     }
 
     pub fn update_tag_filter_list(&self) {
@@ -546,7 +544,7 @@ impl ObjectImpl for AlbumsPage {
                     .unwrap()
                     .shared_album(),
             );
-            (ui_tx().send_blocking(UpdateUI::AlbumPage(album))).expect(EXP_RX);
+            let _ = ui_tx().send_blocking(UpdateUI::AlbumPage(album));
         });
 
         // Restore the previous scroll position if pending, and update sort fields

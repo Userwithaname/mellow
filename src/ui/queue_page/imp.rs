@@ -6,7 +6,7 @@ use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib, graphene};
 
 use crate::cold_expression;
-use crate::excuses::{EXP_INIT, EXP_RX};
+use crate::excuses::EXP_INIT;
 use crate::library::{Library, library_tx};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::gtk_ext::GtkPictureExt;
@@ -88,15 +88,15 @@ struct ItemNotFoundError;
 impl QueuePage {
     #[template_callback]
     pub fn handle_set_repeat(&self, toggle_button: &gtk::ToggleButton) {
-        (player_tx().send(PlayerRequest::SetRepeat(toggle_button.is_active()))).expect(EXP_RX);
+        let _ = player_tx().send(PlayerRequest::SetRepeat(toggle_button.is_active()));
     }
     #[template_callback]
     pub fn handle_set_shuffle(&self, toggle_button: &gtk::ToggleButton) {
-        (player_tx().send(PlayerRequest::SetShuffle(toggle_button.is_active()))).expect(EXP_RX);
+        let _ = player_tx().send(PlayerRequest::SetShuffle(toggle_button.is_active()));
     }
     #[template_callback]
     pub fn handle_open_library(&self) {
-        ui_tx().send_blocking(UpdateUI::FocusLibrary).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::FocusLibrary);
     }
     #[template_callback]
     pub fn handle_exit_selection(&self) {
@@ -105,14 +105,15 @@ impl QueuePage {
     #[template_callback]
     pub fn handle_remove_selected(&self) {
         if let Some(selected_items) = self.selections.take() {
-            (ui_tx().send_blocking(UpdateUI::Notification(
+            let _ = ui_tx().send_blocking(UpdateUI::Notification(
                 format!("Removed {} items from the queue", selected_items.len()),
                 Some(Box::new((
                     "Undo",
-                    Box::new(|| player_tx().send(PlayerRequest::Undo).expect(EXP_RX)),
+                    Box::new(|| {
+                        let _ = player_tx().send(PlayerRequest::Undo);
+                    }),
                 ))),
-            )))
-            .expect(EXP_RX);
+            ));
             let _ = player_tx().send(PlayerRequest::RemoveItems(
                 selected_items.iter().map(|item| item.0 as usize).collect(),
             ));
@@ -665,7 +666,7 @@ impl QueuePage {
                 #[weak(rename_to = selection_toggle)]
                 row_imp.selection_toggle,
                 move |_| if selections.borrow().is_none() {
-                    (ui_tx().send_blocking(UpdateUI::OpenQueueSubpage(queue_index))).expect(EXP_RX);
+                    let _ = ui_tx().send_blocking(UpdateUI::OpenQueueSubpage(queue_index));
                 } else {
                     selection_toggle.activate();
                 }
@@ -699,7 +700,7 @@ impl QueuePage {
         impl SetDragState for DragState {
             fn set_drag_state(&self, dragging: bool) {
                 self.set(dragging);
-                (ui_tx().send_blocking(UpdateUI::CanCloseSheet(!dragging))).expect(EXP_RX);
+                let _ = ui_tx().send_blocking(UpdateUI::CanCloseSheet(!dragging));
             }
         }
 

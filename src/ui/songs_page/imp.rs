@@ -10,7 +10,7 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 use crate::UI_TIMEOUT;
-use crate::excuses::{EXP_INIT, EXP_RX};
+use crate::excuses::EXP_INIT;
 use crate::library::tag_list::{self, Tags};
 use crate::library::{Songs, ToQueue};
 use crate::player::{PlayerRequest, player_tx};
@@ -164,19 +164,18 @@ impl SongsPage {
         }
 
         let player_tx = player_tx();
-        (player_tx.send(PlayerRequest::LoadQueue {
+        let _ = player_tx.send(PlayerRequest::LoadQueue {
             queue: songs.to_queue(),
             shuffled: match self.shuffle.get() {
                 true => Some(vec![]),
                 false => None,
             },
             track: 0,
-        }))
-        .expect(EXP_RX);
+        });
         let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
-        (ui_tx.send_blocking(UpdateUI::OpenSheet(false))).expect(EXP_RX);
-        ui_tx.send_blocking(UpdateUI::FocusPlaying).expect(EXP_RX);
+        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
+        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
     }
 
     pub fn update_tag_filter_list(&self) {
@@ -530,7 +529,7 @@ impl ObjectImpl for SongsPage {
                 .downcast_ref::<SongObject>()
                 .unwrap()
                 .index();
-            (ui_tx().send_blocking(UpdateUI::SongPageByIndex(index as usize))).expect(EXP_RX);
+            let _ = ui_tx().send_blocking(UpdateUI::SongPageByIndex(index as usize));
         });
 
         // Restore the previous scroll position if pending, and update sort fields

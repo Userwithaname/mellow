@@ -4,7 +4,7 @@ use gtk::CompositeTemplate;
 use gtk::glib;
 use std::sync::Arc;
 
-use crate::excuses::{ACTION_ERR, EXP_INIT, EXP_RX};
+use crate::excuses::{ACTION_ERR, EXP_INIT};
 use crate::library::{SharedSong, ToQueue};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{Rating, show_queue};
@@ -34,27 +34,25 @@ impl SongPage {
     pub fn handle_play_now(&self) {
         (self.obj().activate_action("ui.library_nav_pop", None)).expect(ACTION_ERR);
         let player_tx = player_tx();
-        (player_tx.send(PlayerRequest::LoadQueue {
+        let _ = player_tx.send(PlayerRequest::LoadQueue {
             queue: self.context.borrow().as_ref().expect(EXP_INIT).to_queue(),
             shuffled: None,
             track: self.index.get(),
-        }))
-        .expect(EXP_RX);
-        (player_tx.send(PlayerRequest::TogglePlay(Some(true)))).expect(EXP_RX);
+        });
+        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
-        (ui_tx.send_blocking(UpdateUI::OpenSheet(false))).expect(EXP_RX);
-        ui_tx.send_blocking(UpdateUI::FocusPlaying).expect(EXP_RX);
+        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
+        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
     }
     #[template_callback]
     pub fn handle_play_next(&self) {
         (self.obj().activate_action("ui.library_nav_pop", None)).expect(ACTION_ERR);
         let song = self.shared_song.borrow();
         let song = song.as_ref().unwrap();
-        (player_tx().send(PlayerRequest::InsertRelative(Box::new((
+        let _ = player_tx().send(PlayerRequest::InsertRelative(Box::new((
             1,
             QueueItem::Song(Arc::clone(song)),
-        )))))
-        .expect(EXP_RX);
+        ))));
         let _ = ui_tx().send_blocking(UpdateUI::Notification(
             format!(
                 "Song \"{}\" will play next in the queue",
@@ -69,9 +67,7 @@ impl SongPage {
         let player_tx = player_tx();
         let song = self.shared_song.borrow();
         let song = song.as_ref().unwrap();
-        player_tx
-            .send(PlayerRequest::Append(QueueItem::Song(Arc::clone(song))))
-            .expect(EXP_RX);
+        let _ = player_tx.send(PlayerRequest::Append(QueueItem::Song(Arc::clone(song))));
         let _ = ui_tx().send_blocking(UpdateUI::Notification(
             format!(
                 "Song \"{}\" has been added to queue",
@@ -85,7 +81,7 @@ impl SongPage {
         // Do nothing if the song is not from the user's library
         // (button should be greyed out anyway)
         if let Some(album) = &*self.shared_song.borrow().as_ref().unwrap().get_album() {
-            (ui_tx().send_blocking(UpdateUI::AlbumPage(Arc::clone(album)))).expect(EXP_RX);
+            let _ = ui_tx().send_blocking(UpdateUI::AlbumPage(Arc::clone(album)));
         }
     }
     #[template_callback]
@@ -93,8 +89,8 @@ impl SongPage {
         // Do nothing if the song is not from the user's library
         // (button should be greyed out anyway)
         if let Some(album) = &*self.shared_song.borrow().as_ref().unwrap().get_album() {
-            (ui_tx().send_blocking(UpdateUI::ArtistPage(album.lock().unwrap().artist_cloned())))
-                .expect(EXP_RX);
+            let _ =
+                ui_tx().send_blocking(UpdateUI::ArtistPage(album.lock().unwrap().artist_cloned()));
         }
     }
 }

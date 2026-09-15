@@ -45,6 +45,7 @@ Music library:
 
 Other:
 
+- TODO: Never panic on main thread for channel errors (so a message for crashed components is always displayed)
 - [ ] Redesign the library directory settings
   > For example, opening a separate "Directory Settings" popup window and requiring the user
   > to apply all changes at once could work around the Flatpak freezing issue ([#21](https://github.com/Userwithaname/mellow/issues/21))
@@ -91,6 +92,8 @@ Ideas for improvements:
   - Show a track number as well?
 - Lyrics:
   - Extended LRC format support (Walaoke & A2 - <https://en.wikipedia.org/wiki/LRC_(file_format)>)
+    - Even if this will not be supported, it might make sense to (for example) remove the A2 word
+      timestamps so they don't show up in the lyrics
 - Song page:
   - The library song page and queue subpage could display more information
     about the song, such as track number, disc, year, duration, play count,

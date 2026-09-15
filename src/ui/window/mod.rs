@@ -5,7 +5,7 @@ use glib::Object;
 use gtk::{Orientation, gdk, gio, glib};
 use std::time::Instant;
 
-use crate::excuses::{EXP_INIT, EXP_RX};
+use crate::excuses::EXP_INIT;
 use crate::library::{LibraryRequest, library_tx};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::{Application, UpdateUI, actions::WindowActions, ui_tx};
@@ -68,9 +68,7 @@ impl Window {
             let files = (value.get::<FileList>().unwrap().files().iter())
                 .map(|file| file.path().unwrap())
                 .collect();
-            library_tx()
-                .send(LibraryRequest::QueueFromPaths(files))
-                .expect(EXP_RX);
+            let _ = library_tx().send(LibraryRequest::QueueFromPaths(files));
             true
         });
         self.add_controller(drop_target);
@@ -105,7 +103,7 @@ impl Window {
         let remember_time = settings_page.remembers_time();
 
         let library_tx = library_tx();
-        (library_tx.send(LibraryRequest::CancelRebuild(Instant::now()))).expect(EXP_RX);
+        let _ = library_tx.send(LibraryRequest::CancelRebuild(Instant::now()));
         let _ = library_tx.send(LibraryRequest::Uninit);
         let _ = player_tx().send(PlayerRequest::Uninit(remember_queue, remember_time));
 

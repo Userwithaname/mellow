@@ -3,7 +3,6 @@ use glib::{Object, clone};
 use gtk::{Orientation, gdk, glib};
 use std::sync::{Arc, atomic::Ordering};
 
-use crate::excuses::EXP_RX;
 use crate::library::unload_unused::UsedBy;
 use crate::library::{Library, SharedAlbum, library_tx};
 use crate::ui::gtk_ext::GtkPictureExt;
@@ -93,13 +92,11 @@ impl AlbumPage {
                 let song = Arc::clone(song);
                 let album = Arc::clone(album);
                 song_row.connect_activated(move |_| {
-                    ui_tx()
-                        .send_blocking(UpdateUI::SongPage(Box::new((
-                            i,
-                            Arc::clone(&song),
-                            Box::new(Arc::clone(&album)),
-                        ))))
-                        .expect(EXP_RX);
+                    let _ = ui_tx().send_blocking(UpdateUI::SongPage(Box::new((
+                        i,
+                        Arc::clone(&song),
+                        Box::new(Arc::clone(&album)),
+                    ))));
                 });
 
                 ui.details

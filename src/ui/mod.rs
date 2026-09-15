@@ -51,7 +51,6 @@ pub use song_page::SongPage;
 pub use songs_page::SongsPage;
 pub use window::Window;
 
-use crate::excuses::EXP_RX;
 use crate::library::{Albums, Artists, Songs, ToQueue};
 use crate::library::{SharedAlbum, SharedArtist, SharedSong};
 use crate::player::QueueItem;
@@ -197,7 +196,7 @@ pub enum UpdateUI {
 /// The function panics if the UI channel is closed
 pub fn show_queue() {
     let ui_tx = ui_tx();
-    ui_tx.send_blocking(UpdateUI::FocusPlaying).expect(EXP_RX);
+    let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
 
     // NOTE: This will not close the lyrics page, if open
     let _ = ui_tx.send_blocking(UpdateUI::CloseQueueSubpage);
