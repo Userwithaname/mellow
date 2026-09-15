@@ -300,13 +300,8 @@ impl Player {
                     true
                 }
                 PlayerRequest::InsertRelative(item) => {
-                    self.insert_to_queue(
-                        match item.0 >= 0 {
-                            true => self.queue.index() + item.0 as usize,
-                            false => self.queue.index() - -item.0 as usize,
-                        },
-                        item.1,
-                    );
+                    // Skipping overflow check since `insert_to_queue` will panic if OOB
+                    self.insert_to_queue(self.queue.index().wrapping_add_signed(item.0), item.1);
                     self.queue.ui_update_queue();
                     self.queue.ui_validate_queue_subpage_index();
                     true
