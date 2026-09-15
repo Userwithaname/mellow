@@ -90,8 +90,8 @@ impl QueuePage {
     #[inline]
     pub fn exit_selection(&self) {
         let queue_page = self.imp();
-        if queue_page.selections.borrow().is_some() {
-            queue_page.set_selection_mode(None);
+        if queue_page.selections.borrow().is_empty() {
+            queue_page.set_selection_mode(vec![]);
         }
     }
 

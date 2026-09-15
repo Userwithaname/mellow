@@ -23,8 +23,6 @@ const PAN_REPEAT_DELAY: Duration = Duration::from_millis(165);
 const PAN_REPEAT_DELAY_MIN: Duration = Duration::from_millis(5);
 const PAN_REPEAT_SPEEDUP: Duration = Duration::from_millis(2);
 
-type Selections = Vec<(u32, QueueItem)>;
-
 #[derive(Default, CompositeTemplate)]
 #[template(file = "queue_page.ui")]
 pub struct QueuePage {
@@ -40,7 +38,7 @@ pub struct QueuePage {
     #[template_child]
     pub remove_selection: TemplateChild<gtk::Button>,
 
-    pub selections: Forever<RefCell<Option<Selections>>>,
+    pub selections: Forever<RefCell<Vec<(u32, QueueItem)>>>,
 
     #[template_child]
     list_box: TemplateChild<gtk::ListBox>,
@@ -100,11 +98,12 @@ impl QueuePage {
     }
     #[template_callback]
     pub fn handle_exit_selection(&self) {
-        self.set_selection_mode(None);
+        self.set_selection_mode(vec![]);
     }
     #[template_callback]
     pub fn handle_remove_selected(&self) {
-        if let Some(selected_items) = self.selections.take() {
+        let selected_items = mem::take(&mut *self.selections.borrow_mut());
+        if !selected_items.is_empty() {
             let _ = ui_tx().send_blocking(UpdateUI::Notification(
                 format!("Removed {} items from the queue", selected_items.len()),
                 Some(Box::new((
@@ -119,7 +118,7 @@ impl QueuePage {
             ));
         }
 
-        self.set_selection_mode(None);
+        self.set_selection_mode(vec![]);
     }
     #[template_callback]
     pub fn handle_pan_up(&self) {
@@ -219,9 +218,10 @@ impl QueuePage {
 
         // Validate queue selection positions if items were added or removed
         if queue_length != old_queue_length
-            && let Some(selections) = self.selections.take()
+            && let selections = &mut *self.selections.borrow_mut()
+            && !selections.is_empty()
         {
-            let selections = selections.into_iter().filter_map(|mut selection| {
+            let selections = (mem::take(selections).into_iter()).filter_map(|mut selection| {
                 let index = selection.0 as usize;
                 if selection.1 == queue[index] {
                     return Some(selection);
@@ -248,7 +248,7 @@ impl QueuePage {
                 }
                 Some(selection)
             });
-            self.set_selection_mode(Some(selections.collect()));
+            self.set_selection_mode(selections.collect());
         }
 
         // Panning offset has to be updated first to avoid having to draw twice
@@ -506,33 +506,31 @@ impl QueuePage {
     }
 
     #[inline]
-    fn toggle_selected_item(
-        &self,
-        item: (u32, QueueItem),
-        selections: &mut Vec<(u32, QueueItem)>,
-    ) -> bool {
-        match selections.binary_search_by(|existing| item.0.cmp(&existing.0)) {
-            Err(insert_at) => {
-                selections.insert(insert_at, item);
-                self.remove_selection.set_sensitive(true);
-                true
-            }
-            Ok(remove_at) => {
-                selections.remove(remove_at);
-                self.remove_selection.set_sensitive(!selections.is_empty());
-                false
-            }
+    fn toggle_selected_item(&self, item: (u32, QueueItem), object: &QueueItemObject) {
+        let mut selections = self.selections.borrow_mut();
+        if selections.is_empty() {
+            return;
         }
+        object.set_selected(
+            match selections.binary_search_by(|existing| item.0.cmp(&existing.0)) {
+                Err(insert_at) => {
+                    selections.insert(insert_at, item);
+                    true
+                }
+                Ok(remove_at) => {
+                    selections.remove(remove_at);
+                    if selections.is_empty() {
+                        drop(selections);
+                        self.set_selection_mode(vec![]);
+                    }
+                    false
+                }
+            },
+        );
     }
     #[inline]
-    pub(super) fn set_selection_mode(&self, selections: Option<Vec<(u32, QueueItem)>>) {
-        let selection_mode = match &selections {
-            Some(selections) => {
-                self.remove_selection.set_sensitive(!selections.is_empty());
-                true
-            }
-            None => false,
-        };
+    pub(super) fn set_selection_mode(&self, selections: Vec<(u32, QueueItem)>) {
+        let selection_mode = !selections.is_empty();
         *self.selections.borrow_mut() = selections;
 
         self.header_selection.set_visible(selection_mode);
@@ -630,42 +628,36 @@ impl QueuePage {
             }
 
             let queue_index = queue_item_object.index();
-            let selection_mode = match selections.borrow().as_deref() {
-                Some(selections) => {
-                    for (index, _) in selections {
-                        if *index == queue_index {
-                            queue_item_object.set_selected(true);
-                        }
+            let selection_mode = {
+                let selections = &*selections.borrow();
+                for (index, _) in selections {
+                    if *index == queue_index {
+                        queue_item_object.set_selected(true);
                     }
-                    true
                 }
-                None => false,
+                !selections.is_empty()
             };
             row_imp.open_subpage_icon.set_visible(!selection_mode);
             row_imp.selection_toggle.set_visible(selection_mode);
-
             row_imp.selection_toggle.connect_toggled(glib::clone!(
                 #[weak(rename_to = queue_page)]
                 queue_page,
                 #[weak]
                 queue_item_object,
-                move |_| if let Some(selections) = &mut *selections.borrow_mut() {
-                    let selected = queue_page.toggle_selected_item(
-                        (
-                            queue_item_object.index(),
-                            queue_item_object.queue_item().clone(),
-                        ),
-                        selections,
-                    );
-                    queue_item_object.set_selected(selected);
-                }
+                move |_| queue_page.toggle_selected_item(
+                    (
+                        queue_item_object.index(),
+                        queue_item_object.queue_item().clone(),
+                    ),
+                    &queue_item_object,
+                )
             ));
 
             let queue_index = queue_index as usize;
             queue_row.connect_activated(glib::clone!(
                 #[weak(rename_to = selection_toggle)]
                 row_imp.selection_toggle,
-                move |_| if selections.borrow().is_none() {
+                move |_| if selections.borrow().is_empty() {
                     let _ = ui_tx().send_blocking(UpdateUI::OpenQueueSubpage(queue_index));
                 } else {
                     selection_toggle.activate();
@@ -717,7 +709,7 @@ impl QueuePage {
             drag_row,
             #[weak]
             drag_container,
-            move |_, start_x, start_y| if queue_page.selections.borrow().is_none()
+            move |_, start_x, start_y| if queue_page.selections.borrow().is_empty()
                 && Self::should_drag(start_x)
             {
                 dragging.set_drag_state(true);
@@ -956,15 +948,15 @@ impl QueuePage {
         hold.connect_pressed(glib::clone!(
             #[weak(rename_to=queue_page)]
             self,
-            move |_, x, y| if queue_page.selections.borrow().is_none() && !Self::should_drag(x) {
+            move |_, x, y| if queue_page.selections.borrow().is_empty() && !Self::should_drag(x) {
                 let object_index = queue_page.list_box.row_at_y(y as i32).unwrap().index();
                 let queue_item_object =
                     &queue_page.queue_item_objects.borrow()[object_index as usize];
                 queue_item_object.set_selected(true);
-                queue_page.set_selection_mode(Some(vec![(
+                queue_page.set_selection_mode(vec![(
                     queue_page.model_index_to_queue(object_index as usize) as u32,
                     QueueItem::clone(queue_item_object.queue_item()),
-                )]));
+                )]);
             }
         ));
         self.list_box.add_controller(hold);
