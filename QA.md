@@ -19,7 +19,12 @@ Playback:
 
 Song Queue:
 
-- [x] Starting a new queue works as expected
+- [ ] Loading or starting new queues works as expected
+  - FIX: Loading a bad `shuffled_queue` file crashes on launch if an index is out-of-bounds of `queue`
+    - Reproducible by either manually removing items from the `queue` file or changing the `shuffled_flie`
+    - IDEA: This could be handled during the crash by clapming or removing the OOB indexes in the file
+      (or disabling shuffle mode), so it doesn't crash again on next launch. Since this is an unlikely
+      edge-case, performing runtime checks for it might be excessive.
 - [x] Adding items works as expected
 - [x] Removing items works as expected
 - [x] Removal undo works as expected

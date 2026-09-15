@@ -89,6 +89,8 @@ Ideas for improvements:
       else can be moved into that overlay tab (maybe current file details/lyrics?)
 - Queue page:
   - Show a track number as well?
+- Lyrics:
+  - Extended LRC format support (Walaoke & A2 - <https://en.wikipedia.org/wiki/LRC_(file_format)>)
 - Song page:
   - The library song page and queue subpage could display more information
     about the song, such as track number, disc, year, duration, play count,
