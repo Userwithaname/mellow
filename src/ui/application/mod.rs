@@ -219,9 +219,11 @@ impl Application {
         let library_handle = imp.library_handle.take().unwrap();
         let player_handle = imp.player_handle.take().unwrap();
         let await_components = thread::spawn(move || {
-            library_handle.join().unwrap();
-            player_handle.join().unwrap();
+            let results = (library_handle.join(), player_handle.join());
             let _ = notify_done.send(());
+
+            // Panic if either component has crashed
+            results.0.inspect(|_| results.1.unwrap()).unwrap();
         });
         if rx.recv_timeout(timeout).is_err() {
             eprintln!("Exiting - component timeout was reached");
