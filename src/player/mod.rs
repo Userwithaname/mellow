@@ -215,13 +215,12 @@ impl Player {
     ///
     /// # Errors
     /// The function may error upon handling a request:
-    /// - If a required channel receiver is closed
-    /// - Due to an unhandled `GStreamer` error
+    /// - If a `GStreamer` error has not been handled
     ///
     /// # Panics
     /// The function may panic when handling a request
     /// in some cases, such as:
-    /// - A required channel receiver is closed
+    /// - If the UI channel is closed
     /// - A crash occurs in `GStreamer`
     pub fn controller(mut self) -> Result<(), Box<dyn Error>> {
         // Required for gapless playback
@@ -623,7 +622,7 @@ impl Player {
         } else if self.current_state == State::Playing {
             // Skip the current song if the song has ended
             // or the playback time/duration cannot be determined
-            player_tx().send(PlayerRequest::SkipNext).expect(EXP_RX);
+            let _ = player_tx().send(PlayerRequest::SkipNext);
         }
 
         self.request_state(self.current_state);
@@ -801,7 +800,7 @@ impl Player {
                     if self.queue.has_next() {
                         println!("Moving to next track due to end of stream");
                         self.request_state(State::Playing);
-                        player_tx().send(PlayerRequest::LoadNext).expect(EXP_RX);
+                        let _ = player_tx().send(PlayerRequest::LoadNext);
                     } else {
                         println!("Stopping player due to end of queue");
                         self.queue.current().as_song().info().played();

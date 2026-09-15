@@ -435,7 +435,7 @@ impl Library {
     ///
     /// # Panics
     /// The function panics if `songs`, `missing`, or `check_moved` contains a
-    /// poisoned mutex
+    /// poisoned mutex, or if the UI channel is closed
     #[inline]
     fn create_connections(
         mut songs: Songs,
@@ -583,7 +583,7 @@ impl Library {
                 // Songs were already set before checking modification times
 
                 // Correct paths in the queue if any have changed
-                (player_tx().send(PlayerRequest::ValidateFilePaths)).expect(EXP_RX);
+                let _ = player_tx().send(PlayerRequest::ValidateFilePaths);
             }
 
             // Wait for the modification times check to finish
@@ -862,13 +862,9 @@ impl Library {
     pub fn rebuild() {
         if STATE.load(atomic::Ordering::Acquire) == STATE_BUSY {
             STATE.store(STATE_CANCEL, atomic::Ordering::Relaxed);
-            library_tx()
-                .send(LibraryRequest::CancelRebuild(Instant::now()))
-                .expect(EXP_RX);
+            let _ = library_tx().send(LibraryRequest::CancelRebuild(Instant::now()));
         }
-        library_tx()
-            .send(LibraryRequest::Rebuild(Instant::now()))
-            .expect(EXP_RX);
+        let _ = library_tx().send(LibraryRequest::Rebuild(Instant::now()));
     }
 
     /// Starts a new library build

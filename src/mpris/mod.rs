@@ -42,9 +42,6 @@ pub enum UpdateMPRIS {
 /// # Errors
 /// Propagates any errors from the `mpris-server` crate
 /// during initialization and when updating the metadata
-///
-/// # Panics
-/// May panic if the player or UI channel is closed
 pub async fn controller(rx: async_channel::Receiver<UpdateMPRIS>) -> zbus::Result<()> {
     let mpris_player = mpris_server::Player::builder(about::APP_ID)
         .identity(about::APP_NAME)

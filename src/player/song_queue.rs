@@ -183,11 +183,8 @@ impl SongQueue {
 
     /// Restarts the queue from the beginning
     /// Playback state has to be manually updated
-    ///
-    /// # Panics
-    /// The function panics if the player channel receiver is closed
     pub fn restart_queue(&mut self) {
-        player_tx().send(PlayerRequest::SkipTo(0)).expect(EXP_RX);
+        let _ = player_tx().send(PlayerRequest::SkipTo(0));
     }
 
     /// Creates a vec of random indexes for the shuffle mode

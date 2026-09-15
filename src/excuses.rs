@@ -7,8 +7,8 @@ pub const EXP_INIT: &str = "Item was not properly initialized";
 /// # Reason
 /// You guarantee that the channel receiver is open and the unwrap will succeed
 ///
-/// Note: For crash handling to work correctly, the main thread should _not_ panic
-/// for closed channel errors; channel `send` results should be ignored instead
+/// Note: Avoid panicking for send errors to other components, so the crash handler
+/// attempt to cleanly shutdown any components which have not crashed
 pub const EXP_RX: &str = "Channel receiver is unavailable";
 
 /// # Reason
