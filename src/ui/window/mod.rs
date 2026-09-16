@@ -48,8 +48,7 @@ impl Window {
     /// Sets up functionality to accept external file drops
     ///
     /// # Panics
-    /// The function panics if the file path is not valid UTF-8,
-    /// or if the library channel is closed
+    /// The function panics if any file path is not valid UTF-8
     #[inline]
     fn setup_drop_files(&self) {
         let drop_target =
@@ -57,10 +56,12 @@ impl Window {
         let drop_overlay = self.imp().drop_overlay.get();
         // TODO: Only show overlay for supported files
         drop_target.connect_accept({
+            let window = self.to_owned();
             let drop_overlay = drop_overlay.clone();
             move |_, _| {
-                drop_overlay.set_visible(true);
-                true
+                let accept = window.dialogs().n_items() == 0 && window.focus_child().is_none();
+                drop_overlay.set_visible(accept);
+                accept
             }
         });
         drop_target.connect_leave(move |_| drop_overlay.set_visible(false));
