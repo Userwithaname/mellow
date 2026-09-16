@@ -685,19 +685,34 @@ impl QueuePage {
         // self.drag_widget.set_cursor_from_name(Some("grabbing")); // This doesn't work
         let drag_container = self.drag_widget.parent().unwrap();
 
-        type DragState = Cell<bool>;
-        trait SetDragState {
-            fn set_drag_state(&self, dragging: bool);
-        }
-        impl SetDragState for DragState {
-            fn set_drag_state(&self, dragging: bool) {
-                self.set(dragging);
+        struct DragState(Cell<bool>);
+        impl DragState {
+            #[inline]
+            const fn new(dragging: bool) -> DragState {
+                DragState(Cell::new(dragging))
+            }
+            const fn get(&self) -> bool {
+                self.0.get()
+            }
+            fn set(&self, dragging: bool) {
+                self.0.set(dragging);
                 let _ = ui_tx().send_blocking(UpdateUI::CanCloseSheet(!dragging));
+            }
+            fn reset_state(
+                &self,
+                queue_page: &QueuePage,
+                drag_container: &gtk::Widget,
+                drag_row: &ListRow,
+            ) {
+                queue_page.for_each_row(|row, _| row.remove_css_class("highlight-top"));
+                drag_container.set_visible(false);
+                drag_row.to_default();
+                self.set(false);
             }
         }
 
         // These can be static, since they will be needed for the rest of the program runtime
-        let dragging: &'static DragState = Box::leak(Box::new(Cell::new(false)));
+        let dragging: &'static DragState = Box::leak(Box::new(DragState::new(false)));
         let dragged_item: &'static Cell<Option<QueueItem>> = Box::leak(Box::new(Cell::new(None)));
         let dragged_item_index: &'static Cell<usize> = Box::leak(Box::new(Cell::new(0)));
         let drag_offset: &'static Cell<(f64, f64)> = Box::leak(Box::new(Cell::new((0.0, 0.0))));
@@ -712,7 +727,7 @@ impl QueuePage {
             move |_, start_x, start_y| if queue_page.selections.borrow().is_empty()
                 && Self::should_drag(start_x)
             {
-                dragging.set_drag_state(true);
+                dragging.set(true);
 
                 // FIX: The cursor does not update until the mouse button is released
                 // list_box.set_cursor_from_name(Some("grabbing"));
@@ -804,8 +819,6 @@ impl QueuePage {
             #[weak]
             drag_row,
             move |gesture_drag, _| if dragging.get() {
-                // TODO: Stop dragging when escape is pressed (`dragging.set_drag_state(false)`)
-
                 let (Some((start_x, start_y)), Some((_, offset_y))) =
                     (gesture_drag.start_point(), gesture_drag.offset())
                 else {
@@ -859,10 +872,7 @@ impl QueuePage {
             #[weak]
             drag_container,
             move |gesture_drag, _| if dragging.get() {
-                queue_page.for_each_row(|row, _| row.remove_css_class("highlight-top"));
-                drag_container.set_visible(false);
-                dragging.set_drag_state(false);
-                drag_row.to_default();
+                dragging.reset_state(&queue_page, &drag_container, &drag_row);
 
                 let list_box = &queue_page.list_box;
                 list_box.set_cursor(None);
@@ -944,6 +954,20 @@ impl QueuePage {
             }
         ));
         self.list_box.add_controller(drag);
+
+        let cancel_drag_controller = gtk::EventControllerKey::new();
+        cancel_drag_controller.connect_key_pressed({
+            let queue_page = self.to_owned();
+            let drag_row = drag_row.clone();
+            move |_, key, _, _| {
+                if key.to_unicode().is_some_and(|c| c == '\u{1b}') {
+                    dragging.reset_state(&queue_page, &drag_container, &drag_row);
+                }
+                glib::Propagation::Proceed
+            }
+        });
+        self.list_box.add_controller(cancel_drag_controller);
+
         let _ = self.drag_row.set(drag_row);
     }
     #[inline]
