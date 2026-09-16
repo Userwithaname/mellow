@@ -145,7 +145,7 @@
                                 <property name="margin-start">12</property>
                                 <property name="margin-end">12</property>
                                 <child>
-                                  <object class="GtkButton" id="view_further_up">
+                                  <object class="GtkButton" id="pan_up_button">
                                     <property name="tooltip-text" translatable="yes">View Further Up</property>
                                     <signal name="clicked" handler="handle_pan_up" swapped="true"/>
                                     <property name="visible">false</property>
@@ -166,7 +166,7 @@
                                   </object>
                                 </child>
                                 <child>
-                                  <object class="GtkButton" id="view_further_down">
+                                  <object class="GtkButton" id="pan_down_button">
                                     <property name="tooltip-text" translatable="yes">View Further Down</property>
                                     <signal name="clicked" handler="handle_pan_down" swapped="true"/>
                                     <property name="visible">false</property>

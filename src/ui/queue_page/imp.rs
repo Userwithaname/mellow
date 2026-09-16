@@ -50,9 +50,9 @@ pub struct QueuePage {
     #[template_child]
     view_stack: TemplateChild<adw::ViewStack>,
     #[template_child]
-    view_further_up: TemplateChild<gtk::Button>,
+    pan_up_button: TemplateChild<gtk::Button>,
     #[template_child]
-    view_further_down: TemplateChild<gtk::Button>,
+    pan_down_button: TemplateChild<gtk::Button>,
     #[template_child]
     pub to_playing: TemplateChild<gtk::Button>,
 
@@ -192,7 +192,7 @@ impl QueuePage {
     pub fn scroll_to_model_item(&self, model_index: usize) {
         self.scroll_to_pos(
             (model_index * ROW_HEIGHT) as f64
-                + (self.view_further_up.is_visible() as i32 * PAN_UP_BUTTON_HEIGHT) as f64,
+                + (self.pan_up_button.is_visible() as i32 * PAN_UP_BUTTON_HEIGHT) as f64,
         );
     }
 
@@ -330,10 +330,10 @@ impl QueuePage {
             }
         });
 
-        let last_up_button_visible = self.view_further_up.is_visible();
+        let last_up_button_visible = self.pan_up_button.is_visible();
         let up_button_visible = repeat_mode || center > NUM_ITEMS_BEHIND;
-        self.view_further_up.set_visible(up_button_visible);
-        self.view_further_down.set_visible(
+        self.pan_up_button.set_visible(up_button_visible);
+        self.pan_down_button.set_visible(
             repeat_mode || queue_length.saturating_sub(center) > NUM_ITEMS_AHEAD, //
         );
 
@@ -773,7 +773,7 @@ impl QueuePage {
                         set_fallback_offsets(
                             &drag_row,
                             drag_offset,
-                            queue_page.view_further_up.is_visible(),
+                            queue_page.pan_up_button.is_visible(),
                             &queue_page.list_box,
                             start_y,
                         );
@@ -782,7 +782,7 @@ impl QueuePage {
                     set_fallback_offsets(
                         &drag_row,
                         drag_offset,
-                        queue_page.view_further_up.is_visible(),
+                        queue_page.pan_up_button.is_visible(),
                         &queue_page.list_box,
                         start_y,
                     );
@@ -822,8 +822,8 @@ impl QueuePage {
                     // Focus the row at target position (or a pan button) so it scrolls into view
                     const LAST_ITEM_INDEX: i32 = (NUM_ITEMS_AHEAD + NUM_ITEMS_BEHIND) as i32 - 1;
                     match target_row_index {
-                        0 => queue_page.view_further_up.grab_focus(),
-                        LAST_ITEM_INDEX => queue_page.view_further_down.grab_focus(),
+                        0 => queue_page.pan_up_button.grab_focus(),
+                        LAST_ITEM_INDEX => queue_page.pan_down_button.grab_focus(),
                         _ => row.grab_focus(),
                     };
 
@@ -981,7 +981,7 @@ impl QueuePage {
             self,
             move |_, _| queue_page.stop_pan_loop()
         ));
-        self.view_further_up.add_controller(hold_to_pan_up);
+        self.pan_up_button.add_controller(hold_to_pan_up);
 
         let hold_to_pan_down = gtk::GestureLongPress::new();
         hold_to_pan_down.connect_pressed(glib::clone!(
@@ -994,7 +994,7 @@ impl QueuePage {
             self,
             move |_, _| queue_page.stop_pan_loop()
         ));
-        self.view_further_down.add_controller(hold_to_pan_down);
+        self.pan_down_button.add_controller(hold_to_pan_down);
     }
     #[inline]
     fn setup_reset_scroll_button_visibility(&self) {
@@ -1012,7 +1012,7 @@ impl QueuePage {
                                 let scroll_pos = vadjustment.value() as usize;
                                 let view_height = queue_page.scrolled_window.height() as usize;
                                 let playing_item_pos = index * ROW_HEIGHT
-                                    + queue_page.view_further_up.is_visible() as usize
+                                    + queue_page.pan_up_button.is_visible() as usize
                                         * PAN_UP_BUTTON_HEIGHT as usize;
                                 !(scroll_pos..scroll_pos + view_height - ROW_HEIGHT)
                                     .contains(&playing_item_pos)
