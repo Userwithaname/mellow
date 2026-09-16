@@ -812,19 +812,24 @@ impl QueuePage {
                     return;
                 };
 
-                // IDEA: Offset `start_y` so it points to the center of the dragged row
-
-                if let Some(to_row_index) = (queue_page.list_box)
-                    .row_at_y((start_y + offset_y) as i32)
-                    .map(|row| row.index())
-                {
-                    let from_row_index = (queue_page.list_box)
+                if let Some(row) = (queue_page.list_box).row_at_y((start_y + offset_y) as i32) {
+                    let source_row_index = (queue_page.list_box)
                         .row_at_y(start_y as i32)
                         .map(|row| row.index())
                         .unwrap_or_default();
+                    let target_row_index = row.index();
+
+                    // Focus the row at target position (or a pan button) so it scrolls into view
+                    const LAST_ITEM_INDEX: i32 = (NUM_ITEMS_AHEAD + NUM_ITEMS_BEHIND) as i32 - 1;
+                    match target_row_index {
+                        0 => queue_page.view_further_up.grab_focus(),
+                        LAST_ITEM_INDEX => queue_page.view_further_down.grab_focus(),
+                        _ => row.grab_focus(),
+                    };
+
                     queue_page.for_each_row(|list_row, index| {
-                        if to_row_index - 1 == index && to_row_index < from_row_index
-                            || to_row_index == index && to_row_index > from_row_index
+                        if target_row_index - 1 == index && target_row_index < source_row_index
+                            || target_row_index == index && target_row_index > source_row_index
                         {
                             list_row.add_css_class("highlight-top");
                         } else {
@@ -832,6 +837,8 @@ impl QueuePage {
                         }
                     });
                 } else {
+                    // TODO: Pan while dragging items past the first/last visible item
+
                     queue_page.for_each_row(|row, _| row.remove_css_class("highlight-top"));
                 }
 

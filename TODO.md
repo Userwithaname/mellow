@@ -1,8 +1,8 @@
 Song queue:
 
 - [x] Reorder using drag-&-drop
-  - TODO: Improvement: Scroll when reaching top/bottom edges
-    - IDEA: Also pan when dragging onto the pan button
+  - [x] Scroll when dragging items off-screen
+  - [ ] Pan when dragging items past the last visible item
 - [-] Multi-selection mode
   - IDEA: Shift+click to select everything between the last selected item and the clicked item
   - IDEA: Long-press+drag to select multiple items
