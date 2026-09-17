@@ -833,15 +833,13 @@ impl QueuePage {
                     let target_row_index = row.index();
 
                     // Focus the row at target position (or a pan button) so it scrolls into view
-                    if target_row_index == 0 {
-                        queue_page.pan_up_button.grab_focus();
-                    } else if target_row_index
-                        == queue_page.queue_item_objects.borrow().len() as i32 - 1
-                    {
-                        queue_page.pan_down_button.grab_focus();
-                    } else {
-                        row.grab_focus();
-                    }
+                    match target_row_index {
+                        0 => queue_page.pan_up_button.grab_focus(),
+                        i if i == queue_page.queue_item_objects.borrow().len() as i32 - 1 => {
+                            queue_page.pan_down_button.grab_focus()
+                        }
+                        _ => row.grab_focus(),
+                    };
 
                     queue_page.for_each_row(|list_row, index| {
                         if target_row_index - 1 == index && target_row_index < source_row_index
