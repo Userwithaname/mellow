@@ -54,5 +54,5 @@ pub const fn approx_eq(left: f64, right: f64) -> bool {
 #[must_use]
 pub const fn wrap_index(index: isize, len: usize) -> usize {
     let len = len as isize;
-    (index + (len * (index < 0) as isize) - (len * (index >= len) as isize)) as usize
+    (index + len * ((index < 0) as isize - (index >= len) as isize)) as usize
 }
