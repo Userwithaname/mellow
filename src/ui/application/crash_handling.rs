@@ -3,7 +3,7 @@ use std::{fs, panic::PanicHookInfo, process, thread};
 use crate::{queue_file, shuffled_queue_file, ui::UpdateUI};
 
 /// A panic hook (see `std::panic::hook`) to ensure the process exits completely
-/// if a single thread panics, and handles also some specific cases as well
+/// if a single thread panics, and also handles some specific cases as well
 ///
 /// If possible, a crash dialog is presented before closing. This is handled
 /// through `UpdateUI::CrashNotice`, which attempts to cleanly shutdown all
