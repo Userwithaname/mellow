@@ -22,6 +22,7 @@
       <li>Editable song queue</li>
       <li>Fully-featured local music library</li>
       <li>Library categorization using custom tags</li>
+      <li>Displays both synchronized and unsynchronized lyrics</li>
       <li>Detects moved files, so their library data is preserved</li>
       <li>Gapless playback</li>
       <li>MPRIS integration</li>
@@ -52,6 +53,29 @@
   </requires>
 
   <releases>
+    <release version="0.4.5" date="2026-09-18">
+      <description>
+        <p>Features &amp; improvements:</p>
+        <ul>
+          <li>Now supports synchronized lyrics (in LRC format)</li>
+          <li>Lyrics are now loaded from LRC files when available</li>
+          <li>Now loads lyrics from the 'UnsyncedLyrics' tag as well</li>
+          <li>When reordering the queue and dragging items off-screen, the queue now scrolls to move the target item into view</li>
+          <li>Reordering the queue by dragging items can now be cancelled using the escape key</li>
+          <li>Queue selection mode now exits when no more items are selected</li>
+          <li>The 'About' dialog now includes a link to the GitHub repository</li>
+        </ul>
+        <p>Fixes:</p>
+        <ul>
+          <li>File drop overlay no longer appears when dragging text within the application</li>
+          <li>External file drops are now only accepted when no dialog window is open</li>
+          <li>In the event of a crash, unaffected components are now more likely to shutdown cleanly</li>
+          <li>Crash error messages are now shown more reliably, and encourage users to report the issue</li>
+          <li>No longer crashes on launch if the <em>shuffled_queue</em> file is empty or contains no valid entries</li>
+          <li>If a crash was caused by a faulty <em>shuffled_queue</em> file, invalid entries are now removed from it on crash</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.4.4" date="2026-09-12">
       <description>
         <p>Features &amp; improvements:</p>
