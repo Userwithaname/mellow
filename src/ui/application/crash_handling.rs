@@ -51,7 +51,7 @@ fn handle_player_crash(info: &mut String) {
         && let mut invalid_count = 0
         && let shuffled = (shuffled.lines())
             .filter_map(|line| match line.parse::<usize>() {
-                Ok(index) if index <= queue_len => Some(index.to_string() + "\n"),
+                Ok(index) if index < queue_len => Some(index.to_string() + "\n"),
                 _ => {
                     invalid_count += 1;
                     None
