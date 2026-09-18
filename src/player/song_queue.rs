@@ -697,11 +697,16 @@ impl SongQueue {
             && let queue = library.songs_from_paths(lines)
             && !queue.is_empty()
         {
-            let shuffled = match shuffle.parse::<bool>() {
-                Ok(true) if let Ok(shuffled) = fs::read_to_string(shuffled_queue_file()) => {
-                    Some((shuffled.lines().filter_map(|line| line.trim().parse().ok())).collect())
-                }
-                _ => None,
+            let shuffled = if shuffle.parse::<bool>().unwrap_or_default()
+                && let Ok(shuffled) = fs::read_to_string(shuffled_queue_file()).map(|shuffled| {
+                    (shuffled.lines().filter_map(|line| line.trim().parse().ok()))
+                        .collect::<Vec<usize>>()
+                })
+                && !shuffled.is_empty()
+            {
+                Some(shuffled)
+            } else {
+                None
             };
 
             let player_tx = player_tx();
