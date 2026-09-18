@@ -49,17 +49,18 @@ fn handle_player_crash(info: &mut String) {
         && let queue_len = queue.lines().skip(4).count()
         && let Ok(shuffled) = fs::read_to_string(shuffled_queue_file())
         && let mut invalid_count = 0
-        && let shuffled = (shuffled.lines()).filter_map(|line| match line.parse::<usize>() {
-            Ok(index) if index <= queue_len => Some(index.to_string() + "\n"),
-            _ => {
-                invalid_count += 1;
-                None
-            }
-        })
+        && let shuffled = (shuffled.lines())
+            .filter_map(|line| match line.parse::<usize>() {
+                Ok(index) if index <= queue_len => Some(index.to_string() + "\n"),
+                _ => {
+                    invalid_count += 1;
+                    None
+                }
+            })
+            .collect::<String>()
+        && invalid_count > 0
     {
-        if fs::write(shuffled_queue_file(), shuffled.collect::<String>()).is_ok()
-            && invalid_count > 0
-        {
+        if fs::write(shuffled_queue_file(), shuffled).is_ok() {
             return info.push_str(&format!(
                 "{invalid_count} invalid item(s) have been removed from the shuffled queue\
                 \n\nIf you did not manually edit the `queue` or `shuffled_queue` files, or if the\
