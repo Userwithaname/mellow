@@ -1,12 +1,13 @@
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::RefCell;
 use gtk::{gio, glib};
-use std::panic::{self, PanicHookInfo};
+use std::panic;
 use std::path::PathBuf;
 use std::sync::mpsc;
 use std::time::Duration;
 use std::{process, thread};
 
+mod crash_handling;
 mod imp;
 
 use crate::excuses::EXP_INIT;
@@ -34,30 +35,8 @@ impl Application {
 
         // Only runs once, because `init_channels` returns an error if already initialized
         if let Ok((player_rx, library_rx, ui_rx, mpris_rx)) = init_channels() {
-            // Close the app entirely if a component thread panics
-            panic::set_hook(Box::new(|info: &PanicHookInfo| {
-                let location = match info.location() {
-                    Some(location) => format!(
-                        "{}@{}:{}",
-                        location.file(),
-                        location.line(),
-                        location.column()
-                    ),
-                    None => "(unknown)".to_owned(),
-                };
-                let info = format!(
-                    "Thread `{}` panicked at {location}:\n{}",
-                    thread::current().name().unwrap_or_default(),
-                    info.payload_as_str().unwrap_or_default()
-                );
-                eprintln!("{info}\n");
-
-                // TODO: Add handling for bad `shuffled_queue` file (which may crash on launch)
-
-                if ui_tx().send_blocking(UpdateUI::CrashNotice(info)).is_err() {
-                    process::exit(1);
-                }
-            }));
+            // Show an error and close the app entirely if any thread panics
+            panic::set_hook(Box::new(|info| crash_handling::handle_crash(info, ui_tx())));
 
             // Starting the components in parallel with GTK (inside `init_components`)
             // results in faster launch times, but this requires moving them into
