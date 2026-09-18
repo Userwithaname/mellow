@@ -1,6 +1,7 @@
 use adw::prelude::AdwDialogExt;
 use gtk::{License, glib::object::IsA};
 
+pub const APP_URL: &str = "https://github.com/Userwithaname/mellow";
 pub const APP_ID: &str = env!("APP_ID");
 pub const APP_NAME: &str = env!("APP_NAME");
 pub const APP_VERSION: &str = env!("APP_VERSION");
@@ -20,14 +21,14 @@ pub fn show_about_dialog(parent: &impl IsA<gtk::Widget>) {
     let about = adw::AboutDialog::builder()
         .application_icon(APP_ID)
         .application_name(APP_NAME)
-        .version(APP_VERSION)
-        .release_notes_version(APP_VERSION)
-        .release_notes(RELEASE_NOTES)
-        .issue_url("https://github.com/Userwithaname/mellow/issues/")
-        .developers(DEVELOPERS)
-        .designers(DESIGNERS)
         .copyright(COPYRIGHT)
+        .designers(DESIGNERS)
+        .developers(DEVELOPERS)
         .license_type(LICENSE_TYPE)
+        .release_notes(RELEASE_NOTES)
+        .version(APP_VERSION)
+        .website(APP_URL)
+        .issue_url([APP_URL, "/issues/"].concat())
         .build();
     about.present(Some(parent));
 }

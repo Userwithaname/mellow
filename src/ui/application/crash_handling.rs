@@ -1,5 +1,6 @@
 use std::{fs, panic::PanicHookInfo, process, thread};
 
+use crate::about::APP_URL;
 use crate::{queue_file, shuffled_queue_file, ui::UpdateUI};
 
 /// A panic hook (see `std::panic::hook`) to ensure the process exits completely
@@ -38,7 +39,7 @@ pub(super) fn handle_crash(info: &PanicHookInfo, ui_tx: &async_channel::Sender<U
 }
 
 fn append_issues_link(info: &mut String) {
-    info.push_str("Please report this issue on https://github.com/Userwithaname/mellow/issues");
+    info.push_str(&format!("Please report this issue on {APP_URL}/issues"));
 }
 
 fn handle_player_crash(info: &mut String) {
@@ -64,7 +65,7 @@ fn handle_player_crash(info: &mut String) {
             return info.push_str(&format!(
                 "{invalid_count} invalid item(s) have been removed from the shuffled queue\
                 \n\nIf you did not manually edit the `queue` or `shuffled_queue` files, or if the \
-                issue persists, please report this issue on https://github.com/Userwithaname/mellow/issues"
+                issue persists, please report this issue on {APP_URL}/issues"
             ));
         }
     }
