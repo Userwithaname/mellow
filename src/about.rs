@@ -26,6 +26,7 @@ pub fn show_about_dialog(parent: &impl IsA<gtk::Widget>) {
         .developers(DEVELOPERS)
         .license_type(LICENSE_TYPE)
         .release_notes(RELEASE_NOTES)
+        .release_notes_version(APP_VERSION)
         .version(APP_VERSION)
         .website(APP_URL)
         .issue_url([APP_URL, "/issues/"].concat())
