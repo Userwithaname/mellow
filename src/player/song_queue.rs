@@ -623,9 +623,6 @@ impl SongQueue {
 
     /// Serializes `self.queue` to a file on disk, or removes
     /// the file if `remember` is `false`
-    ///
-    /// # Panics
-    /// The function panics if `CONFIG_DIR` is unititialized
     #[inline]
     pub fn save_queue(&self, remember: bool, time_ms: Option<u64>) {
         let queue_file = queue_file();
@@ -658,9 +655,6 @@ impl SongQueue {
     }
     /// Saves `self.shuffled` queue to a file on disk, or
     /// removes the file if `remember` is `false`
-    ///
-    /// # Panics
-    /// The function panics if `CONFIG_DIR` is unititialized
     #[inline]
     pub fn save_shuffled_queue(&self, remember: bool) {
         let shuffled_file = shuffled_queue_file();
