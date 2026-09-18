@@ -60,14 +60,13 @@ fn handle_player_crash(info: &mut String) {
             })
             .collect::<String>()
         && invalid_count > 0
+        && fs::write(shuffled_queue_file(), shuffled).is_ok()
     {
-        if fs::write(shuffled_queue_file(), shuffled).is_ok() {
-            return info.push_str(&format!(
-                "{invalid_count} invalid item(s) have been removed from the shuffled queue\
+        return info.push_str(&format!(
+            "{invalid_count} invalid item(s) have been removed from the shuffled queue\
                 \n\nIf you did not manually edit the `queue` or `shuffled_queue` files, or if the \
                 issue persists, please report this issue on {APP_URL}/issues"
-            ));
-        }
+        ));
     }
     append_issues_link(info);
 }

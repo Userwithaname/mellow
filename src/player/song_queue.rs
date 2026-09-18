@@ -623,6 +623,9 @@ impl SongQueue {
 
     /// Serializes `self.queue` to a file on disk, or removes
     /// the file if `remember` is `false`
+    ///
+    /// # Panics
+    /// The function panics if any song path is not valid UTF-8
     #[inline]
     pub fn save_queue(&self, remember: bool, time_ms: Option<u64>) {
         let queue_file = queue_file();
