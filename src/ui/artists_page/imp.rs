@@ -2,6 +2,7 @@ use adw::{prelude::*, subclass::prelude::*};
 use core::cell::{Cell, Ref, RefCell};
 use core::cmp;
 use fastrand;
+use glib::subclass::ObjectImplRef;
 use gtk::CompositeTemplate;
 use gtk::{gio, glib};
 use std::sync::Arc;
@@ -133,6 +134,13 @@ impl ArtistsPage {
 
         let mut artist_filters = self.artist_filters.borrow_mut();
         let mut new_tags = Vec::with_capacity(artist_filters.tags.len());
+        let mark_filters_changed = |page: ObjectImplRef<ArtistsPage>| {
+            glib::idle_add_local_once(move || {
+                page.remember_scroll_pos();
+                page.filter.borrow().changed(gtk::FilterChange::Different);
+                page.restore_scroll_pos();
+            });
+        };
 
         let global_tags = tag_list::read_global_tags();
         if global_tags.tags().is_empty() {
@@ -167,14 +175,30 @@ impl ArtistsPage {
                         true => page.artist_filters.borrow_mut().tags.add(tag.clone()),
                         false => page.artist_filters.borrow_mut().tags.remove(&tag),
                     }
-
-                    glib::idle_add_local_once(move || {
-                        page.remember_scroll_pos();
-                        page.filter.borrow().changed(gtk::FilterChange::Different);
-                        page.restore_scroll_pos();
-                    });
+                    mark_filters_changed(page);
                 }
             ));
+
+            let toggle_all = gtk::GestureLongPress::new();
+            toggle_all.connect_pressed(glib::clone!(
+                #[weak(rename_to = page)]
+                self,
+                #[weak]
+                toggle_button,
+                move |_, _, _| {
+                    *page.artist_filters.borrow_mut().tags.get_mut() =
+                        match toggle_button.is_active() {
+                            false => tag_list::read_global_tags()
+                                .tag_names_owned()
+                                .chain(["untagged".to_string()])
+                                .collect(),
+                            true => vec![],
+                        };
+                    page.update_tag_filter_list();
+                    mark_filters_changed(page);
+                }
+            ));
+            toggle_button.add_controller(toggle_all);
 
             self.filtered_tags.append(&toggle_button);
         }

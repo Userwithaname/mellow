@@ -4,6 +4,7 @@ use core::cmp;
 use core::hint::cold_path;
 use core::sync::atomic::Ordering;
 use fastrand;
+use glib::subclass::ObjectImplRef;
 use gtk::CompositeTemplate;
 use gtk::{gdk, gio, glib};
 use std::sync::Arc;
@@ -183,6 +184,13 @@ impl SongsPage {
 
         let mut song_filters = self.song_filters.borrow_mut();
         let mut new_tags = Vec::with_capacity(song_filters.tags.len());
+        let mark_filters_changed = |page: ObjectImplRef<SongsPage>| {
+            glib::idle_add_local_once(move || {
+                page.remember_scroll_pos();
+                page.filter.borrow().changed(gtk::FilterChange::Different);
+                page.restore_scroll_pos();
+            });
+        };
 
         let global_tags = tag_list::read_global_tags();
         if global_tags.tags().is_empty() {
@@ -217,14 +225,30 @@ impl SongsPage {
                         true => page.song_filters.borrow_mut().tags.add(tag.clone()),
                         false => page.song_filters.borrow_mut().tags.remove(&tag),
                     }
-
-                    glib::idle_add_local_once(move || {
-                        page.remember_scroll_pos();
-                        page.filter.borrow().changed(gtk::FilterChange::Different);
-                        page.restore_scroll_pos();
-                    });
+                    mark_filters_changed(page);
                 }
             ));
+
+            let toggle_all = gtk::GestureLongPress::new();
+            toggle_all.connect_pressed(glib::clone!(
+                #[weak(rename_to = songs_page)]
+                self,
+                #[weak]
+                toggle_button,
+                move |_, _, _| {
+                    *songs_page.song_filters.borrow_mut().tags.get_mut() =
+                        match toggle_button.is_active() {
+                            false => tag_list::read_global_tags()
+                                .tag_names_owned()
+                                .chain(["untagged".to_string()])
+                                .collect(),
+                            true => vec![],
+                        };
+                    songs_page.update_tag_filter_list();
+                    mark_filters_changed(songs_page);
+                }
+            ));
+            toggle_button.add_controller(toggle_all);
 
             self.filtered_tags.append(&toggle_button);
         }
