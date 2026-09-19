@@ -190,7 +190,7 @@ impl ArtistsPage {
                         match toggle_button.is_active() {
                             false => tag_list::read_global_tags()
                                 .tag_names_owned()
-                                .chain(["untagged".to_string()])
+                                .chain(["untagged".to_owned()])
                                 .collect(),
                             true => vec![],
                         };
