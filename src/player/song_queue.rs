@@ -517,9 +517,9 @@ impl SongQueue {
                         queue
                             // SAFETY: `missing_items` (`index`) is built using `.enumerate`
                             // (`queue` is assigned from `self.songs.clone()`, which could
-                            // not have changed because the song queue is single-threaded)
+                            // not have changed because `&mut self` is an exclusive refrence)
                             .get_unchecked(index)
-                            // SAFETY: The above loop returns early if item is not a song
+                            // SAFETY: The above loop ensures that each index points to a `Song`
                             .as_song_unchecked()
                     };
                     let new_song = song.info().load_basic_and(|new_song_info| {
@@ -628,9 +628,9 @@ impl SongQueue {
     /// The function panics if any song path is not valid UTF-8
     #[inline]
     pub fn save_queue(&self, remember: bool, time_ms: Option<u64>) {
-        let queue_file = queue_file();
+        let queue_file = &queue_file();
         if !remember {
-            let _ = fs::remove_file(&queue_file);
+            let _ = fs::remove_file(queue_file);
             return;
         }
         let contents = self.index.to_string()
@@ -650,8 +650,8 @@ impl SongQueue {
                     },
                 })
                 .collect::<String>()
-                .trim();
-        match write_file_create_dir_all(&queue_file, contents) {
+                .trim_end();
+        match write_file_create_dir_all(queue_file, contents) {
             Ok(()) => println!("Song queue state successfully written to disk"),
             Err(e) => eprintln!("Problems writing queue state: {e}"),
         }
@@ -660,15 +660,15 @@ impl SongQueue {
     /// removes the file if `remember` is `false`
     #[inline]
     pub fn save_shuffled_queue(&self, remember: bool) {
-        let shuffled_file = shuffled_queue_file();
+        let shuffled_file = &shuffled_queue_file();
         if !(self.shuffle && remember) {
-            let _ = fs::remove_file(&shuffled_file);
+            let _ = fs::remove_file(shuffled_file);
             return;
         }
         let contents = (self.shuffled.iter())
             .map(|index| index.to_string() + "\n")
             .collect::<String>();
-        match fs::write(&shuffled_file, contents.trim()) {
+        match fs::write(shuffled_file, contents.trim_end()) {
             Ok(()) => println!("Shuffled song queue successfully written to disk"),
             Err(e) => eprintln!("Problems writing queue state: {e}"),
         }

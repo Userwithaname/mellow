@@ -73,6 +73,7 @@ pub async fn controller(rx: async_channel::Receiver<UpdateMPRIS>) -> zbus::Resul
     glib::spawn_future_local(mpris_player.run());
 
     loop {
+        #[allow(clippy::missing_panics_doc, reason = "MPRIS_TX keeps the channel open")]
         match rx.recv().await.unwrap() {
             UpdateMPRIS::SongInfo(QueueItem::Song(song)) => {
                 let mut info = song.info();

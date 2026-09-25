@@ -11,10 +11,8 @@ use crate::ui::{LibraryObject, LibrarySort, Sortable, UpdateUI, ui_tx};
 mod imp;
 
 glib::wrapper! {
-    /// # Safety
-    /// Either construct using `AlbumObject::new()`, or ensure
-    /// that `….imp().first_song` is initialized if constructing
-    /// manually. Failing to do so will lead to undefined behavior.
+    /// # Safety invariants
+    /// `shared_album` on `imp::AlbumObject` must be assigned (construct using `AlbumObject::new()`)
     pub struct AlbumObject(ObjectSubclass<imp::AlbumObject>);
 }
 

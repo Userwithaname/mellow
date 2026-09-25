@@ -8,10 +8,8 @@ use crate::ui::{LibraryObject, LibrarySort, Sortable};
 mod imp;
 
 glib::wrapper! {
-    /// # Safety
-    /// Either construct using `ArtistObject::new()`, or ensure
-    /// that `….imp().shared_artist` is initialized if constructing
-    /// manually. Failing to do so will lead to undefined behavior.
+    /// # Safety invariants
+    /// `shared_artist` on `imp::ArtistObject` must be assigned (construct using `ArtistObject::new()`)
     pub struct ArtistObject(ObjectSubclass<imp::ArtistObject>);
 }
 

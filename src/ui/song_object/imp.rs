@@ -5,8 +5,8 @@ use glib::Properties;
 use gtk::{gdk, glib};
 use std::sync::Arc;
 
+use super::SongData;
 use crate::library::SharedSong;
-use crate::ui::SongData;
 
 #[derive(Properties, Default)]
 #[properties(wrapper_type = super::SongObject)]
@@ -33,7 +33,7 @@ pub struct SongObject {
 impl SongObject {
     #[inline]
     #[must_use]
-    pub fn shared_song(&self) -> &SharedSong {
+    pub(super) fn shared_song(&self) -> &SharedSong {
         // SAFETY: Must be constructed using `SongObject::new()`
         unsafe { self.shared_song.get().unwrap_unchecked() }
     }

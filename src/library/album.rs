@@ -10,9 +10,9 @@ use crate::player::QueueItem;
 pub struct Album {
     pub(super) title: String,
     pub(super) year: u16,
-    /// # Safety
-    /// Ensure `songs` is never empty (construct using `NewSharedAlbum::new_album`)
-    songs: AlbumSongs, // Private to ensure safety requirement
+    /// # Safety invariants
+    /// Must never be empty (construct using `NewSharedAlbum::new_album`)
+    pub(self) songs: AlbumSongs, // Private to ensure safety requirement
     pub(super) artist: SharedArtist,
     pub(super) user_info: UserAlbumInfo,
 }

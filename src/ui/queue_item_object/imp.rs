@@ -6,9 +6,9 @@ use glib::Properties;
 use gtk::{gdk, glib};
 use std::sync::Arc;
 
+use super::QueueItemData;
 use crate::library::unload_unused::UsedBy;
 use crate::player::QueueItem;
-use crate::ui::QueueItemData;
 
 #[derive(Properties, Default)]
 #[properties(wrapper_type = super::QueueItemObject)]

@@ -66,8 +66,8 @@ impl QueueItem {
     /// checking if it is the correct variant
     ///
     /// # Safety
-    /// The caller must be certain that the `QueueItem` is always
-    /// a `Song`, otherwise this will result in undefined behavior
+    /// The caller must ensure that the `QueueItem` is a `Song`,
+    /// otherwise this will result in undefined behavior
     #[inline]
     #[must_use]
     pub const unsafe fn as_song_unchecked(&self) -> &SharedSong {

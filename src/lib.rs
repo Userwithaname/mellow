@@ -86,9 +86,6 @@ pub fn songs_file() -> String {
     [config_dir(), "songs"].concat()
 }
 /// Returns the `queue` file path, used to restore the previous queue
-///
-/// # Safety
-/// Causes undefined behavior if called before `init_globals`
 #[inline]
 #[must_use]
 pub fn queue_file() -> String {

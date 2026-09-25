@@ -5,8 +5,8 @@ use glib::Properties;
 use gtk::{gdk, glib};
 use std::sync::Arc;
 
+use super::AlbumData;
 use crate::library::SharedAlbum;
-use crate::ui::AlbumData;
 
 #[derive(Properties, Default)]
 #[properties(wrapper_type = super::AlbumObject)]
