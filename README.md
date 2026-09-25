@@ -67,7 +67,7 @@ flatpak install --user ~/Downloads/io.github.userwithaname.Mellow.x86_64.flatpak
 flatpak install --user ~/Downloads/io.github.userwithaname.Mellow.aarch64.flatpak
 ```
 
-For building Mellow from source, see [BUILDING.rs](BUILDING.rs)
+For building Mellow from source, see [BUILDING.md](BUILDING.md)
 
 > [!TIP]
 > By building from source, it may be possible to run Mellow on other platforms
