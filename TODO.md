@@ -123,9 +123,3 @@ Meta:
   - TODO: Add release notes: <https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#release-notes>
 - [ ] Offline build support: <https://docs.flathub.org/docs/for-app-authors/requirements#no-network-access-during-build>
 > Go through everything again in detail before submitting (<https://docs.flathub.org/docs/category/for-app-authors>)
-
-GitHub:
-
-- Cleanup README & create a wiki page
-  - Move installation instructions to the wiki
-  - Add link shortcuts (see the Rust's README for reference: <https://github.com/rust-lang/rust/blob/main/README.md?plain=1>)

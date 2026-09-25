@@ -73,7 +73,7 @@ For building Mellow from source, see [BUILDING.rs](BUILDING.rs)
 > By building from source, it may be possible to run Mellow on other platforms
 
 > [!TIP]
-> Existing configurations are expected to work with all future stable versions of Mellow, but tt
+> Existing configurations are expected to work with all future stable versions of Mellow, but it
 > is recommended to backup your configuration if you plan on trying older versions or commits
 
 # Uninstalling
