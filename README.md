@@ -15,7 +15,7 @@
     <a href="#features">Features</a> |
     <a href="#installing">Installing</a> |
     <a href="#uninstalling">Uninstalling</a> |
-    <a href="#./BUILDING.rs">Building</a>
+    <a href="BUILDING.md">Building</a>
   </p>
 </p>
 
