@@ -35,29 +35,29 @@ impl Lyrics {
         let mut offset_ms = 0isize;
         let mut synced_lyrics = Vec::<SyncedLyric>::new();
         for line in contents.lines() {
-            let mut split = line.split(']');
-            let Some(lyric) = split.next_back() else {
+            let mut parts = line.split(']');
+            let Some(mut lyric) = parts.next_back().map(String::from) else {
                 continue;
             };
 
             let mut times = Vec::new();
-            let mut cur_split = split.next();
-            while let Some(Some(Some(time))) = cur_split.map(|s| s.get(1..).map(timestamp_to_ms)) {
-                cur_split = split.next();
-                times.push(time);
-            }
+            let parts = parts.skip_while(|part| match part.get(1..).map(timestamp_to_ms) {
+                Some(Some(time)) => {
+                    times.push(time);
+                    true
+                }
+                _ => false,
+            });
 
-            // Handling for the ']' character in the actual lyrics and tags
-            let mut lyric = lyric.to_owned();
-            let mut reinsert = String::new();
-            while let Some(part) = cur_split {
+            // Handling for tags and ']' characters in the actual lyrics
+            let reinsert = parts.fold(String::new(), |mut reinsert, part| {
                 if let Some(Ok(offset)) = part.split_once("offset:").map(|o| o.1.trim().parse()) {
                     offset_ms = offset;
                 }
-                cur_split = split.next();
                 reinsert.push_str(part);
                 reinsert.push(']');
-            }
+                reinsert
+            });
             if !reinsert.is_empty() {
                 lyric = [reinsert, lyric].concat();
             }
