@@ -421,10 +421,7 @@ impl SongQueue {
 
     /// Enables or disables shuffle mode for the queue
     pub fn set_shuffle(&mut self, shuffle: bool) {
-        // TODO: Keep stoppers in the same place in the queue when toggling shuffle
-        if self.shuffle == shuffle {
-            return;
-        }
+        // IDEA: Keep stoppers in the same place in the queue when toggling shuffle
         if !shuffle && !self.is_empty() {
             self.index = self.current_index();
         }
@@ -445,12 +442,11 @@ impl SongQueue {
 
     /// Enables or disables repeat mode for the queue
     pub fn set_repeat(&mut self, repeat: bool) {
-        if self.repeat == repeat {
-            return;
-        }
         self.repeat = repeat;
         self.ui_update_repeat();
-        self.ui_update_queue();
+        if !self.is_empty() {
+            self.ui_update_queue();
+        }
     }
 
     /// Returns the current repeat mode for the queue
@@ -707,6 +703,9 @@ impl SongQueue {
             };
 
             let player_tx = player_tx();
+            if repeat.parse().unwrap_or_default() {
+                let _ = player_tx.send(PlayerRequest::SetRepeat(true));
+            }
             player_tx.send(PlayerRequest::LoadQueue {
                 queue,
                 shuffled,
@@ -714,9 +713,6 @@ impl SongQueue {
             })?;
             if let Ok(time) = time.parse() {
                 let _ = player_tx.send(PlayerRequest::SeekToTime(ClockTime::from_mseconds(time)));
-            }
-            if repeat.parse().unwrap_or_default() {
-                let _ = player_tx.send(PlayerRequest::SetRepeat(true));
             }
 
             return Ok(());

@@ -30,8 +30,10 @@ pub struct QueuePage {
     header_normal: TemplateChild<adw::HeaderBar>,
     #[template_child]
     pub shuffle_toggle: TemplateChild<gtk::ToggleButton>,
+    pub shuffle_signal_handler: OnceCell<glib::SignalHandlerId>,
     #[template_child]
     pub repeat_toggle: TemplateChild<gtk::ToggleButton>,
+    pub repeat_signal_handler: OnceCell<glib::SignalHandlerId>,
 
     #[template_child]
     header_selection: TemplateChild<adw::HeaderBar>,
@@ -84,14 +86,6 @@ struct ItemNotFoundError;
 
 #[gtk::template_callbacks]
 impl QueuePage {
-    #[template_callback]
-    pub fn handle_set_repeat(&self, toggle_button: &gtk::ToggleButton) {
-        let _ = player_tx().send(PlayerRequest::SetRepeat(toggle_button.is_active()));
-    }
-    #[template_callback]
-    pub fn handle_set_shuffle(&self, toggle_button: &gtk::ToggleButton) {
-        let _ = player_tx().send(PlayerRequest::SetShuffle(toggle_button.is_active()));
-    }
     #[template_callback]
     pub fn handle_open_library(&self) {
         let _ = ui_tx().send_blocking(UpdateUI::FocusLibrary);
@@ -1106,10 +1100,13 @@ impl ObjectSubclass for QueuePage {
 }
 impl ObjectImpl for QueuePage {
     fn constructed(&self) {
-        // Shuffle and repeat could be set manually here to ensure
-        // the correct icons are used if they differ in the UI file
-        // self.obj().update_shuffle(false);
-        // self.obj().update_repeat(false);
+        // Remembering the handler IDs so handling can be skipped when needed
+        let _ = (self.shuffle_signal_handler).set(self.shuffle_toggle.connect_toggled(|toggle| {
+            let _ = player_tx().send(PlayerRequest::SetShuffle(toggle.is_active()));
+        }));
+        let _ = (self.repeat_signal_handler).set(self.repeat_toggle.connect_toggled(|toggle| {
+            let _ = player_tx().send(PlayerRequest::SetRepeat(toggle.is_active()));
+        }));
 
         // FIX: Doesn't work when the queue is first loaded
         self.next_scroll_pos.set(QueueScrollAction::ToPlaying);

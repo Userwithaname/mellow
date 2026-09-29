@@ -23,13 +23,11 @@
             </child>
             <child type="end">
               <object class="GtkToggleButton" id="shuffle_toggle">
-                <signal name="toggled" handler="handle_set_shuffle" swapped="true"/>
                 <property name="tooltip-text" translatable="yes">Shuffle</property>
               </object>
             </child>
             <child type="end">
               <object class="GtkToggleButton" id="repeat_toggle">
-                <signal name="toggled" handler="handle_set_repeat" swapped="true"/>
                 <property name="icon-name">media-playlist-repeat-symbolic</property>
                 <property name="tooltip-text" translatable="yes">Repeat</property>
               </object>

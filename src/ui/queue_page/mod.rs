@@ -2,6 +2,7 @@ use adw::{prelude::*, subclass::prelude::*};
 use core::cell::Ref;
 use gtk::{gdk, glib};
 
+use crate::excuses::EXP_INIT;
 use crate::player::QueueItem;
 use crate::ui::QueueSubpage;
 
@@ -41,15 +42,18 @@ impl QueuePage {
     pub fn get_shuffle(&self) -> bool {
         self.imp().shuffle_toggle.is_active()
     }
-    /// Sets the shuffle button state to the value of `shuffle`,
-    /// and forwards the shuffle mode to the player when handled
+    /// Sets the shuffle button state to the value of `shuffle`
+    /// (does not change the player shuffle mode)
     pub fn update_shuffle(&self, shuffle: bool) {
         let ui = self.imp();
+        let shuffle_signal_id = ui.shuffle_signal_handler.get().expect(EXP_INIT);
+        ui.shuffle_toggle.block_signal(shuffle_signal_id);
+        ui.shuffle_toggle.set_active(shuffle);
+        ui.shuffle_toggle.unblock_signal(shuffle_signal_id);
         ui.shuffle_toggle.set_icon_name(match shuffle {
             true => "media-playlist-shuffle-symbolic",
             false => "media-playlist-consecutive-symbolic",
         });
-        ui.shuffle_toggle.set_active(shuffle);
         ui.next_scroll_pos.set(QueueScrollAction::ToPlaying);
     }
 
@@ -59,12 +63,14 @@ impl QueuePage {
     pub fn get_repeat(&self) -> bool {
         self.imp().repeat_toggle.is_active()
     }
-    /// Sets the repeat button state to the value of `repeat`,
-    /// and forwards the repeat mode to the player when handled
-    #[inline]
+    /// Sets the repeat button state to the value of `repeat`
+    /// (does not change the player repeat mode)
     pub fn update_repeat(&self, repeat: bool) {
         let ui = self.imp();
+        let repeat_signal_id = ui.repeat_signal_handler.get().expect(EXP_INIT);
+        ui.repeat_toggle.block_signal(repeat_signal_id);
         ui.repeat_toggle.set_active(repeat);
+        ui.repeat_toggle.unblock_signal(repeat_signal_id);
     }
 
     /// Replaces the `queue` and `playing` index, then redraws the UI
