@@ -412,6 +412,8 @@ impl Player {
     #[inline]
     fn load_queue(&mut self, queue: Vec<QueueItem>, shuffled: Option<Vec<usize>>, index: usize) {
         if index >= queue.len() {
+            cold_path();
+
             if !queue.is_empty() {
                 // Fallback to 0 if `index` is out of bounds
                 return self.load_queue(queue, shuffled, 0);
@@ -422,7 +424,7 @@ impl Player {
             self.queue.ui_update_queue();
             self.ui_update_song_info();
             Self::ui_open_playing();
-            return cold_path();
+            return;
         }
 
         // Display the current song info in the UI as soon as possible

@@ -166,7 +166,6 @@ impl SongQueue {
     #[inline]
     pub fn load_new(&mut self, queue: Vec<QueueItem>, shuffled: Option<Vec<usize>>) {
         self.songs = queue;
-        self.repeat = false;
         if let Some(shuffled) = shuffled {
             self.shuffle = true;
             match shuffled.is_empty() {
@@ -177,7 +176,6 @@ impl SongQueue {
             self.shuffle = false;
         }
         self.ui_update_shuffle();
-        self.ui_update_repeat();
         self.ui_close_queue_subpage();
     }
 
@@ -675,7 +673,7 @@ impl SongQueue {
     /// - Using all songs from the library, unless none are available
     ///
     /// # Errors
-    /// Function may error if the player or UI channel receiver is closed
+    /// Function may error if the player channel is closed
     #[inline]
     pub fn init_queue(
         library: &Library,
@@ -690,7 +688,11 @@ impl SongQueue {
             && let queue = library.songs_from_paths(lines)
             && !queue.is_empty()
         {
-            let shuffled = if shuffle.parse::<bool>().unwrap_or_default()
+            let player_tx = player_tx();
+            if repeat.parse().unwrap_or_default() {
+                let _ = player_tx.send(PlayerRequest::SetRepeat(true));
+            }
+            let shuffled = if shuffle.parse().unwrap_or_default()
                 && let Ok(shuffled) = fs::read_to_string(shuffled_queue_file()).map(|shuffled| {
                     (shuffled.lines().filter_map(|line| line.trim().parse().ok()))
                         .collect::<Vec<usize>>()
@@ -701,8 +703,6 @@ impl SongQueue {
             } else {
                 None
             };
-
-            let player_tx = player_tx();
             player_tx.send(PlayerRequest::LoadQueue {
                 queue,
                 shuffled,
@@ -710,9 +710,6 @@ impl SongQueue {
             })?;
             if let Ok(time) = time.parse() {
                 let _ = player_tx.send(PlayerRequest::SeekToTime(ClockTime::from_mseconds(time)));
-            }
-            if repeat.parse().unwrap_or_default() {
-                let _ = player_tx.send(PlayerRequest::SetRepeat(true));
             }
 
             return Ok(());
