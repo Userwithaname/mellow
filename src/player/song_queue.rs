@@ -703,9 +703,6 @@ impl SongQueue {
             };
 
             let player_tx = player_tx();
-            if repeat.parse().unwrap_or_default() {
-                let _ = player_tx.send(PlayerRequest::SetRepeat(true));
-            }
             player_tx.send(PlayerRequest::LoadQueue {
                 queue,
                 shuffled,
@@ -713,6 +710,9 @@ impl SongQueue {
             })?;
             if let Ok(time) = time.parse() {
                 let _ = player_tx.send(PlayerRequest::SeekToTime(ClockTime::from_mseconds(time)));
+            }
+            if repeat.parse().unwrap_or_default() {
+                let _ = player_tx.send(PlayerRequest::SetRepeat(true));
             }
 
             return Ok(());
