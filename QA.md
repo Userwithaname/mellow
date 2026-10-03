@@ -23,7 +23,8 @@ Song Queue:
 - [x] Adding items works as expected
 - [x] Removing items works as expected
 - [x] Removal undo works as expected
-- [x] Reordering the queue works as expected
+- [ ] Reordering the queue works as expected
+  - FIX: Incorrect position when dragging items past the repeat mode wrapping point on short queues
   - TODO: Improvement: Scroll when dragging close to the view borders
     - IDEA: Also pan if dragging onto the pan button, once panning is implemented
 - [x] Selection mode works as expected

@@ -81,9 +81,6 @@ enum PanLoopDirection {
     Down,
 }
 
-#[derive(Debug)]
-struct ItemNotFoundError;
-
 #[gtk::template_callbacks]
 impl QueuePage {
     #[template_callback]
@@ -378,10 +375,16 @@ impl QueuePage {
 
     /// Takes a queue item index and returns the index to access its object
     ///
+    /// # Errors
+    /// Returns the index in the `Err` variant if it is outside of the queue
+    /// range, or `usize::MAX` (`!0`) if the resulting index is nonsensical.
+    /// An `Err` value of `!0` usually means that the item would appear before
+    /// the first item shown.
+    ///
     /// # Panics
     /// Panics if `self.queue_item_objects` `RefCell` is mutably borrowed
     #[inline]
-    fn queue_index_to_model(&self, queue_index: usize) -> Result<usize, ItemNotFoundError> {
+    fn queue_index_to_model(&self, queue_index: usize) -> Result<usize, usize> {
         let queue_objects_length = self.queue_item_objects.borrow().len();
         let center = wrap_index(
             self.playing_index.get() as isize + self.view_pan_offset.get(),
@@ -391,10 +394,10 @@ impl QueuePage {
             false => {
                 let start = center.saturating_sub(NUM_ITEMS_BEHIND);
                 if queue_index < start {
-                    return Err(ItemNotFoundError);
+                    return Err(usize::MAX);
                 }
                 match queue_index + NUM_ITEMS_BEHIND.min(center) - center {
-                    value if value >= queue_objects_length => Err(ItemNotFoundError),
+                    value if value >= queue_objects_length => Err(value),
                     value => Ok(value),
                 }
             }
@@ -402,7 +405,7 @@ impl QueuePage {
                 let queue_length = self.queue_length.get();
                 let model_length = self.queue_item_objects.borrow().len();
                 if queue_length == 0 {
-                    return Err(ItemNotFoundError);
+                    return Err(usize::MAX);
                 }
 
                 let start = center.saturating_sub(NUM_ITEMS_BEHIND);
@@ -413,11 +416,10 @@ impl QueuePage {
                 // Wrapping over the start of the queue
                 if n_items_before > 0 && queue_index > center + NUM_ITEMS_AHEAD {
                     let from = queue_length - n_items_before;
-                    // NOTE: When `queue_index` is ahead of the visible items, it relies on overflow to enter
-                    // the first branch (AFAIK, length can be at most `u32::MAX`, so this should be fine)
-                    match queue_index.wrapping_sub(from) {
-                        value if value >= model_length => return Err(ItemNotFoundError),
-                        value => return Ok(value),
+                    match queue_index.checked_sub(from) {
+                        Some(value) if value >= model_length => return Err(value),
+                        Some(value) => return Ok(value),
+                        None => return Err(usize::MAX),
                     };
                 }
 
@@ -432,14 +434,10 @@ impl QueuePage {
 
                 // Wrapping over the end of the queue
                 let n_items_after = queue_length - center.saturating_sub(NUM_ITEMS_AHEAD);
-                if queue_index <= n_items_after {
-                    match queue_index + n_items_after {
-                        value if value >= model_length => return Err(ItemNotFoundError),
-                        value => return Ok(value),
-                    }
+                match queue_index + n_items_after {
+                    value if value >= model_length => Err(value),
+                    value => Ok(value),
                 }
-
-                Err(ItemNotFoundError)
             }
         }
     }
@@ -723,9 +721,6 @@ impl QueuePage {
             {
                 dragging.set(true);
 
-                // FIX: The cursor does not update until the mouse button is released
-                // list_box.set_cursor_from_name(Some("grabbing"));
-
                 #[cold]
                 fn set_fallback_offsets(
                     drag_row: &ListRow,
@@ -868,84 +863,74 @@ impl QueuePage {
             drag_container,
             move |gesture_drag, _| if dragging.get() {
                 dragging.reset_state(&queue_page, &drag_container, &drag_row);
-
                 let list_box = &queue_page.list_box;
                 list_box.set_cursor(None);
 
                 let start_y = match gesture_drag.start_point() {
-                    Some((_, start_y)) => start_y + queue_page.list_box.margin_top() as f64,
+                    Some((_, start_y)) => start_y + list_box.margin_top() as f64,
                     None => return,
                 };
                 let end_y = match gesture_drag.offset() {
                     Some((_, offset_y)) => start_y + offset_y,
                     None => return,
                 };
-                let mut from_index = dragged_item_index.get();
-                let Ok(mut from) = queue_page
-                    .queue_index_to_model(from_index)
-                    .map(|index| index as i32)
-                else {
-                    return;
-                };
 
-                let playing_index = queue_page.playing_index.get();
-                let mut index_updated = false;
-                // `dragged_item` was set in `drag.connect_begin`
+                let mut from_index = dragged_item_index.get();
                 let expected_item = dragged_item.take().unwrap();
+                let song_queue = queue_page.song_queue.borrow();
 
                 // If the queue item changed while dragging (such as when encountering a stopper),
                 // find it by looping backwards. (There is currently no way to add items while
-                // dragging, so looping backwards should suffice.)
-                while let Some(target_item) =
-                    (queue_page.list_model.get().unwrap().item(from as u32))
-                        .and_downcast::<QueueItemObject>()
-                    && *target_item.queue_item() != expected_item
-                {
-                    from -= 1;
-                    index_updated = true;
-                }
-                if index_updated {
-                    from_index = queue_page.model_index_to_queue(from as usize);
+                // dragging, so looping backwards should suffice; 10 items should be enough.)
+                'validate_dragged_item: loop {
+                    for i in (from_index.saturating_sub(10)..=from_index).rev() {
+                        if (song_queue.get(i)).is_some_and(|item| *item == expected_item) {
+                            break 'validate_dragged_item from_index = i;
+                        }
+                    }
+                    return;
                 }
 
+                let playing_index = queue_page.playing_index.get();
+                let long_queue = song_queue.len() > NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
                 let Some(to) = list_box.row_at_y(end_y as i32).map(|row| row.index()) else {
                     return;
                 };
 
-                let queue_length = queue_page.queue_length.get();
-                let short_queue = queue_length <= NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
-                let shift_by = match short_queue {
-                    false => to - from,
-                    true => {
-                        // Short queue reordering is handled differently to fix an
-                        // off-by-one issue when reordering repeat-mode wrapped items
+                let from = queue_page.queue_index_to_model(from_index);
+                let shift_by = match long_queue {
+                    true if let Ok(from) = from => to as isize - from as isize,
+                    _ => {
+                        // FIX: Off-by-one for wrapped items
                         let to_index = queue_page.model_index_to_queue(to as usize);
-                        to_index as i32 - from_index as i32
+                        to_index as isize - from_index as isize
                     }
                 };
                 let _ = player_tx().send(PlayerRequest::Shift {
                     from: from_index,
-                    by: shift_by as isize,
+                    by: shift_by,
                 });
 
-                // Short queues don't need to be offset, even if wrapped items are shown
-                if short_queue {
-                    return;
+                // Offset the queue UI scroll position on the next redraw if the playing
+                // item is in view (short queues don't need to be offset, even if wrapped
+                // items are shown (in repeat mode))
+                if long_queue && let Ok(playing) = queue_page.queue_index_to_model(playing_index) {
+                    let from = match from {
+                        Ok(from) | Err(from) => from,
+                    };
+                    let to = to as usize;
+                    queue_page.next_scroll_pos.set(QueueScrollAction::Offset(
+                        match playing_index > NUM_ITEMS_BEHIND
+                            || queue_page.repeat_toggle.is_active()
+                        {
+                            false if from < playing || from == !0 && to > playing => 1,
+                            true if from > playing && to <= playing => -1,
+                            true if from < playing && to >= playing => 1,
+                            true if from == playing => -shift_by as i32,
+                            _ => 0,
+                        },
+                    ));
                 }
-
-                // If the item could not be found in the model, the value is -1
-                // (`!0` (bitwise inverted 0) becomes -1 when cast to `i32`)
-                let playing = (queue_page.queue_index_to_model(playing_index)).unwrap_or(!0) as i32;
-                (queue_page.next_scroll_pos).set(QueueScrollAction::Offset(
-                    match playing_index > NUM_ITEMS_BEHIND || queue_page.repeat_toggle.is_active() {
-                        _ if playing == -1 => 0, // -1 means `playing` is out of view
-                        false if from < playing && to > playing => 1,
-                        true if from > playing && to <= playing => -1,
-                        true if from < playing && to >= playing => 1,
-                        true if from == playing => -shift_by,
-                        _ => 0,
-                    },
-                ));
             }
         ));
         self.list_box.add_controller(drag);
@@ -968,7 +953,6 @@ impl QueuePage {
     #[inline]
     fn setup_selection_mode(&self) {
         // IDEA: Rating dropdown button for rating multiple songs at once
-        // TODO: Exit selection mode by pressing escape
 
         let hold = gtk::GestureLongPress::new();
         hold.connect_pressed(glib::clone!(
