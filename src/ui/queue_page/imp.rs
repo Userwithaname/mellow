@@ -882,6 +882,7 @@ impl QueuePage {
                 // If the queue item changed while dragging (such as when encountering a stopper),
                 // find it by looping backwards. (There is currently no way to add items while
                 // dragging, so looping backwards should suffice; 10 items should be enough.)
+                #[allow(clippy::never_loop, reason = "I can't think of a better alternative")]
                 'validate_dragged_item: loop {
                     for i in (from_index.saturating_sub(10)..=from_index).rev() {
                         if (song_queue.get(i)).is_some_and(|item| *item == expected_item) {

@@ -46,6 +46,10 @@ impl QueuePage {
     /// (does not change the player shuffle mode)
     pub fn update_shuffle(&self, shuffle: bool) {
         let ui = self.imp();
+        #[allow(
+            clippy::missing_panics_doc,
+            reason = "Initialized in `ObjectImpl::constructed` for `imp::QueuePage`"
+        )]
         let shuffle_signal_id = ui.shuffle_signal_handler.get().expect(EXP_INIT);
         ui.shuffle_toggle.block_signal(shuffle_signal_id);
         ui.shuffle_toggle.set_active(shuffle);
@@ -67,6 +71,10 @@ impl QueuePage {
     /// (does not change the player repeat mode)
     pub fn update_repeat(&self, repeat: bool) {
         let ui = self.imp();
+        #[allow(
+            clippy::missing_panics_doc,
+            reason = "Initialized in `ObjectImpl::constructed` for `imp::QueuePage`"
+        )]
         let repeat_signal_id = ui.repeat_signal_handler.get().expect(EXP_INIT);
         ui.repeat_toggle.block_signal(repeat_signal_id);
         ui.repeat_toggle.set_active(repeat);
