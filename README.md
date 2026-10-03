@@ -4,18 +4,18 @@
   <br>Mellow
 </h1>
   <p align="center">
-    <img height=512 src="https://github.com/user-attachments/assets/2d76d5d3-a9b8-451d-920d-68d4b217a1b5">
+    Distraction-free music listening
   </p>
   <p align="center">
-    Listen to music without distraction
-  </p>
-  <p align="center">
-    <a href="https://github.com/Userwithaname/mellow/releases/">Releases</a> |
     <a href="#about">About</a> |
     <a href="#features">Features</a> |
     <a href="#installing">Installing</a> |
     <a href="#uninstalling">Uninstalling</a> |
-    <a href="BUILDING.md">Building</a>
+    <a href="BUILDING.md">Building</a> |
+    <a href="https://github.com/Userwithaname/mellow/releases/">Releases</a>
+  </p>
+  <p align="center">
+    <img height=512 src="https://github.com/user-attachments/assets/2d76d5d3-a9b8-451d-920d-68d4b217a1b5">
   </p>
 </p>
 
