@@ -304,13 +304,11 @@ impl QueuePage {
         let keep_artworks_range = (playing.saturating_sub(1))
             .max(start.min((queue_length - center).saturating_sub(NUM_ITEMS_AHEAD)))
             ..(playing + 2).min((start <= playing) as usize * end);
-        let mut keep_artworks = queue.get(keep_artworks_range).unwrap_or_default().to_vec();
+        let keep_artworks = queue.get(keep_artworks_range).unwrap_or_default().to_vec();
         Library::run_task(library_tx(), move || {
             'outer: for item in old_visible_items {
-                for (i, keep) in keep_artworks.iter().enumerate() {
+                for keep in &keep_artworks {
                     if *keep == item {
-                        keep.map_song(|song| song.info().load_detailed());
-                        keep_artworks.remove(i);
                         continue 'outer;
                     }
                 }
