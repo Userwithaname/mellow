@@ -25,13 +25,10 @@ Song Queue:
 - [x] Removal undo works as expected
 - [ ] Reordering the queue works as expected
   - FIX: Incorrect position when dragging items past the repeat mode wrapping point on short queues
-  - TODO: Improvement: Scroll when dragging close to the view borders
-    - IDEA: Also pan if dragging onto the pan button, once panning is implemented
+    (also affects off-screen items for auto-panning)
 - [x] Selection mode works as expected
   - [x] Removing multiple items at once works as expected
 - [x] Stoppers work and behave as expected
-  - IDEA: Improvement: Stoppers could stay at the same relative position in the queue
-    when toggling shuffle mode (for example, 5 songs ahead)
 - [x] The landing page is shown for empty queues and works without issues
 
 Music Library:

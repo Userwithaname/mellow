@@ -12,6 +12,9 @@ Song queue:
 - [x] Display a landing page
 > The "Open from Disk" picker could be improved to accept directories as well
 - [x] Drag file/folder onto player to start a queue with them
+> Could use some visual improvements
+- IDEA: Keep stoppers at the same relative position in the queue when toggling shuffle mode
+  (for example, 5 songs ahead)
 
 Music library:
 
