@@ -692,6 +692,8 @@ impl QueuePage {
                 drag_container: &gtk::Widget,
                 drag_row: &ListRow,
             ) {
+                #[cfg(feature = "auto-pan-queue")]
+                queue_page.stop_pan_loop();
                 queue_page.for_each_row(|row, _| row.remove_css_class("highlight-top"));
                 drag_container.set_visible(false);
                 drag_row.to_default();
@@ -810,7 +812,8 @@ impl QueuePage {
                     return;
                 };
 
-                if let Some(row) = (queue_page.list_box).row_at_y((start_y + offset_y) as i32) {
+                let end_y = (start_y + offset_y) as i32;
+                if let Some(row) = (queue_page.list_box).row_at_y(end_y) {
                     let source_row_index = (queue_page.list_box)
                         .row_at_y(start_y as i32)
                         .map(|row| row.index())
@@ -825,6 +828,8 @@ impl QueuePage {
                         }
                         _ => row.grab_focus(),
                     };
+                    #[cfg(feature = "auto-pan-queue")]
+                    queue_page.stop_pan_loop();
 
                     queue_page.for_each_row(|list_row, index| {
                         if target_row_index - 1 == index && target_row_index < source_row_index
@@ -836,8 +841,23 @@ impl QueuePage {
                         }
                     });
                 } else {
-                    // TODO: Pan while dragging items past the first/last visible item
-
+                    #[cfg(feature = "auto-pan-queue")]
+                    {
+                        let last_item_y =
+                            (ROW_HEIGHT * (NUM_ITEMS_AHEAD + NUM_ITEMS_BEHIND)) as i32;
+                        if (0..last_item_y).contains(&end_y) {
+                            queue_page.stop_pan_loop();
+                        }
+                        if matches!(queue_page.pan_loop_direction.get(), PanLoopDirection::None) {
+                            if end_y > last_item_y {
+                                queue_page.start_pan_loop(PanLoopDirection::Down);
+                                queue_page.pan_down_button.grab_focus();
+                            } else if end_y < 0 {
+                                queue_page.start_pan_loop(PanLoopDirection::Up);
+                                queue_page.pan_up_button.grab_focus();
+                            }
+                        }
+                    }
                     queue_page.for_each_row(|row, _| row.remove_css_class("highlight-top"));
                 }
 
@@ -889,16 +909,17 @@ impl QueuePage {
                 }
 
                 let playing_index = queue_page.playing_index.get();
-                let long_queue = song_queue.len() > NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
                 let Some(to) = list_box.row_at_y(end_y as i32).map(|row| row.index()) else {
                     return;
                 };
 
                 let from = queue_page.queue_index_to_model(from_index);
-                let shift_by = match long_queue {
-                    true if let Ok(from) = from => to as isize - from as isize,
-                    _ => {
-                        // FIX: Off-by-one for wrapped items
+                let shift_by = match from {
+                    Ok(from) => to as isize - from as isize,
+                    Err(_) => {
+                        // FIX: Off-by-one when reordering off-screen items past repeat mode
+                        // wrapping point (should shift further by one than they actually do)
+                        // (enable `auto-pan-queue` when fixed)
                         let to_index = queue_page.model_index_to_queue(to as usize);
                         to_index as isize - from_index as isize
                     }
@@ -911,6 +932,7 @@ impl QueuePage {
                 // Offset the queue UI scroll position on the next redraw if the playing
                 // item is in view (short queues don't need to be offset, even if wrapped
                 // items are shown (in repeat mode))
+                let long_queue = song_queue.len() > NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
                 if long_queue && let Ok(playing) = queue_page.queue_index_to_model(playing_index) {
                     let from = match from {
                         Ok(from) | Err(from) => from,
