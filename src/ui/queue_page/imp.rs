@@ -670,7 +670,6 @@ impl QueuePage {
         let drag_row = ListRow::default();
         drag_row.add_css_class("osd");
         self.drag_widget.put(&drag_row, 0.0, 0.0);
-        // self.drag_widget.set_cursor_from_name(Some("grabbing")); // This doesn't work
         let drag_container = self.drag_widget.parent().unwrap();
 
         struct DragState(Cell<bool>);
@@ -721,25 +720,21 @@ impl QueuePage {
 
                 #[cold]
                 fn set_fallback_offsets(
-                    drag_row: &ListRow,
                     drag_offset: &Cell<(f64, f64)>,
-                    pan_up_button_visible: bool,
+                    pan_up_button: &gtk::Button,
                     list_box: &gtk::ListBox,
                     start_y: f64,
                 ) {
-                    drag_row.to_default();
                     drag_offset.set((
+                        // NOTE: X position is incorrect
+                        // Not really an issue since this function will likely never run, but
+                        // using this instead of `compute_point` might be more efficient if the
+                        // offset can be correctly determined (margins could be pre-computed)
                         0.0,
-                        (pan_up_button_visible as i32 * PAN_UP_BUTTON_HEIGHT
-                            + list_box.parent().unwrap().margin_top()
-                            + list_box.margin_top()) as f64
-                            // NOTE: The below line has issues when built with Meson, where
-                            // rows further down the list become more and more inaccurate
-                            // (but `cargo build --features no-meson` works correctly)
-                            // This code will likely never run, so fixing this may not be
-                            // worth the effort
-                            - start_y % ROW_HEIGHT as f64
-                            - 4.0,
+                        ((list_box.parent().unwrap().margin_top() + list_box.margin_top() + 1)
+                            + pan_up_button.is_visible() as i32 * PAN_UP_BUTTON_HEIGHT)
+                            as f64
+                            - start_y % ROW_HEIGHT as f64,
                     ));
                 }
 
@@ -773,18 +768,16 @@ impl QueuePage {
                         drag_offset.set((-point.x() as f64 - 1.0, -point.y() as f64 - 1.0));
                     } else {
                         set_fallback_offsets(
-                            &drag_row,
                             drag_offset,
-                            queue_page.pan_up_button.is_visible(),
+                            &queue_page.pan_up_button,
                             &queue_page.list_box,
                             start_y,
                         );
                     }
                 } else {
                     set_fallback_offsets(
-                        &drag_row,
                         drag_offset,
-                        queue_page.pan_up_button.is_visible(),
+                        &queue_page.pan_up_button,
                         &queue_page.list_box,
                         start_y,
                     );
@@ -879,9 +872,8 @@ impl QueuePage {
             drag_container,
             move |gesture_drag, _| if dragging.get() {
                 dragging.reset_state(&queue_page, &drag_container, &drag_row);
-                let list_box = &queue_page.list_box;
-                list_box.set_cursor(None);
 
+                let list_box = &queue_page.list_box;
                 let start_y = match gesture_drag.start_point() {
                     Some((_, start_y)) => start_y + list_box.margin_top() as f64,
                     None => return,
@@ -959,7 +951,7 @@ impl QueuePage {
             let queue_page = self.to_owned();
             let drag_row = drag_row.clone();
             move |_, key, _, _| {
-                if key.to_unicode().is_some_and(|c| c == '\u{1b}') {
+                if key.to_unicode() == Some('\u{1b}') {
                     dragging.reset_state(&queue_page, &drag_container, &drag_row);
                 }
                 glib::Propagation::Proceed
