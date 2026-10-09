@@ -23,9 +23,7 @@ Song Queue:
 - [x] Adding items works as expected
 - [x] Removing items works as expected
 - [x] Removal undo works as expected
-- [ ] Reordering the queue works as expected
-  - FIX: Incorrect position when dragging items past the repeat mode wrapping point on short queues
-    (also affects off-screen items for auto-panning)
+- [x] Reordering the queue works as expected
 - [x] Selection mode works as expected
   - [x] Removing multiple items at once works as expected
 - [x] Stoppers work and behave as expected

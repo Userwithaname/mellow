@@ -2,7 +2,9 @@ Song queue:
 
 - [x] Reorder using drag-&-drop
   - [x] Scroll when dragging items off-screen
-  - [ ] Pan when dragging items past the last visible item
+  - [ ] Pan when dragging items past the first/last visible item
+    - FIX: Off-by-one when reordering off-screen items by more than half the queue length in repeat mode
+    - TODO: Enable for all builds when deemed ready (enable/remove the `auto-pan-queue` Cargo feature)
 - [-] Multi-selection mode
   - IDEA: Shift+click to select everything between the last selected item and the clicked item
   - IDEA: Long-press+drag to select multiple items
@@ -34,7 +36,7 @@ Music library:
     - [x] Typing should only be necessary when creating a new tag
     - [x] While typing, filter existing tags and confirm to add the best candidate
   - [x] Ability to rename existing tags (through the rating widget)
-    - TODO: There should be buttons to confirm or cancel the rename without pressing enter
+    - TODO: There should be a button to confirm the rename without pressing enter
     - TODO: Keyboard navigation: make the entire tag widget focusable, and rename using F2
   - IDEA: Choose which tag suggestion is active using the arrow keys, without un-focusing the entry box
 - [x] Artists page

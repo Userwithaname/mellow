@@ -459,7 +459,6 @@ impl QueuePage {
                     .min(queue_length - 1)
                     .saturating_sub(center_index);
                 if n_items_behind > 0 {
-                    // println!("Wrapping over the start of the queue");
                     if model_index < n_items_behind {
                         return queue_length - n_items_behind + model_index;
                     }
@@ -473,12 +472,10 @@ impl QueuePage {
                     - NUM_ITEMS_BEHIND.min(center_index)
                     - n_items_behind;
                 if offset_index < queue_length {
-                    // println!("Non-wrapped item");
                     return offset_index;
                 }
 
                 // Wrapping over the end of the queue
-                // println!("Wrapping over the end of the queue");
                 offset_index - queue_length
             }
         }
@@ -874,13 +871,11 @@ impl QueuePage {
                 dragging.reset_state(&queue_page, &drag_container, &drag_row);
 
                 let list_box = &queue_page.list_box;
-                let start_y = match gesture_drag.start_point() {
-                    Some((_, start_y)) => start_y + list_box.margin_top() as f64,
-                    None => return,
-                };
-                let end_y = match gesture_drag.offset() {
-                    Some((_, offset_y)) => start_y + offset_y,
-                    None => return,
+                let end_y = match gesture_drag.start_point() {
+                    Some((_, start_y)) if let Some((_, offset_y)) = gesture_drag.offset() => {
+                        start_y + list_box.margin_top() as f64 + offset_y
+                    }
+                    _ => return,
                 };
 
                 let mut from_index = dragged_item_index.get();
@@ -905,15 +900,26 @@ impl QueuePage {
                     return;
                 };
 
+                let long_queue = song_queue.len() > NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
                 let from = queue_page.queue_index_to_model(from_index);
                 let shift_by = match from {
                     Ok(from) => to as isize - from as isize,
                     Err(_) => {
-                        // FIX: Off-by-one when reordering off-screen items past repeat mode
-                        // wrapping point (should shift further by one than they actually do)
-                        // (enable `auto-pan-queue` when fixed)
                         let to_index = queue_page.model_index_to_queue(to as usize);
-                        to_index as isize - from_index as isize
+                        let shift_by = to_index as isize - from_index as isize;
+
+                        // WORKAROUND: Offsetting to fix an off-by-one issue when reordering items
+                        // past the repeat mode wrapping point (for off-screen items); note that
+                        // this only diverts the issue to a less common scenario (explained below)
+                        // FIX: Off-by-one when shifting an off-screen item by more than half the
+                        // length of the queue for long queues in repeat-mode
+                        // TODO: Enable/remove the `auto-pan-queue` Cargo feature when fixed
+                        shift_by
+                            - (long_queue
+                                && queue_page.repeat_toggle.is_active()
+                                && shift_by.abs() as usize > song_queue.len() / 2)
+                                as isize
+                                * shift_by.signum()
                     }
                 };
                 let _ = player_tx().send(PlayerRequest::Shift {
@@ -924,7 +930,6 @@ impl QueuePage {
                 // Offset the queue UI scroll position on the next redraw if the playing
                 // item is in view (short queues don't need to be offset, even if wrapped
                 // items are shown (in repeat mode))
-                let long_queue = song_queue.len() > NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
                 if long_queue && let Ok(playing) = queue_page.queue_index_to_model(playing_index) {
                     let from = match from {
                         Ok(from) | Err(from) => from,
