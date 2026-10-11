@@ -128,17 +128,12 @@ impl Rating {
 
     /// Updates the appearance of the favorite button
     pub fn update_favorite_button(&self, is_favorite: bool) {
-        match is_favorite {
-            true => {
-                self.favorite_button.remove_css_class("dimmed");
-                self.favorite_button
-                    .set_tooltip_text(Some("Remove From Favorites"));
-            }
-            false => {
-                self.favorite_button.add_css_class("dimmed");
-                self.favorite_button
-                    .set_tooltip_text(Some("Add To Favorites"));
-            }
+        if is_favorite {
+            self.favorite_button.remove_css_class("dimmed");
+            (self.favorite_button).set_tooltip_text(Some("Remove From Favorites"));
+        } else {
+            self.favorite_button.add_css_class("dimmed");
+            (self.favorite_button).set_tooltip_text(Some("Add To Favorites"));
         }
     }
 
@@ -269,23 +264,52 @@ impl Rating {
                 let tag_box = gtk::Box::builder().build();
                 let tag_label = gtk::Label::new(Some(&tag));
                 let rename_entry = gtk::Entry::builder().text(&tag).visible(false).build();
+                // IDEA: It would look better if the two buttons were grouped
+                // (like `AdwSplitButton`, not sure if this is possible)
+                let rename_tag_button = gtk::Button::builder()
+                    .icon_name("document-edit-symbolic")
+                    .tooltip_text(format!("Confirm Rename"))
+                    .css_classes(["suggested-action", "circular"])
+                    .margin_start(4)
+                    .visible(false)
+                    .build();
                 let remove_tag_button = gtk::Button::builder()
                     .icon_name("window-close-symbolic")
                     .tooltip_text(format!("Unset \"{tag}\""))
                     .css_classes(["flat", "circular"])
+                    .margin_start(4)
                     .build();
                 tag_box.append(&tag_label);
                 tag_box.append(&rename_entry);
+                tag_box.append(&rename_tag_button);
                 tag_box.append(&remove_tag_button);
                 self.tags_list.append(&tag_box);
 
+                // Validate new tag name
+                rename_entry.connect_changed(glib::clone!(
+                    #[strong]
+                    tag,
+                    #[weak]
+                    rename_tag_button,
+                    move |entry| {
+                        let new_tag_name = &entry.text();
+                        if is_valid_tag_name(new_tag_name) {
+                            entry.remove_css_class("error");
+                            rename_tag_button.set_visible(*new_tag_name != tag);
+                        } else {
+                            entry.add_css_class("error");
+                            rename_tag_button.set_visible(false);
+                        }
+                    }
+                ));
+
                 // Rename tag
-                rename_entry.connect_activate(glib::clone!(
+                let rename_tag = glib::clone!(
                     #[weak(rename_to = this)]
                     self,
                     #[weak]
                     tag_label,
-                    move |entry| if !entry.has_css_class("error") {
+                    move |entry: &gtk::Entry| if !entry.has_css_class("error") {
                         tag_label.set_visible(true);
                         entry.set_visible(false);
                         let (tx, rx) = mpsc::channel::<()>();
@@ -298,13 +322,13 @@ impl Rating {
                         this.refresh_tags();
                         this.update_tag_buttons();
                     }
+                );
+                rename_entry.connect_activate(rename_tag.clone());
+                rename_tag_button.connect_clicked(glib::clone!(
+                    #[weak]
+                    rename_entry,
+                    move |_| rename_tag(&rename_entry)
                 ));
-
-                // Validate new tag name
-                rename_entry.connect_changed(|entry| match is_valid_tag_name(&entry.text()) {
-                    true => entry.remove_css_class("error"),
-                    false => entry.add_css_class("error"),
-                });
 
                 // Enter tag edit mode
                 let edit_controller = gtk::GestureLongPress::new();
@@ -342,6 +366,7 @@ impl Rating {
                         tag_label.set_visible(true);
                         rename_entry.set_visible(false);
                         rename_entry.set_text(&tag);
+                        rename_tag_button.set_visible(false);
                         remove_tag_button.set_icon_name("window-close-symbolic");
                         remove_tag_button.set_tooltip_text(Some(&format!("Unset \"{tag}\"")));
                     }
