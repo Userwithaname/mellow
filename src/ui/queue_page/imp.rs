@@ -912,7 +912,7 @@ impl QueuePage {
                         // length of the queue for long queues in repeat mode (non-wrapping)
                         // TODO: Enable/remove the `auto-pan-queue` Cargo feature when fixed
                         shift_by
-                            - (repeat && shift_by.abs() as usize > song_queue.len() / 2) as isize
+                            - (repeat && shift_by.unsigned_abs() > song_queue.len() / 2) as isize
                                 * shift_by.signum()
                     }
                 };

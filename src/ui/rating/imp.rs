@@ -268,7 +268,7 @@ impl Rating {
                 // (like `AdwSplitButton`, not sure if this is possible)
                 let rename_tag_button = gtk::Button::builder()
                     .icon_name("document-edit-symbolic")
-                    .tooltip_text(format!("Confirm Rename"))
+                    .tooltip_text("Confirm Rename")
                     .css_classes(["suggested-action", "circular"])
                     .margin_start(4)
                     .visible(false)
