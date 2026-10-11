@@ -881,6 +881,7 @@ impl QueuePage {
                     return;
                 };
 
+                let repeat = queue_page.repeat_toggle.is_active();
                 let mut source_index = dragged_item_index.get();
                 let expected_item = dragged_item.take().unwrap();
                 let song_queue = queue_page.song_queue.borrow();
@@ -911,9 +912,7 @@ impl QueuePage {
                         // length of the queue for long queues in repeat mode (non-wrapping)
                         // TODO: Enable/remove the `auto-pan-queue` Cargo feature when fixed
                         shift_by
-                            - (queue_page.repeat_toggle.is_active()
-                                && shift_by.abs() as usize > song_queue.len() / 2)
-                                as isize
+                            - (repeat && shift_by.abs() as usize > song_queue.len() / 2) as isize
                                 * shift_by.signum()
                     }
                 };
@@ -933,9 +932,7 @@ impl QueuePage {
                     };
                     let target = target as usize;
                     queue_page.next_scroll_pos.set(QueueScrollAction::Offset(
-                        match playing_index > NUM_ITEMS_BEHIND
-                            || queue_page.repeat_toggle.is_active()
-                        {
+                        match repeat || playing_index > NUM_ITEMS_BEHIND {
                             false if source < playing || source == !0 && target > playing => 1,
                             true if source > playing && target <= playing => -1,
                             true if source < playing && target >= playing => 1,
