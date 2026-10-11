@@ -13,10 +13,8 @@ use crate::util::format_duration_ms;
 mod imp;
 
 glib::wrapper! {
-    /// # Safety
-    /// Either construct using `QueueItemObject::new()`, or ensure
-    /// that `….imp().queue_item` is initialized if constructing
-    /// manually. Failing to do so will lead to undefined behavior.
+    /// # Safety invariants
+    /// `queue_item` on `imp::QueueItemObject` must be assigned (construct using `QueueItemObject::new()`)
     pub struct QueueItemObject(ObjectSubclass<imp::QueueItemObject>);
 }
 
@@ -47,8 +45,8 @@ impl QueueItemObject {
                 queue_object.set_title(stopper.display_name());
             }
         }
-
         let _ = queue_object.imp().queue_item.set(item);
+
         queue_object
     }
 

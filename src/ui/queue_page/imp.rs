@@ -877,72 +877,69 @@ impl QueuePage {
                     }
                     _ => return,
                 };
+                let Some(target) = list_box.row_at_y(end_y as i32).map(|row| row.index()) else {
+                    return;
+                };
 
-                let mut from_index = dragged_item_index.get();
+                let mut source_index = dragged_item_index.get();
                 let expected_item = dragged_item.take().unwrap();
                 let song_queue = queue_page.song_queue.borrow();
 
                 // If the queue item changed while dragging (such as when encountering a stopper),
                 // find it by looping backwards. (There is currently no way to add items while
                 // dragging, so looping backwards should suffice; 10 items should be enough.)
-                #[allow(clippy::never_loop, reason = "I can't think of a better alternative")]
-                'validate_dragged_item: loop {
-                    for i in (from_index.saturating_sub(10)..=from_index).rev() {
-                        if (song_queue.get(i)).is_some_and(|item| *item == expected_item) {
-                            break 'validate_dragged_item from_index = i;
-                        }
+                if !(source_index.saturating_sub(10)..=source_index).any(|i| {
+                    if (song_queue.get(i)).is_some_and(|item| *item == expected_item) {
+                        source_index = i;
+                        return true;
                     }
+                    false
+                }) {
                     return;
                 }
-
-                let playing_index = queue_page.playing_index.get();
-                let Some(to) = list_box.row_at_y(end_y as i32).map(|row| row.index()) else {
-                    return;
-                };
-
-                let long_queue = song_queue.len() > NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
-                let from = queue_page.queue_index_to_model(from_index);
-                let shift_by = match from {
-                    Ok(from) => to as isize - from as isize,
+                let source = queue_page.queue_index_to_model(source_index);
+                let shift_by = match source {
+                    Ok(source) => target as isize - source as isize,
                     Err(_) => {
-                        let to_index = queue_page.model_index_to_queue(to as usize);
-                        let shift_by = to_index as isize - from_index as isize;
+                        let queue_target = queue_page.model_index_to_queue(target as usize);
+                        let shift_by = queue_target as isize - source_index as isize;
 
                         // WORKAROUND: Offsetting to fix an off-by-one issue when reordering items
                         // past the repeat mode wrapping point (for off-screen items); note that
                         // this only diverts the issue to a less common scenario (explained below)
                         // FIX: Off-by-one when shifting an off-screen item by more than half the
-                        // length of the queue for long queues in repeat-mode
+                        // length of the queue for long queues in repeat mode (non-wrapping)
                         // TODO: Enable/remove the `auto-pan-queue` Cargo feature when fixed
                         shift_by
-                            - (long_queue
-                                && queue_page.repeat_toggle.is_active()
+                            - (queue_page.repeat_toggle.is_active()
                                 && shift_by.abs() as usize > song_queue.len() / 2)
                                 as isize
                                 * shift_by.signum()
                     }
                 };
                 let _ = player_tx().send(PlayerRequest::Shift {
-                    from: from_index,
+                    from: source_index,
                     by: shift_by,
                 });
 
                 // Offset the queue UI scroll position on the next redraw if the playing
                 // item is in view (short queues don't need to be offset, even if wrapped
                 // items are shown (in repeat mode))
+                let playing_index = queue_page.playing_index.get();
+                let long_queue = song_queue.len() > NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
                 if long_queue && let Ok(playing) = queue_page.queue_index_to_model(playing_index) {
-                    let from = match from {
-                        Ok(from) | Err(from) => from,
+                    let source = match source {
+                        Ok(source) | Err(source) => source,
                     };
-                    let to = to as usize;
+                    let target = target as usize;
                     queue_page.next_scroll_pos.set(QueueScrollAction::Offset(
                         match playing_index > NUM_ITEMS_BEHIND
                             || queue_page.repeat_toggle.is_active()
                         {
-                            false if from < playing || from == !0 && to > playing => 1,
-                            true if from > playing && to <= playing => -1,
-                            true if from < playing && to >= playing => 1,
-                            true if from == playing => -shift_by as i32,
+                            false if source < playing || source == !0 && target > playing => 1,
+                            true if source > playing && target <= playing => -1,
+                            true if source < playing && target >= playing => 1,
+                            true if source == playing => -shift_by as i32,
                             _ => 0,
                         },
                     ));
