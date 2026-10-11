@@ -183,6 +183,8 @@ pub enum UpdateUI {
     /// Dismisses all visible toast notifications
     DismissNotifications,
 
+    /// Closes the program, or shows a toast beforehand so the user may cancel if the overlay is open
+    ScheduledShutdown,
     /// Causes the channel to ignore any further requests (but does not close it)
     Uninit,
 

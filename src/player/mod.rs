@@ -391,7 +391,7 @@ impl Player {
             }
             QueueItem::Stopper(_) => {
                 if (self.queue.remove_current().as_stopper()).should_close_player() {
-                    let _ = ui_tx().send_blocking(UpdateUI::RunAction("app.quit"));
+                    let _ = ui_tx().send_blocking(UpdateUI::ScheduledShutdown);
                 }
                 self.queue.ui_update_queue();
                 self.queue.ui_validate_queue_subpage_index();

@@ -172,6 +172,7 @@ impl Window {
                 }
                 UpdateUI::DismissNotifications => self.toast_overlay.dismiss_all(),
 
+                UpdateUI::ScheduledShutdown => self.scheduled_shutdown(),
                 UpdateUI::Uninit => loop {
                     // Ignore any further requests without closing the channel
                     ui_rx.recv().await.unwrap();
@@ -538,6 +539,25 @@ impl Window {
             toast.set_button_label(Some(action.0));
             toast.connect_button_clicked(move |_| action.1());
         }
+        self.toast_overlay.add_toast(toast);
+    }
+
+    fn scheduled_shutdown(&self) {
+        let action_widget = self.main_player.get();
+        if !self.sheet.is_open() {
+            (action_widget.activate_action("app.quit", None)).expect(ACTION_ERR);
+            return;
+        }
+        self.toast_overlay.dismiss_all();
+
+        let toast = adw::Toast::builder()
+            .title("The player is about to close")
+            .button_label("Cancel")
+            .build();
+        let close_handler_id = toast.connect_dismissed(move |_| {
+            (action_widget.activate_action("app.quit", None)).expect(ACTION_ERR);
+        });
+        toast.connect_button_clicked(move |toast| toast.block_signal(&close_handler_id));
         self.toast_overlay.add_toast(toast);
     }
 }

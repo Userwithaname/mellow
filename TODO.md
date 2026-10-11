@@ -29,7 +29,6 @@ Music library:
 - [x] Songs/albums/artists sort modes
 - [x] Songs/albums/artists filtering
   - [x] Filter by user-assigned tags
-    - IDEA: Add a button to select/deselect all toggles
 - [x] User-assigned custom tags
   - [x] Show suggestions when adding tags
     - [x] It should be possible to assign pre-existing tags without needing to type
@@ -56,9 +55,6 @@ Other:
   > library data from different systems
 - [ ] Bundle icons instead of relying on system ones
 - [x] Toast notifications
-  - IDEA: Notification for an upcoming "Pause & Close Player"
-    (something like: "The player will close after this song")
-  > This could maybe show a 'Cancel' button to turn it into a regular stopper without closing
 
 People's requests (for consideration):
 
