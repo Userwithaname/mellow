@@ -19,7 +19,7 @@ use crate::library::song_rating::{Ratable, SongRating};
 use crate::library::tag_list::{Taggable, Tags};
 use crate::library::unload_unused::{UnloadUnused, UsedBy};
 use crate::library::{Album, SharedAlbum, tag_list};
-use crate::util::hint::{cold, cold_expression, unlikely};
+use crate::util::hint::{cold, cold_expression};
 use crate::util::{
     deserialize, deserialize_list, serialize, serialize_list, write_file_create_dir_all,
 };
@@ -44,7 +44,8 @@ impl SharedSongExt for SharedSong {
     fn from_path(path: PathBuf) -> SharedSong {
         Arc::new(Song::from_path(path))
     }
-    /// Constructs a new `SharedSong` using serialized data
+    /// Constructs a new `SharedSong` from the serialized `data`
+    ///
     /// Returns `Some` on successful load, or `None`
     #[inline]
     fn deserialize(data: &str) -> Option<SharedSong> {
@@ -106,17 +107,19 @@ impl<'s> Song {
 
     /// Returns a `String` containing serialized song info,
     /// which can be used with the `deserialize()` method
+    ///
     /// If the song info is not loaded, only the user info
     /// is serialized
     ///
     /// # Panics
-    /// Panics if `Path::to_str` conversion fails
+    /// Panics if the song path is not valid UTF-8
     #[inline]
     #[must_use]
     pub fn serialize(&self) -> String {
         let info = self.info();
         let path = self.path.to_str().unwrap();
         let user_info = info.user().clone();
+        let tags = serialize_list(user_info.tags());
         (info.inspect_basic().as_ref()).map_or_else(
             || {
                 serialize! {
@@ -125,7 +128,7 @@ impl<'s> Song {
                     0 => "modified",
                     user_info.play_count => "play_count",
                     user_info.rating => "rating",
-                    serialize_list(&user_info.tags) => "tags",
+                    tags => "tags",
                 }
             },
             |info| {
@@ -143,19 +146,26 @@ impl<'s> Song {
                     user_info.modified => "modified",
                     user_info.play_count => "play_count",
                     user_info.rating => "rating",
-                    serialize_list(&user_info.tags) => "tags",
+                    tags => "tags",
                 }
             },
         )
     }
 
-    /// Constructs a new `Song` instance using the serialized song info `data`
+    /// Constructs a new `Song` from the serialized `data`
+    ///
+    /// At the minimum, a non-empty `path` field must be present within `data`,
+    /// otherwise this function returns an error
+    ///
+    /// To support upgrading from versions 0.2.2 or older, the `uri` field is
+    /// allowed as a substitute for `path`, which the library will then convert
+    /// to a proper `path`. If both fields are present, `uri` takes precedence.
     ///
     /// # Panics
-    /// - If a value cannot be parsed into the required type
+    /// Panics if a value cannot be parsed into the required type
     ///
     /// # Errors
-    /// - If the `uri` field is missing from the `data`
+    /// Errors if neither `path` nor `uri` field is present in the `data`
     #[inline]
     fn deserialize(data: &str) -> Result<Song, DeserializeSongError> {
         let mut path = "";
@@ -182,8 +192,8 @@ impl<'s> Song {
             }
         }
 
-        if unlikely(path.is_empty()) {
-            return Err(DeserializeSongError);
+        if path.is_empty() {
+            return cold(Err(DeserializeSongError));
         }
 
         Ok(Song {
