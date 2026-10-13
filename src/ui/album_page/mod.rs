@@ -39,8 +39,7 @@ impl AlbumPage {
     ///
     /// # Panics
     /// The function panics if any of the `album`'s `Mutex`es or the `album.songs`'
-    /// `RwLock`s are in a poisoned state. It may also panic at runtime upon
-    /// interaction if the UI channel is closed.
+    /// `RwLock`s are in a poisoned state
     #[inline]
     pub fn init_page(&self, album: &SharedAlbum, page_index: usize) {
         let ui = self.imp();

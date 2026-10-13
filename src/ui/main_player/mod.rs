@@ -19,8 +19,7 @@ impl MainPlayer {
     /// Initializes the seek bar for the player UI
     ///
     /// # Panics
-    /// Panics at runtime upon interaction with the seek
-    /// bar if the player channel is closed
+    /// Panics in debug mode if `GtkGestureClick` was not found on the seek bar
     #[inline]
     pub fn init_seek(&self) {
         // Locate the `gtk::GestureClick` controller already present on `GtkScale`
