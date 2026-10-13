@@ -14,7 +14,7 @@ use crate::excuses::EXP_INIT;
 use crate::library::{Library, LibraryConfig, LibraryRequest, library_tx};
 use crate::player::{Player, PlayerRequest, SongQueue};
 use crate::shortcuts::Shortcuts;
-use crate::ui::{UpdateUI, Window, actions::Actions, ui_tx};
+use crate::ui::{Window, actions::Actions, ui_tx};
 use crate::{about, music_dir, util::deserialize_list};
 use crate::{init_channels, mpris};
 
@@ -42,13 +42,35 @@ impl Application {
             // results in faster launch times, but this requires moving them into
             // `connect_startup` which takes a reusable `Fn` closure. One way of
             // doing so is using a `RefCell<Option>` and `Option::take`.
-            let settings = app.init_components(player_rx, library_rx);
+            let settings = gio::Settings::new(about::APP_ID);
+            app.init_components(&settings, player_rx, library_rx);
             let args = RefCell::new(Some((settings, ui_rx, mpris_rx)));
+
             app.connect_startup(move |app| {
                 let Some((settings, ui_rx, mpris_rx)) = args.take() else {
                     return; // This closure should not run multiple times
                 };
-                Self::init_window(app, settings, ui_rx);
+
+                let window = Window::new(app, settings);
+                glib::spawn_future_local({
+                    let window = window.clone();
+                    async move { window.imp().event_handler(ui_rx).await }
+                });
+
+                window.set_icon_name(Some(about::APP_ID));
+                window.set_title(Some(about::APP_NAME));
+                window.present();
+                #[cfg(feature = "verbose-logs")]
+                println!("Window presented");
+
+                app.setup_actions(&window);
+                app.setup_shortcuts();
+
+                app.connect_activate(Self::show_window);
+                app.connect_shutdown(Self::shutdown);
+
+                let _ = app.imp().window.set(window);
+
                 glib::spawn_future_local(mpris::controller(mpris_rx));
             });
         }
@@ -58,27 +80,15 @@ impl Application {
         app.run()
     }
 
-    /// Initializes the application window
-    #[inline]
-    fn init_window(&self, settings: gio::Settings, ui_rx: async_channel::Receiver<UpdateUI>) {
-        self.create_window(settings, ui_rx);
-
-        self.setup_actions();
-        self.setup_shortcuts();
-
-        self.connect_activate(Self::show_window);
-        self.connect_shutdown(Self::shutdown);
-    }
-
     /// Starts the player and library threads, calls `gtk::init`,
     /// registers resources, and returns the application settings
     #[inline]
     fn init_components(
         &self,
+        settings: &gio::Settings,
         player_rx: mpsc::Receiver<PlayerRequest>,
         library_rx: mpsc::Receiver<LibraryRequest>,
-    ) -> gio::Settings {
-        let settings = gio::Settings::new(about::APP_ID);
+    ) {
         let startup_queue = settings.enum_("startup-queue");
         let directories = settings.string("directories");
 
@@ -137,8 +147,13 @@ impl Application {
         gio::resources_register(
             &gio::Resource::load(about::resources_file()).expect("Could not load resources file"),
         );
+    }
 
-        settings
+    /// Handles opening files from disk
+    #[inline]
+    fn open_files(&self, files: &[gio::File], _: &str) {
+        let files = files.iter().map(|file| file.path().unwrap()).collect();
+        let _ = library_tx().send(LibraryRequest::QueueFromPaths(files));
     }
 
     /// Returns the window associated with the `Application`
@@ -149,34 +164,6 @@ impl Application {
     #[must_use]
     pub fn window(&self) -> &Window {
         self.imp().window.get().expect(EXP_INIT)
-    }
-
-    /// Creates a new `Window` and presents it
-    #[inline]
-    fn create_window(&self, settings: gio::Settings, ui_rx: async_channel::Receiver<UpdateUI>) {
-        let window = Window::new(self, settings);
-        #[cfg(feature = "verbose-logs")]
-        println!("Window created");
-
-        glib::spawn_future_local({
-            let window = window.clone();
-            async move { window.imp().event_handler(ui_rx).await }
-        });
-
-        window.set_icon_name(Some(about::APP_ID));
-        window.set_title(Some(about::APP_NAME));
-        window.present();
-        #[cfg(feature = "verbose-logs")]
-        println!("Window presented");
-
-        let _ = self.imp().window.set(window);
-    }
-
-    /// Handles opening files from disk
-    #[inline]
-    fn open_files(&self, files: &[gio::File], _: &str) {
-        let files = files.iter().map(|file| file.path().unwrap()).collect();
-        let _ = library_tx().send(LibraryRequest::QueueFromPaths(files));
     }
 
     /// Shows the window if it is hidden

@@ -12,12 +12,11 @@ pub mod player;
 pub mod ui;
 
 pub trait Actions {
-    fn setup_actions(&self);
+    fn setup_actions(&self, window: &Window);
 }
 impl Actions for Application {
     #[inline]
-    fn setup_actions(&self) {
-        let window = self.window();
+    fn setup_actions(&self, window: &Window) {
         self.add_action_entries([
             actions::app::add_library(window.to_owned()),
             actions::app::queue_from_disk(window.to_owned()),
