@@ -538,47 +538,34 @@ impl SongQueue {
     }
 
     /// Updates the UI with the current queue shuffle mode setting
-    ///
-    /// # Panics
-    /// The function panics if the UI channel receiver is closed
     #[inline]
     fn ui_update_shuffle(&self) {
         #[cfg(feature = "verbose-logs")]
         println!("ui_update_shuffle(): {}", self.shuffle);
-        (ui_tx().send_blocking(UpdateUI::Shuffle(self.shuffle))).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::Shuffle(self.shuffle));
     }
 
     /// Updates the UI with the current queue repeat mode setting
-    ///
-    /// # Panics
-    /// The function panics if the UI channel receiver is closed
     #[inline]
     fn ui_update_repeat(&self) {
         #[cfg(feature = "verbose-logs")]
         println!("ui_update_repeat(): {}", self.repeat);
-        (ui_tx().send_blocking(UpdateUI::Repeat(self.repeat))).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::Repeat(self.repeat));
     }
 
     /// Updates the UI with the current queue
-    ///
-    /// # Panics
-    /// The function panics if the UI channel receiver is closed
     #[inline]
     pub fn ui_update_queue(&mut self) {
         #[cfg(feature = "verbose-logs")]
         println!("ui_update_queue()");
-        (ui_tx().send_blocking(UpdateUI::SetQueue {
+        let _ = ui_tx().send_blocking(UpdateUI::SetQueue {
             queue: self.ordered_queue(),
             playing_index: self.index,
-        }))
-        .expect(EXP_RX);
+        });
         self.last_ui_index = self.index;
     }
 
     /// Updates the UI with the current queue index
-    ///
-    /// # Panics
-    /// The function panics if the UI channel receiver is closed
     #[inline]
     pub fn ui_update_queue_index(&mut self) {
         if self.index == self.last_ui_index {
@@ -586,33 +573,25 @@ impl SongQueue {
         }
         #[cfg(feature = "verbose-logs")]
         println!("ui_update_queue_index(): {}", self.index);
-        (ui_tx().send_blocking(UpdateUI::SetQueueIndex(self.index))).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::SetQueueIndex(self.index));
         self.last_ui_index = self.index;
     }
 
     /// Closes the UI queue subpage if visible
-    ///
-    /// # Panics
-    /// The function panics if the UI channel receiver is closed
     #[inline]
     fn ui_close_queue_subpage(&self) {
         #[cfg(feature = "verbose-logs")]
         println!("ui_close_queue_subpage()");
-        (ui_tx().send_blocking(UpdateUI::CloseQueueSubpage)).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::CloseQueueSubpage);
     }
 
     /// Attempts to correct the queue subpage item index if open,
     /// or closes it
-    ///
-    /// # Panics
-    /// The function panics if the UI channel receiver is closed
     #[inline]
     pub fn ui_validate_queue_subpage_index(&self) {
         #[cfg(feature = "verbose-logs")]
         println!("ui_validate_queue_subpage_index()");
-        ui_tx()
-            .send_blocking(UpdateUI::ValidateQueueSubpageIndex)
-            .expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::ValidateQueueSubpageIndex);
     }
 
     /// Serializes `self.queue` to a file on disk, or removes

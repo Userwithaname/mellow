@@ -5,7 +5,7 @@ use gst::{ClockTime, SeekFlags, State};
 use std::sync::{OnceLock, mpsc};
 
 use crate::UI_TIMEOUT;
-use crate::excuses::{EXP_RX, INIT_ERR};
+use crate::excuses::INIT_ERR;
 use crate::library::unload_unused::UsedBy;
 use crate::ui::{UpdateUI, ui_tx};
 use crate::util::hint::cold_expression;
@@ -216,12 +216,6 @@ impl Player {
     /// # Errors
     /// The function may error upon handling a request:
     /// - If a `GStreamer` error has not been handled
-    ///
-    /// # Panics
-    /// The function may panic when handling a request
-    /// in some cases, such as:
-    /// - If the UI channel is closed
-    /// - A crash occurs in `GStreamer`
     pub fn controller(mut self) -> Result<(), Box<dyn Error>> {
         // Required for gapless playback
         self.backend.connect("about-to-finish", false, move |_| {
@@ -406,9 +400,6 @@ impl Player {
     /// If `shuffled` is `Some`, shuffle mode is enabled, and the
     /// provided queue is used. If the `shuffled` queue is empty,
     /// a new one is created.
-    ///
-    /// # Panics
-    /// Panics if the UI channel is closed
     #[inline]
     fn load_queue(&mut self, queue: Vec<QueueItem>, shuffled: Option<Vec<usize>>, index: usize) {
         if index >= queue.len() {
@@ -432,10 +423,9 @@ impl Player {
             None => &queue[index],
             Some(shuffled) => &queue[shuffled[index]],
         });
-        (ui_tx().send_blocking(UpdateUI::SongInfo {
+        let _ = ui_tx().send_blocking(UpdateUI::SongInfo {
             item: QueueItem::clone(&queue_item),
-        }))
-        .expect(EXP_RX);
+        });
 
         self.queue.load_new(queue, shuffled);
         self.skip_to(index);
@@ -746,11 +736,10 @@ impl Player {
         let playing = state.0.is_ok() && matches!(state.1, State::Playing);
         #[cfg(feature = "verbose-logs")]
         println!("ui_set_state(playing: {playing}, interactive: {interactive})");
-        (ui_tx().send_blocking(UpdateUI::PlayerState {
+        let _ = ui_tx().send_blocking(UpdateUI::PlayerState {
             playing,
             interactive,
-        }))
-        .expect(EXP_RX);
+        });
     }
 
     /// Sends the current song info to the UI receiver
@@ -762,20 +751,20 @@ impl Player {
             false => QueueItem::clone(self.queue.current()),
             true => QueueItem::new_stopper(false),
         };
-        (ui_tx().send_blocking(UpdateUI::SongInfo { item })).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::SongInfo { item });
     }
 
     /// Sends the current playback time to the UI receiver
     fn ui_set_time(&self) {
         let time = self.current_time().map(ClockTime::mseconds);
-        (ui_tx().send_blocking(UpdateUI::PlayerTime { time })).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::PlayerTime { time });
     }
 
     /// Requests the UI to open the music library
     fn ui_open_playing() {
         let ui_tx = ui_tx();
-        ui_tx.send_blocking(UpdateUI::FocusPlaying).expect(EXP_RX);
-        (ui_tx.send_blocking(UpdateUI::OpenSheet(true))).expect(EXP_RX);
+        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
+        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(true));
     }
 
     fn wait_for_gstreamer_state(&mut self) {

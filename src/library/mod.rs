@@ -344,7 +344,7 @@ impl Library {
 
                 LibraryRequest::QueueFromPaths(paths) => self.play_from_paths(
                     paths.iter().map(|path| path.to_str().unwrap()), //
-                )?,
+                ),
 
                 LibraryRequest::CancelRebuild(time) => self.cancel_library_build(time),
                 LibraryRequest::Rebuild(time) => self.start_library_build(time),
@@ -430,12 +430,12 @@ impl Library {
     /// Creates connections between library `songs`/`albums`/`artists`
     ///
     /// # Errors
-    /// Returns an error if the build was cancelled, or if the library or UI
-    /// channel receiver is closed
+    /// Returns an error if the build was cancelled, or if the library
+    /// channel is closed
     ///
     /// # Panics
-    /// The function panics if `songs`, `missing`, or `check_moved` contains a
-    /// poisoned mutex, or if the UI channel is closed
+    /// The function panics if `songs`, `missing`, or `check_moved`
+    /// contains a poisoned mutex
     #[inline]
     fn create_connections(
         mut songs: Songs,
@@ -443,7 +443,7 @@ impl Library {
         check_moved: &Mutex<Songs>,
         config: &LibraryConfig,
         num_workers: usize,
-    ) -> Result<(), Box<dyn Error>> {
+    ) -> Result<(), String> {
         Library::validate_songs(&mut songs, &mut missing, check_moved, config);
 
         let ui_tx = ui_tx();
@@ -569,7 +569,7 @@ impl Library {
             {
                 Library::merge_moved_entries(&artists, check_moved);
             }
-            (ui_tx.send_blocking(UpdateUI::SetLibrarySongs(songs))).expect(EXP_RX);
+            let _ = ui_tx.send_blocking(UpdateUI::SetLibrarySongs(songs));
         }
 
         #[cfg(feature = "verbose-logs")]
@@ -594,7 +594,7 @@ impl Library {
 
             if state != STATE_CANCEL {
                 // IDEA: Maybe a negative progress value could represent a failure state?
-                ui_tx.send_blocking(UpdateUI::Progress(None)).expect(EXP_RX);
+                let _ = ui_tx.send_blocking(UpdateUI::Progress(None));
 
                 #[cfg(feature = "verbose-logs")]
                 println!(
@@ -708,8 +708,7 @@ impl Library {
     /// - Updates the library `songs` and `missing_songs`
     ///
     /// # Panics
-    /// The function may panic if the library channel is closed
-    /// or if a song's `Mutex` is in a poisoned state
+    /// If a song's `Mutex` is in a poisoned state
     #[inline]
     fn validate_songs(
         songs: &mut Songs,
@@ -856,9 +855,6 @@ impl Library {
     }
 
     /// Cancels any currently ongoing rebuild and requests a new one
-    ///
-    /// # Panics
-    /// Panics if the library channel is closed
     pub fn rebuild() {
         if STATE.load(atomic::Ordering::Acquire) == STATE_BUSY {
             STATE.store(STATE_CANCEL, atomic::Ordering::Relaxed);
@@ -1007,12 +1003,9 @@ impl Library {
         &self.albums
     }
     /// Replaces `self.albums` with `albums`, and updates the library albums UI
-    ///
-    /// # Panics
-    /// The function panics if the UI channel receiver is closed
     #[inline]
     fn set_albums(&mut self, albums: Albums) {
-        (ui_tx().send_blocking(UpdateUI::SetLibraryAlbums(albums.clone()))).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::SetLibraryAlbums(albums.clone()));
         self.albums = albums;
     }
 
@@ -1023,12 +1016,9 @@ impl Library {
         &self.artists
     }
     /// Replaces `self.artists` with `artists`, and updates the library artists UI
-    ///
-    /// # Panics
-    /// The function panics if the UI channel receiver is closed
     #[inline]
     fn set_artists(&mut self, artists: Artists) {
-        (ui_tx().send_blocking(UpdateUI::SetLibraryArtists(artists.clone()))).expect(EXP_RX);
+        let _ = ui_tx().send_blocking(UpdateUI::SetLibraryArtists(artists.clone()));
         self.artists = artists;
     }
     /// Replaces `self.missing_songs` with `missing_songs`
@@ -1099,29 +1089,22 @@ impl Library {
     }
 
     /// Starts a queue of all songs found within the specified `paths`,
-    /// recursively. Does nothing if no song files were found.
-    ///
-    /// # Errors
-    /// The function errors if either the player or UI channel receiver is closed
-    pub fn play_from_paths<'i, I: Iterator<Item = &'i str>>(
-        &mut self,
-        paths: I,
-    ) -> Result<(), Box<dyn Error>> {
+    /// recursively, or does nothing if no song files were found
+    pub fn play_from_paths<'i, I: Iterator<Item = &'i str>>(&mut self, paths: I) {
         let queue = self.songs_from_paths(paths);
         if queue.is_empty() {
-            return Ok(());
+            return;
         }
         let player_tx = player_tx();
-        player_tx.send(PlayerRequest::LoadQueue {
+        let _ = player_tx.send(PlayerRequest::LoadQueue {
             queue,
             shuffled: None,
             track: 0,
-        })?;
-        player_tx.send(PlayerRequest::TogglePlay(Some(true)))?;
+        });
+        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
         let ui_tx = ui_tx();
-        ui_tx.send_blocking(UpdateUI::OpenSheet(false))?;
-        ui_tx.send_blocking(UpdateUI::FocusPlaying)?;
-        Ok(())
+        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
+        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
     }
 
     /// Takes a list of file or directory paths and returns a queue

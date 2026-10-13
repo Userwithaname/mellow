@@ -91,10 +91,7 @@ impl Window {
     /// for shutdown, uninitializing various components
     ///
     /// # Errors
-    /// The function errors if a `gio::Settings` value cannot be saved
-    ///
-    /// # Panics
-    /// The function panics if either the library or player channel is closed
+    /// The function errors if a `gio::Settings` value could not be set
     pub fn save_and_uninit(&self) -> Result<(), glib::error::BoolError> {
         let _ = ui_tx().send_blocking(UpdateUI::Uninit);
 
@@ -148,13 +145,12 @@ impl Window {
         let imp = self.imp();
         let settings_page = &imp.settings_page;
 
-        // Slider callback `change_value` doesn't work for `set_value()`,
+        // Slider callback `change-value` doesn't work for `set_value()`,
         // so the volume has to be set manually before setting the slider
         let volume = settings.double("volume");
-        settings_page
-            .imp()
-            .handle_set_volume(gtk::ScrollType::Jump, volume);
+        (settings_page.imp()).handle_set_volume(gtk::ScrollType::Jump, volume);
         settings_page.set_volume(volume);
+
         settings_page.set_gapless(settings.boolean("gapless"));
         settings_page.set_play_in_background(settings.boolean("play-in-background"));
         settings_page.set_startup_queue(settings.enum_("startup-queue").into());
@@ -177,7 +173,6 @@ impl Window {
             .set_shuffle(settings.boolean("artists-shuffle"));
 
         self.set_default_size(settings.int("window-width"), settings.int("window-height"));
-
         self.setup_actions(&songs_sort, &albums_sort, &artists_sort);
     }
 }
