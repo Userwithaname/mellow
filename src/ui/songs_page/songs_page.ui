@@ -244,24 +244,20 @@
                                   </object>
                                 </child>
                                 <child type="suffix">
-                                  <object class="GtkBox">
-                                    <child>
-                                      <object class="GtkDropDown" id="year_condition">
-                                        <signal name="notify::selected" handler="handle_filters_changed" swapped="true"/>
-                                        <property name="vexpand">false</property>
-                                        <property name="hexpand">false</property>
-                                        <property name="valign">center</property>
-                                        <property name="halign">center</property>
-                                        <property name="model">
-                                          <object class="GtkStringList">
-                                            <items>
-                                              <item translatable="yes">or newer</item>
-                                              <item translatable="yes">or older</item>
-                                            </items>
-                                          </object>
-                                        </property>
+                                  <object class="GtkDropDown" id="year_condition">
+                                    <signal name="notify::selected" handler="handle_filters_changed" swapped="true"/>
+                                    <property name="vexpand">false</property>
+                                    <property name="hexpand">false</property>
+                                    <property name="valign">center</property>
+                                    <property name="halign">center</property>
+                                    <property name="model">
+                                      <object class="GtkStringList">
+                                        <items>
+                                          <item translatable="yes">or newer</item>
+                                          <item translatable="yes">or older</item>
+                                        </items>
                                       </object>
-                                    </child>
+                                    </property>
                                   </object>
                                 </child>
                               </object>
