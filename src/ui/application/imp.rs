@@ -10,8 +10,7 @@ use crate::ui::Window;
 pub struct Application {
     /// Only one appication window may be open at a time
     pub window: OnceCell<Window>,
-    pub player_handle: Cell<Option<JoinHandle<()>>>,
-    pub library_handle: Cell<Option<JoinHandle<()>>>,
+    pub component_handles: Cell<Option<[JoinHandle<()>; 2]>>,
 }
 
 #[glib::object_subclass]

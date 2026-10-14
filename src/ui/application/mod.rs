@@ -37,22 +37,37 @@ impl Application {
             .property("application-id", about::APP_ID)
             .property("flags", gio::ApplicationFlags::HANDLES_OPEN)
             .build();
+        glib::set_application_name(about::APP_NAME);
+        glib::set_program_name(Some(about::APP_NAME.to_lowercase()));
 
         // Only runs once, because `init_channels` returns an error if already initialized
         if let Ok((player_rx, library_rx, ui_rx, mpris_rx)) = init_channels() {
             // Show an error and close the app entirely if any thread panics
             panic::set_hook(Box::new(|info| crash_handling::handle_crash(info, ui_tx())));
 
-            // Starting the components in parallel with GTK (inside `init_components`)
+            // Starting the components in parallel with GTK (`init_components`)
             // results in faster launch times, but this requires moving them into
             // `connect_startup` which takes a reusable `Fn` closure. One way of
             // doing so is using a `RefCell<Option>` and `Option::take`.
             let settings = gio::Settings::new(about::APP_ID);
-            app.init_components(&settings, player_rx, library_rx);
-            let args = RefCell::new(Some((settings, ui_rx, mpris_rx)));
+            let handles = Self::init_components(&settings, player_rx, library_rx);
+            let args = RefCell::new(Some((settings, ui_rx, mpris_rx, handles)));
+            let _ = gtk::init();
+
+            #[cfg(feature = "gresources")]
+            #[cfg(feature = "no-meson")]
+            gio::resources_register_include!("mellow.gresource")
+                .expect("Failed to register resources");
+
+            #[cfg(feature = "gresources")]
+            #[cfg(not(feature = "no-meson"))]
+            gio::resources_register(
+                &gio::Resource::load(about::resources_file())
+                    .expect("Could not load resources file"),
+            );
 
             app.connect_startup(move |app| {
-                let Some((settings, ui_rx, mpris_rx)) = args.take() else {
+                let Some((settings, ui_rx, mpris_rx, handles)) = args.take() else {
                     return; // This closure should not run multiple times
                 };
 
@@ -65,16 +80,16 @@ impl Application {
                 window.set_icon_name(Some(about::APP_ID));
                 window.set_title(Some(about::APP_NAME));
                 window.present();
-                #[cfg(feature = "verbose-logs")]
-                println!("Window presented");
-
-                app.setup_actions(&window);
-                app.setup_shortcuts();
 
                 app.connect_activate(Self::show_window);
                 app.connect_shutdown(Self::shutdown);
 
-                let _ = app.imp().window.set(window);
+                app.setup_shortcuts();
+                app.setup_actions(&window);
+
+                let imp = app.imp();
+                let _ = imp.window.set(window);
+                imp.component_handles.set(Some(handles));
 
                 glib::spawn_future_local(mpris::controller(mpris_rx));
 
@@ -88,21 +103,17 @@ impl Application {
         app.run()
     }
 
-    /// Starts the player and library threads, calls `gtk::init`,
-    /// registers resources, and returns the application settings
+    /// Starts the library and player threads and returns their handles
     #[inline]
+    #[must_use]
     fn init_components(
-        &self,
         settings: &gio::Settings,
         player_rx: mpsc::Receiver<PlayerRequest>,
         library_rx: mpsc::Receiver<LibraryRequest>,
-    ) {
+    ) -> [thread::JoinHandle<()>; 2] {
         let startup_queue = settings.enum_("startup-queue");
         let directories = settings.string("directories");
-
-        let imp = self.imp();
-
-        imp.library_handle.set(Some(
+        [
             thread::Builder::new()
                 .name("library".to_owned())
                 .spawn(move || {
@@ -132,29 +143,11 @@ impl Application {
                     library.request_handler().unwrap();
                 })
                 .unwrap(),
-        ));
-
-        imp.player_handle.set(Some(
             thread::Builder::new()
                 .name("player".to_owned())
                 .spawn(move || Player::init(player_rx).controller().unwrap())
                 .unwrap(),
-        ));
-
-        let _ = gtk::init();
-
-        glib::set_application_name(about::APP_NAME);
-        glib::set_program_name(Some(about::APP_NAME.to_lowercase()));
-
-        #[cfg(feature = "gresources")]
-        #[cfg(feature = "no-meson")]
-        gio::resources_register_include!("mellow.gresource").expect("Failed to register resources");
-
-        #[cfg(feature = "gresources")]
-        #[cfg(not(feature = "no-meson"))]
-        gio::resources_register(
-            &gio::Resource::load(about::resources_file()).expect("Could not load resources file"),
-        );
+        ]
     }
 
     /// Handles opening files from disk
@@ -190,14 +183,11 @@ impl Application {
         // Wait until all components stop cleanly or the `timeout` is reached
         let timeout = Duration::from_secs(5);
         let (notify_done, rx) = mpsc::channel::<()>();
-        let library_handle = imp.library_handle.take().unwrap();
-        let player_handle = imp.player_handle.take().unwrap();
+        let component_handles = imp.component_handles.take().unwrap().into_iter();
         let await_components = thread::spawn(move || {
-            let results = (library_handle.join(), player_handle.join());
+            let results = component_handles.map(|handle| handle.join());
             let _ = notify_done.send(());
-
-            // Panic if either component has crashed
-            results.0.inspect(|_| results.1.unwrap()).unwrap();
+            let _ = results.map(Result::unwrap); // Panic if any component has crashed
         });
         if rx.recv_timeout(timeout).is_err() {
             eprintln!("Exiting - component timeout was reached");
