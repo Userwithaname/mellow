@@ -391,6 +391,12 @@ impl Library {
             "`STATE` should be set to `STATE_BUSY` ({STATE_BUSY}) before calling `discover_files`"
         );
 
+        #[cfg(feature = "event-timers")]
+        {
+            // Some time is spent before first call - updating so `event-timers` shows accurate info
+            self.last_build_started = Instant::now();
+        }
+
         self.rebuild_pending = false;
         for library_path in self.config.directories() {
             let _ = visit_dirs(library_path.to_path_buf(), &mut |path| {
@@ -408,9 +414,9 @@ impl Library {
             return;
         }
 
-        #[cfg(feature = "verbose-logs")]
+        #[cfg(feature = "event-timers")]
         println!(
-            "Library song file list built in {:?}",
+            "Library rebuild (1/3): Checking song files took {:?}",
             self.last_build_started.elapsed()
         );
 
@@ -457,9 +463,9 @@ impl Library {
                 library.set_missing_songs(missing);
                 library.set_songs(songs.clone());
 
-                #[cfg(feature = "verbose-logs")]
+                #[cfg(feature = "event-timers")]
                 println!(
-                    "Library songs validated in {:?}",
+                    "Library rebuild (2/3): Validated songs ({:?})",
                     library.last_build_started.elapsed()
                 );
 
@@ -596,9 +602,9 @@ impl Library {
                 // IDEA: Maybe a negative progress value could represent a failure state?
                 let _ = ui_tx.send_blocking(UpdateUI::Progress(None));
 
-                #[cfg(feature = "verbose-logs")]
+                #[cfg(feature = "event-timers")]
                 println!(
-                    "Library connections finished in {:?}",
+                    "Library rebuild (3/3): Completed in {:?} total",
                     library.last_build_started.elapsed()
                 );
 

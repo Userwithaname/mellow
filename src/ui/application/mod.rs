@@ -1,10 +1,12 @@
 use adw::{prelude::*, subclass::prelude::*};
 use core::cell::RefCell;
+use core::time::Duration;
 use gtk::{gio, glib};
 use std::panic;
 use std::path::PathBuf;
 use std::sync::mpsc;
-use std::time::Duration;
+#[cfg(feature = "event-timers")]
+use std::time::Instant;
 use std::{process, thread};
 
 mod crash_handling;
@@ -28,6 +30,9 @@ impl Application {
     /// Initializes the player/library threads and the UI, then runs the application
     #[inline]
     pub fn run() -> glib::ExitCode {
+        #[cfg(feature = "event-timers")]
+        let startup = Instant::now();
+
         let app: Self = glib::Object::builder()
             .property("application-id", about::APP_ID)
             .property("flags", gio::ApplicationFlags::HANDLES_OPEN)
@@ -72,6 +77,9 @@ impl Application {
                 let _ = app.imp().window.set(window);
 
                 glib::spawn_future_local(mpris::controller(mpris_rx));
+
+                #[cfg(feature = "event-timers")]
+                println!("\nWindow appeared {:?} since startup", startup.elapsed());
             });
         }
 
