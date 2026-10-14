@@ -8,7 +8,7 @@ if get_option('profile') == 'devel'
   rust_target = 'debug'
 elif get_option('profile') == 'bench'
   environment().append('RUSTFLAGS', '-C force-frame-pointers=yes')
-  cargo_options += ['--profile=bench', '--features=event-timers']
+  cargo_options += ['--profile=bench', '--features=verbose-logs,event-timers']
   rust_target = 'release'
 else
   cargo_options += ['--release']
