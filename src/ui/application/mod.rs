@@ -82,6 +82,9 @@ impl Application {
                 glib::spawn_future_local({
                     let app = app.clone();
                     async move {
+                        // Allowing the window to show up before continuing
+                        glib::timeout_future(Duration::from_millis(5)).await;
+
                         app.connect_activate(Self::show_window);
                         app.connect_shutdown(Self::shutdown);
                         app.setup_shortcuts();
