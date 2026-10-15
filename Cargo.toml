@@ -43,7 +43,6 @@ debug = true
 codegen-units = 1
 lto = true
 overflow-checks = false
-panic = "abort"
 strip = true
 
 [profile.release.package."*"]
