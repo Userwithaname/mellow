@@ -183,7 +183,7 @@ impl Application {
         // Wait until all components stop cleanly or the `timeout` is reached
         let timeout = Duration::from_secs(5);
         let (notify_done, rx) = mpsc::channel::<()>();
-        let component_handles = imp.component_handles.take().unwrap().into_iter();
+        let component_handles = imp.component_handles.take().unwrap();
         let await_components = thread::spawn(move || {
             let results = component_handles.map(thread::JoinHandle::join);
             let _ = notify_done.send(());
