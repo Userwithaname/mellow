@@ -69,7 +69,8 @@ impl Application {
                     return; // This closure should not run multiple times
                 };
 
-                let window = Window::new(app, settings);
+                let window_size = (settings.int("window-width"), settings.int("window-height"));
+                let window = Window::new(app, window_size);
                 glib::spawn_future_local({
                     let window = window.clone();
                     async move { window.imp().event_handler(ui_rx).await }
@@ -79,17 +80,22 @@ impl Application {
                 window.set_title(Some(about::APP_NAME));
                 window.present();
 
-                app.connect_activate(Self::show_window);
-                app.connect_shutdown(Self::shutdown);
+                glib::spawn_future_local({
+                    let app = app.clone();
+                    async move {
+                        app.connect_activate(Self::show_window);
+                        app.connect_shutdown(Self::shutdown);
+                        app.setup_shortcuts();
+                        app.setup_actions(&window);
+                        window.load_and_init(settings);
 
-                app.setup_shortcuts();
-                app.setup_actions(&window);
+                        let imp = app.imp();
+                        let _ = imp.window.set(window);
+                        imp.component_handles.set(Some(handles));
 
-                let imp = app.imp();
-                let _ = imp.window.set(window);
-                imp.component_handles.set(Some(handles));
-
-                glib::spawn_future_local(mpris::controller(mpris_rx));
+                        mpris::controller(mpris_rx).await
+                    }
+                });
 
                 #[cfg(feature = "event-timers")]
                 println!("\nWindow appeared {:?} since startup", startup.elapsed());
@@ -97,7 +103,6 @@ impl Application {
         }
 
         app.connect_open(Self::open_files);
-
         app.run()
     }
 

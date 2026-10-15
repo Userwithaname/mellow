@@ -22,21 +22,15 @@ glib::wrapper! {
 }
 
 impl Window {
+    /// Constructs a new `Window` instance
+    ///
+    /// Call `load_and_init` to complete initialization
     #[inline]
     #[must_use]
-    pub fn new(app: &Application, settings: Settings) -> Self {
+    pub fn new(app: &Application, size: (i32, i32)) -> Self {
         let window: Self = Object::builder().property("application", app).build();
-
-        let imp = window.imp();
-
-        // Settings page has to be initialized before `load_and_setup_actions()`
-        imp.init_settings_page(app.style_manager());
-
-        window.load_and_setup_actions(&settings);
-        window.setup_drop_files();
-
-        let _ = imp.settings.set(settings);
-
+        window.imp().init_settings_page(app.style_manager());
+        window.set_default_size(size.0, size.1);
         window
     }
 
@@ -139,9 +133,9 @@ impl Window {
         Ok(())
     }
 
-    /// Loads the application settings and sets up `gio` actions
+    /// Loads the settings and initializes the application window
     #[inline]
-    fn load_and_setup_actions(&self, settings: &Settings) {
+    pub fn load_and_init(&self, settings: Settings) {
         let imp = self.imp();
         let settings_page = &imp.settings_page;
 
@@ -171,8 +165,9 @@ impl Window {
             .set_shuffle(settings.boolean("albums-shuffle"));
         imp.artists_page
             .set_shuffle(settings.boolean("artists-shuffle"));
+        let _ = imp.settings.set(settings);
 
-        self.set_default_size(settings.int("window-width"), settings.int("window-height"));
         self.setup_actions(&songs_sort, &albums_sort, &artists_sort);
+        self.setup_drop_files();
     }
 }

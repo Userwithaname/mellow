@@ -254,8 +254,8 @@ impl Window {
     }
 
     async fn set_song_queue(&self, queue: Box<[QueueItem]>, index: usize) {
-        if !self.queue_page.is_mapped() {
-            // Yielding control if queue is not visible to improve window startup time
+        if self.settings.get().is_none() {
+            // Yielding control if not fully initialized to improve window startup time
             glib::timeout_future(Duration::from_millis(5)).await;
         }
 
