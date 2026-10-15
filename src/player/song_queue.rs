@@ -504,6 +504,7 @@ impl SongQueue {
         let queue = self.songs.clone();
         let playing_index = self.index;
         Library::run_library_task(library_tx(), move |library| {
+            let ui_tx = ui_tx();
             let moved = (missing_items.into_iter())
                 .filter_map(|index| {
                     // SAFETY: Explained inside the block
@@ -516,11 +517,9 @@ impl SongQueue {
                             // SAFETY: The above loop ensures that each index points to a `Song`
                             .as_song_unchecked()
                     };
-                    let new_song = song.info().load_basic_and(|new_song_info| {
-                        library.artists().locate_song_by_info(new_song_info)
-                    })?;
+                    let new_song = (library.artists())
+                        .locate_song_by_info(song.info().inspect_basic().as_ref()?)?;
 
-                    let ui_tx = ui_tx();
                     if index == playing_index {
                         // If the currently playing song has been moved, there is likely an
                         // error shown in the interface; dismissing if found
