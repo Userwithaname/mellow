@@ -129,7 +129,7 @@ impl Window {
                 UpdateUI::SetQueue {
                     queue,
                     playing_index,
-                } => self.set_song_queue(queue, playing_index),
+                } => self.set_song_queue(queue, playing_index).await,
                 UpdateUI::SetQueueIndex(index) => self.set_queue_index(index),
                 UpdateUI::RecenterQueue(index) => self.queue_page.recenter(index),
                 UpdateUI::RedrawQueue => self.queue_page.redraw_queue(),
@@ -253,7 +253,12 @@ impl Window {
         }
     }
 
-    fn set_song_queue(&self, queue: Box<[QueueItem]>, index: usize) {
+    async fn set_song_queue(&self, queue: Box<[QueueItem]>, index: usize) {
+        if !self.queue_page.is_mapped() {
+            // Yielding control if queue is not visible to improve window startup time
+            glib::timeout_future(Duration::from_millis(5)).await;
+        }
+
         #[cfg(feature = "verbose-logs")]
         println!("set_song_queue(…, {index}): {} items", queue.len());
 
