@@ -185,7 +185,7 @@ impl Application {
         let (notify_done, rx) = mpsc::channel::<()>();
         let component_handles = imp.component_handles.take().unwrap().into_iter();
         let await_components = thread::spawn(move || {
-            let results = component_handles.map(|handle| handle.join());
+            let results = component_handles.map(thread::JoinHandle::join);
             let _ = notify_done.send(());
             let _ = results.map(Result::unwrap); // Panic if any component has crashed
         });
