@@ -39,14 +39,15 @@ type ChannelReceivers = (
 #[derive(Debug)]
 pub struct AlreadyInitializedError;
 
-/// Initializes the channel senders (`ui_tx`/`player_tx`/`library_tx`),
-/// and returns their receivers, which should be forwarded to the
-/// respective `init` functions.
+/// Initializes the component channels and returns their receivers
+///
+/// The returned channel receivers should be passed to their respective
+/// components' `init` functions
 ///
 /// # Errors
 /// Function returns an error if the channels were already initialized
 #[inline]
-#[must_use = "Caution: Channel receivers must be used, otherwise the channels will close"]
+#[must_use = "Channel receivers should be passed to their respective components' `init` functions"]
 pub fn init_channels() -> Result<ChannelReceivers, AlreadyInitializedError> {
     let (player_tx, player_rx) = mpsc::channel::<PlayerRequest>();
     let (library_tx, library_rx) = mpsc::channel::<LibraryRequest>();

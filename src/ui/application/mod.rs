@@ -40,7 +40,7 @@ impl Application {
         glib::set_application_name(about::APP_NAME);
         glib::set_program_name(Some(about::APP_NAME.to_lowercase()));
 
-        // Only runs once, because `init_channels` returns an error if already initialized
+        // Attempting to run this twice would cause `init_channels` to return an error
         if let Ok((player_rx, library_rx, ui_rx, mpris_rx)) = init_channels() {
             // Show an error and close the app entirely if any thread panics
             panic::set_hook(Box::new(|info| crash_handling::handle_crash(info, ui_tx())));
@@ -54,13 +54,11 @@ impl Application {
             let args = RefCell::new(Some((settings, ui_rx, mpris_rx, handles)));
             let _ = gtk::init();
 
-            #[cfg(feature = "gresources")]
-            #[cfg(feature = "no-meson")]
+            #[cfg(all(feature = "no-meson", feature = "gresources"))]
             gio::resources_register_include!("mellow.gresource")
                 .expect("Failed to register resources");
 
-            #[cfg(feature = "gresources")]
-            #[cfg(not(feature = "no-meson"))]
+            #[cfg(all(not(feature = "no-meson"), feature = "gresources"))]
             gio::resources_register(
                 &gio::Resource::load(about::resources_file())
                     .expect("Could not load resources file"),
@@ -129,16 +127,12 @@ impl Application {
                     println!("Library initialized");
 
                     SongQueue::init_queue(&library, startup_queue.into()).unwrap();
-                    #[cfg(feature = "verbose-logs")]
-                    println!("Queue was sent to the player");
 
                     library.build_global_tag_list();
 
                     // `STATE` does not need to be set here,
                     // because it defaults to `STATE_BUSY`
                     library.discover_files();
-                    #[cfg(feature = "verbose-logs")]
-                    println!("Files were checked");
 
                     library.request_handler().unwrap();
                 })

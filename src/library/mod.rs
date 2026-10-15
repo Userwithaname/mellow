@@ -391,7 +391,7 @@ impl Library {
             "`STATE` should be set to `STATE_BUSY` ({STATE_BUSY}) before calling `discover_files`"
         );
 
-        #[cfg(feature = "event-timers")]
+        #[cfg(any(feature = "event-timers", feature = "verbose-logs"))]
         {
             // Some time is spent before first call - updating so `event-timers` shows accurate info
             self.last_build_started = Instant::now();
@@ -414,7 +414,7 @@ impl Library {
             return;
         }
 
-        #[cfg(feature = "event-timers")]
+        #[cfg(any(feature = "event-timers", feature = "verbose-logs"))]
         println!(
             "Library rebuild (1/3): Checking song files took {:?}",
             self.last_build_started.elapsed()
@@ -463,9 +463,9 @@ impl Library {
                 library.set_missing_songs(missing);
                 library.set_songs(songs.clone());
 
-                #[cfg(feature = "event-timers")]
+                #[cfg(any(feature = "event-timers", feature = "verbose-logs"))]
                 println!(
-                    "Library rebuild (2/3): Validated songs ({:?})",
+                    "Library rebuild (2/3): Songs validated at {:?} total",
                     library.last_build_started.elapsed()
                 );
 
@@ -602,7 +602,7 @@ impl Library {
                 // IDEA: Maybe a negative progress value could represent a failure state?
                 let _ = ui_tx.send_blocking(UpdateUI::Progress(None));
 
-                #[cfg(feature = "event-timers")]
+                #[cfg(any(feature = "event-timers", feature = "verbose-logs"))]
                 println!(
                     "Library rebuild (3/3): Completed in {:?} total",
                     library.last_build_started.elapsed()
@@ -1226,7 +1226,7 @@ impl Library {
     /// Loops through all library songs, and adds their
     /// user-assigned tags to the global tag list
     ///
-    /// Call this after deserializing songs
+    /// Call this after `Library::init`
     #[inline]
     pub fn build_global_tag_list(&self) {
         let mut global_tags_writer = tag_list::write_global_tags();
