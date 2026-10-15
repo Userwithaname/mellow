@@ -52,7 +52,6 @@ impl Application {
             let settings = gio::Settings::new(about::APP_ID);
             let handles = Self::init_components(&settings, player_rx, library_rx);
             let args = RefCell::new(Some((settings, ui_rx, mpris_rx, handles)));
-            let _ = gtk::init();
 
             #[cfg(all(feature = "no-meson", feature = "gresources"))]
             gio::resources_register_include!("mellow.gresource")
