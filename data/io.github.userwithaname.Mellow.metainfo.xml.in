@@ -53,6 +53,29 @@
   </requires>
 
   <releases>
+    <release version="0.5.0" date="2026-10-16">
+      <description>
+        <p>Features &amp; improvements:</p>
+        <ul>
+          <li>Long-pressing on tag filters now also selects or deselects all other tags</li>
+          <li>The interface for renaming tags now includes a button to confirm the rename without using the keyboard</li>
+          <li>Dragging an item to the very top or bottom of the queue now pans the view to show more items</li>
+          <li>Validating file paths of non-library songs within queue is now much quicker</li>
+          <li>Starting a new queue no longer disables repeat mode</li>
+          <li>If the player is scheduled to close and the overlay is open, an interactive toast notification is now shown before closing</li>
+          <li>The console log now shows timing information, such as how long the application window took to appear</li>
+          <li>The application window now opens slightly faster</li>
+          <li>Various smaller optimizations</li>
+        </ul>
+        <p>Fixes:</p>
+        <ul>
+          <li>Loading a queue with many song files located outside of the configured library directories no longer causes parts of the application to become unresponsive</li>
+          <li>Reordering items across the repeat mode wrapping point on short queues now behaves as expected</li>
+          <li>Detailed artworks are no longer unnecessarily unloaded while panning the queue</li>
+          <li>Fixed an issue preventing component crash handling from working as intended</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.4.5" date="2026-09-18">
       <description>
         <p>Features &amp; improvements:</p>
