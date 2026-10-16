@@ -23,7 +23,8 @@ Song Queue:
 - [x] Adding items works as expected
 - [x] Removing items works as expected
 - [x] Removal undo works as expected
-- [x] Reordering the queue works as expected
+- [ ] Reordering the queue works as expected
+  - FIX: Off-by-one when reordering off-screen items by more than half the queue length in repeat mode
 - [x] Selection mode works as expected
   - [x] Removing multiple items at once works as expected
 - [x] Stoppers work and behave as expected
