@@ -294,8 +294,8 @@ impl SongsPage {
                 Err(_) => {
                     #[cfg(feature = "verbose-logs")]
                     eprintln!(
-                        "WARNING: Song info was not loaded; refusing to load on the main thread\n{}",
-                        "If another function call has succeeded afterwards, this warning can be ignored"
+                        "WARNING: Song info was not loaded; refusing to load on the main thread\n\
+                        If another function call has succeeded afterwards, this warning can be ignored"
                     );
                     return;
                 }

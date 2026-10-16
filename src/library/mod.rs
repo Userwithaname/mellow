@@ -465,7 +465,7 @@ impl Library {
 
                 #[cfg(any(feature = "event-timers", feature = "verbose-logs"))]
                 println!(
-                    "Library rebuild (2/3): Songs validated at {:?} total",
+                    "Library rebuild (2/3): Song files validated in {:?} total",
                     library.last_build_started.elapsed()
                 );
 
