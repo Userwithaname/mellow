@@ -2,9 +2,8 @@ Song queue:
 
 - [x] Reorder using drag-&-drop
   - [x] Scroll when dragging items off-screen
-  - [ ] Pan when dragging items past the first/last visible item
+  - [-] Pan when dragging items past the first/last visible item
     - FIX: Off-by-one when reordering off-screen items by more than half the queue length in repeat mode
-    - TODO: Enable for all builds when deemed ready (enable/remove the `auto-pan-queue` Cargo feature)
 - [-] Multi-selection mode
   - IDEA: Shift+click to select everything between the last selected item and the clicked item
   - IDEA: Long-press+drag to select multiple items
@@ -120,6 +119,5 @@ Meta:
 - [ ] Comply with Flathub quality guidelines: <https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines>
   - TODO: Create a compliant SVG icon: <https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#app-icon>
   - TODO: Use unedited screenshots: <https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#just-the-app-window>
-  - TODO: Add release notes: <https://docs.flathub.org/docs/for-app-authors/metainfo-guidelines/quality-guidelines#release-notes>
 - [ ] Offline build support: <https://docs.flathub.org/docs/for-app-authors/requirements#no-network-access-during-build>
 > Go through everything again in detail before submitting (<https://docs.flathub.org/docs/category/for-app-authors>)

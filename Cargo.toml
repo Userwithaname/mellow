@@ -9,7 +9,6 @@ default = [
   # Add features here to enable them by default
   "event-timers",
 ]
-auto-pan-queue   = [] # Automatically pan the queue when dragging past the visible items (WIP)
 event-timers     = [] # Measures and prints the time it took for certain events to occur
 gresources       = [] # Loads GResources at startup (see `data/resources/resources.gresource.xml`)
 no-meson         = ["dep:glib-build-tools"] # Cargo build support; requires manual gschema setup

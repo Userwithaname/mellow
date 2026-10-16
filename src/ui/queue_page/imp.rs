@@ -688,7 +688,6 @@ impl QueuePage {
                 drag_container: &gtk::Widget,
                 drag_row: &ListRow,
             ) {
-                #[cfg(feature = "auto-pan-queue")]
                 queue_page.stop_pan_loop();
                 queue_page.for_each_row(|row, _| row.remove_css_class("highlight-top"));
                 drag_container.set_visible(false);
@@ -818,7 +817,6 @@ impl QueuePage {
                         }
                         _ => row.grab_focus(),
                     };
-                    #[cfg(feature = "auto-pan-queue")]
                     queue_page.stop_pan_loop();
 
                     queue_page.for_each_row(|list_row, index| {
@@ -831,23 +829,20 @@ impl QueuePage {
                         }
                     });
                 } else {
-                    #[cfg(feature = "auto-pan-queue")]
-                    {
-                        let last_item_y =
-                            (ROW_HEIGHT * (NUM_ITEMS_AHEAD + NUM_ITEMS_BEHIND)) as i32;
-                        if (0..last_item_y).contains(&end_y) {
-                            queue_page.stop_pan_loop();
-                        }
-                        if matches!(queue_page.pan_loop_direction.get(), PanLoopDirection::None) {
-                            if end_y > last_item_y {
-                                queue_page.start_pan_loop(PanLoopDirection::Down);
-                                queue_page.pan_down_button.grab_focus();
-                            } else if end_y < 0 {
-                                queue_page.start_pan_loop(PanLoopDirection::Up);
-                                queue_page.pan_up_button.grab_focus();
-                            }
+                    let last_item_y = (ROW_HEIGHT * (NUM_ITEMS_AHEAD + NUM_ITEMS_BEHIND)) as i32;
+                    if (0..last_item_y).contains(&end_y) {
+                        queue_page.stop_pan_loop();
+                    }
+                    if matches!(queue_page.pan_loop_direction.get(), PanLoopDirection::None) {
+                        if end_y > last_item_y {
+                            queue_page.start_pan_loop(PanLoopDirection::Down);
+                            queue_page.pan_down_button.grab_focus();
+                        } else if end_y < 0 {
+                            queue_page.start_pan_loop(PanLoopDirection::Up);
+                            queue_page.pan_up_button.grab_focus();
                         }
                     }
+
                     queue_page.for_each_row(|row, _| row.remove_css_class("highlight-top"));
                 }
 
@@ -910,7 +905,6 @@ impl QueuePage {
                         // this only diverts the issue to a less common scenario (explained below)
                         // FIX: Off-by-one when shifting an off-screen item by more than half the
                         // length of the queue for long queues in repeat mode (non-wrapping)
-                        // TODO: Enable/remove the `auto-pan-queue` Cargo feature when fixed
                         shift_by
                             - (repeat && shift_by.unsigned_abs() > song_queue.len() / 2) as isize
                                 * shift_by.signum()
