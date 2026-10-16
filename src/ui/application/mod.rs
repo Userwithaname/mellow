@@ -27,7 +27,7 @@ glib::wrapper! {
 }
 
 impl Application {
-    /// Initializes the player/library threads and the UI, then runs the application
+    /// Starts all components and runs the application
     #[inline]
     pub fn run() -> glib::ExitCode {
         #[cfg(feature = "event-timers")]
@@ -45,10 +45,8 @@ impl Application {
             // Show an error and close the app entirely if any thread panics
             panic::set_hook(Box::new(|info| crash_handling::handle_crash(info, ui_tx())));
 
-            // Starting the components in parallel with GTK (`init_components`)
-            // results in faster launch times, but this requires moving them into
-            // `connect_startup` which takes a reusable `Fn` closure. One way of
-            // doing so is using a `RefCell<Option>` and `Option::take`.
+            // Starting the component threads as soon as possible for faster launch times;
+            // `args` is moved into the closure for `connect_startup` using `Option::take`
             let settings = gio::Settings::new(about::APP_ID);
             let handles = Self::init_components(&settings, player_rx, library_rx);
             let args = RefCell::new(Some((settings, ui_rx, mpris_rx, handles)));
@@ -175,8 +173,11 @@ impl Application {
         self.window().present();
     }
 
-    /// Cleanly shuts down the application by saving the settings and state,
-    /// and blocks until all other components stop running as well
+    /// Requests all components to shutdown and blocks until they finish running
+    ///
+    /// # Panics
+    /// - Component thread panics will propagate at the end of the function
+    /// - Process exits with error code 1 if shutdown takes longer than 5 seconds
     fn shutdown(&self) {
         let imp = self.imp();
         imp.window.get().unwrap().save_and_uninit().unwrap();
