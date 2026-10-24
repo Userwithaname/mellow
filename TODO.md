@@ -8,8 +8,7 @@ Song queue:
   - IDEA: Shift+click to select everything between the last selected item and the clicked item
   - IDEA: Long-press+drag to select multiple items
   - IDEA: Allow reordering multiple items at once
-  - [x] Removing multiple items at once
-  - [ ] Rating multiple items at once
+  - [ ] Allow rating multiple items at once
 - [x] Display a landing page
 > The "Open from Disk" picker could be improved to accept directories as well
 - [x] Drag file/folder onto player to start a queue with them
@@ -24,18 +23,13 @@ Music library:
 - [x] Save/load user settings and application state
   - IDEA: Remember filters?
   - IDEA: Remember if sort order was reversed(?)
-- [x] Search/filtering for songs/albums/artists pages
-- [x] Songs/albums/artists sort modes
-- [x] Songs/albums/artists filtering
-  - [x] Filter by user-assigned tags
 - [x] User-assigned custom tags
-  - [x] Show suggestions when adding tags
-    - [x] It should be possible to assign pre-existing tags without needing to type
-    - [x] Typing should only be necessary when creating a new tag
-    - [x] While typing, filter existing tags and confirm to add the best candidate
-  - [x] Ability to rename existing tags (through the rating widget)
-    - TODO: Keyboard navigation: make the entire tag widget focusable, and rename using F2
+  - IDEA: Keyboard navigation for renaming: make the entire tag widget focusable, and rename using F2
   - IDEA: Choose which tag suggestion is active using the arrow keys, without un-focusing the entry box
+- [ ] Multi-selection for artists/albums/songs pages
+  - [ ] Same design/behavior as for queue multi-selection (and maintain consistency going forward)
+  - [ ] Play button should only play the selected items
+  - [ ] Allow rating multiple items at once
 - [x] Artists page
   - [x] Artist subpage, accessed from each item
     - IDEA: Display average rating
@@ -43,19 +37,32 @@ Music library:
   - [x] Album subpage, accessed from each item
 - [x] Songs page
   - [x] Song subpage, accessed from each item
-- [x] Play counting
+- [ ] Directories page (for browsing by the library directory trees)
+  - [ ] The top level page should show the configured library directories
+  - [ ] Clicking on a (sub)directory should descend into that directory and show its contents
+  - [ ] Clicking on a song should open the relevant song page
+  - [ ] Play all songs within any current directory recursively by pressing the play button in the header
+  - IDEA: An 'Open With' button for opening files/directories externally
+
+General:
+
+- [ ] Overlay redesign
+  - [ ] Move the overlay to a sidebar, and either:
+    - Add a button to the main player for opening the overlay and remove the bottom bar, or
+    - Use repsonsive design to switch between a sidebar and bottom sheet based on
+      window width, and keep the overlay on the side if the window is wide enough
+      so no buttons need to be added (and use the current design if not)
+  - [ ] Move the settings to a popup window, accessed from a new menu in the overlay header
+    - [ ] Apply library directory changes as a single task when the settings window is closed
+    - IDEA: Add buttons for exporting/importing `songs` files (ratings/play counts/etc)
+      - IDEA: Allow automatically importing from (and exporting to?) configured `songs` files
 
 Other:
 
-- [ ] Redesign the library directory settings
-  > For example, opening a separate "Directory Settings" popup window and requiring the user
-  > to apply all changes at once could work around the Flatpak freezing issue ([#21](https://github.com/Userwithaname/mellow/issues/21))
-  > and also present an opportunity to add "Import"/"Export" buttons to more easily merge
-  > library data from different systems
 - [ ] Bundle icons instead of relying on system ones
 - [x] Toast notifications
 
-People's requests (for consideration):
+Requests:
 
 - Larger play button on the album page
   - IDEA: Display a large play icon over the album artwork when hovering with the cursor
