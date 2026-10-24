@@ -5,7 +5,7 @@ use std::fs;
 use std::hash::{DefaultHasher, Hash, Hasher};
 use std::io::Read;
 use std::path::PathBuf;
-use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard};
+use std::sync::{Arc, Mutex, MutexGuard, RwLock, RwLockReadGuard, RwLockWriteGuard};
 use std::sync::{TryLockError, TryLockResult};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -19,7 +19,7 @@ use crate::library::song_rating::{Ratable, SongRating};
 use crate::library::tag_list::{Taggable, Tags};
 use crate::library::unload_unused::{UnloadUnused, UsedBy};
 use crate::library::{Album, SharedAlbum, tag_list};
-use crate::util::hint::{cold, cold_expression};
+use crate::util::hint::cold;
 use crate::util::{
     deserialize, deserialize_list, serialize, serialize_list, write_file_create_dir_all,
 };
@@ -473,7 +473,7 @@ impl SongInfoLoader<'_> {
             );
         }
         if self.info.read().unwrap().is_none() {
-            self.assign_basic();
+            drop(self.assign_basic());
         }
     }
     /// Loads the basic song info if needed and runs the given closure
@@ -489,14 +489,10 @@ impl SongInfoLoader<'_> {
         if let Some(info) = self.info.read().unwrap().as_ref() {
             return f(info);
         }
-        self.assign_basic();
-        // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
-        match self.info.read().unwrap().as_ref() {
-            Some(info) => f(info),
-            None => cold_expression! {{
-                eprintln!("BUG: Song info is no longer loaded - retrying");
-                self.load_basic_and(f)
-            }},
+        match *RwLockWriteGuard::downgrade(self.assign_basic()) {
+            Some(ref info) => f(info),
+            // SAFETY: Assigned as `Some` in `assign_basic` with no way to acquire a write lock inbetween
+            None => unsafe { core::hint::unreachable_unchecked() },
         }
     }
     /// Loads the detailed song info if it possible to do so without
@@ -512,29 +508,31 @@ impl SongInfoLoader<'_> {
         &mut self,
     ) -> Result<(), TryLockError<RwLockReadGuard<'_, Option<SongInfo>>>> {
         if self.info.try_read()?.is_none() {
-            self.assign_basic();
+            drop(self.assign_basic());
         }
         Ok(())
     }
-    /// Loads the basic song info and assigns it
+    /// Loads the basic song info and assigns it to `self.info` as
+    /// the `Some` variant, then returns its `RwLockWriteGuard`
     ///
     /// # Panics
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
-    fn assign_basic(&mut self) {
+    fn assign_basic(&mut self) -> RwLockWriteGuard<'_, Option<SongInfo>> {
         #[cfg(feature = "verbose-warnings")]
         if self.detailed_info.try_write().is_err() {
             eprintln!("Note: Blocking on write lock for `assign_basic`");
         }
         let mut info_writer = self.info.write().unwrap();
-        // Check if the info was already loaded by another
+        // Warn if the info was already loaded by another
         // writer while waiting to acquire the write lock
         #[cfg(feature = "verbose-warnings")]
         if info_writer.is_some() {
-            eprintln!("⚠️ Basic song info was loaded twice ({})", line!());
-            return;
+            eprintln!("⚠️ Basic song info was already loaded ({:?})", self.path);
+            return info_writer;
         }
         *info_writer = Some(self.basic_or_default());
+        info_writer
     }
     /// Reads and returns the basic song info from file,
     /// or returns a fallback if unavailable
@@ -628,7 +626,7 @@ impl SongInfoLoader<'_> {
     #[inline]
     pub fn load_detailed(&mut self) {
         if self.detailed_info.read().unwrap().is_none() {
-            self.assign_detailed();
+            drop(self.assign_detailed());
         }
     }
     /// Loads the detailed song info if needed and runs the given closure
@@ -644,31 +642,29 @@ impl SongInfoLoader<'_> {
         if let Some(info) = self.detailed_info.read().unwrap().as_ref() {
             return f(info);
         }
-        self.assign_detailed();
-        // FIX: Ensure a concurrent unload cannot happen before obtaining the read lock
-        match self.detailed_info.read().unwrap().as_ref() {
-            Some(info) => f(info),
-            None => cold_expression! {{
-                eprintln!("BUG: Detailed song info is no longer loaded - retrying");
-                self.load_detailed_and(f)
-            }},
+        match *RwLockWriteGuard::downgrade(self.assign_detailed()) {
+            Some(ref info) => f(info),
+            // SAFETY: Assigned as `Some` in `assign_detailed` with no way to acquire a write lock inbetween
+            None => unsafe { core::hint::unreachable_unchecked() },
         }
     }
-    /// Loads the detailed song info and assigns it if it is not already loaded
+    /// Loads the detailed song info and assigns it to `self.detailed`
+    /// as the `Some` variant, then returns its `RwLockWriteGuard`
     ///
     /// # Panics
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
-    fn assign_detailed(&mut self) {
+    fn assign_detailed(&mut self) -> RwLockWriteGuard<'_, Option<DetailedSongInfo>> {
         let mut info_writer = self.detailed_info.write().unwrap();
-        // Check if the info was already loaded by another
+        // Warn if the info was already loaded by another
         // writer while waiting to acquire the write lock
         #[cfg(feature = "verbose-warnings")]
         if info_writer.is_some() {
-            eprintln!("⚠️ Detailed song info was loaded twice ({})", line!());
-            return;
+            eprintln!("⚠️ Detailed song info was already loaded ({:?})", self.path);
+            return info_writer;
         }
         *info_writer = Some(self.detailed_or_default());
+        info_writer
     }
     /// Attempts to read detailed info from tags and returns it,
     /// or returns a default value if it cannot
