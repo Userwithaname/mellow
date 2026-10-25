@@ -311,9 +311,7 @@ impl SettingsPage {
         let final_color = match css.prefers_color_scheme() {
             InterfaceColorScheme::Dark => process_color_dark(color),
             InterfaceColorScheme::Light => {
-                for c in &mut highlight_color.channels {
-                    *c = c.saturating_add(50);
-                }
+                highlight_color.per_channel(|c| *c = c.saturating_add(50));
                 process_color_light(color)
             }
             _ => match process_color_auto(color) {
@@ -323,9 +321,7 @@ impl SettingsPage {
                     color
                 }
                 (color, _) => {
-                    for c in &mut highlight_color.channels {
-                        *c = c.saturating_add(50);
-                    }
+                    highlight_color.per_channel(|c| *c = c.saturating_add(50));
                     (self.style_manager.get().unwrap())
                         .set_color_scheme(adw::ColorScheme::ForceLight);
                     color

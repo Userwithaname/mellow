@@ -18,6 +18,17 @@ impl ColorSRGB {
     pub fn white() -> Self {
         ColorSRGB::from([255, 255, 255])
     }
+    /// Runs the given closure per each color channel
+    ///
+    /// # Note
+    /// For more accurate color processing, convert to `ColorLinear`
+    /// first (using `to_linear`), then back using `ColorLinear::to_srgb`
+    #[inline]
+    pub fn per_channel<F: FnMut(&mut u8)>(&mut self, mut f: F) {
+        for c in &mut self.channels {
+            f(c);
+        }
+    }
     /// Returns the color components as a tuple (_r_, _g_, _b_)
     #[inline]
     #[must_use]
