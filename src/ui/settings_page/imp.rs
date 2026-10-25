@@ -238,8 +238,6 @@ impl SettingsPage {
 
     /// Adjusts the interface colors, using `color` as a base, which
     /// is processed according to the selected color scheme
-    ///
-    /// The input values are expected to be linear rather than sRGB
     #[inline]
     pub fn set_background_color(&self, color: ColorLinear) {
         #[inline(always)]
