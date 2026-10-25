@@ -84,11 +84,16 @@ impl ColorLinear {
     }
     /// Converts the color to sRGB using a rough approximation
     ///
-    /// Note that pure white and pure black are not possible with this function
+    /// # Notes
+    /// - Pure white and pure black are not possible with this function
+    /// - Channel values outside the 0-1 range will appear incorrectly
     #[inline]
     pub fn to_srgb_approx(self) -> ColorSRGB {
         ColorSRGB::from(self.channels.map(|c| {
-            (((1.0 - c).mul_add(-(1.0 - c), 0.8) + 0.4) / 1.25 * 255.0) as u8 // (comment for formatting)
+            ((-((1.0_f64.algebraic_sub(c)).powi(2)))
+                .algebraic_add(1.2)
+                .algebraic_div(1.25)
+                .algebraic_mul(255.0)) as u8
         }))
     }
 }

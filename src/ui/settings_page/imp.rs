@@ -258,9 +258,8 @@ impl SettingsPage {
             }
 
             // Normalize the color and scale it to the target luminance
-            // Accuracy is not as important here, this approximation should suffice
-            let target_lum = luminance.powi(3).mul_add(0.6, 0.4);
-            (color / luminance + target_lum).to_srgb_approx()
+            let target_lum = luminance.powi(3).mul_add(0.4, 0.6);
+            (color / luminance * target_lum).to_srgb_approx() // Accuracy is not as important here
         }
         fn process_color_dark(mut color: ColorLinear) -> ColorSRGB {
             const SATURATION: f64 = 1.6;
