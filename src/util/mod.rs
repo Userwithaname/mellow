@@ -1,4 +1,5 @@
 pub mod cmp_ext;
+pub mod color;
 pub mod forever;
 pub mod hint;
 pub mod math;
