@@ -8,11 +8,10 @@ use gtk::{gdk, gio, glib, graphene};
 use crate::cold_expression;
 use crate::excuses::EXP_INIT;
 use crate::library::{Library, library_tx};
-use crate::player::{PlayerRequest, QueueItem, player_tx};
+use crate::player::{PlayerRequest, QueueItem};
 use crate::ui::gtk_ext::GtkPictureExt;
 use crate::ui::queue_page::QueueScrollAction;
-use crate::ui::{ListRow, QueueItemObject, QueueSubpage};
-use crate::ui::{UpdateUI, ui_tx};
+use crate::ui::{ListRow, QueueItemObject, QueueSubpage, UpdateUI};
 use crate::util::{Forever, wrap_index};
 
 const NUM_ITEMS_AHEAD: usize = 45;
@@ -85,7 +84,7 @@ enum PanLoopDirection {
 impl QueuePage {
     #[template_callback]
     pub fn handle_open_library(&self) {
-        let _ = ui_tx().send_blocking(UpdateUI::FocusLibrary);
+        UpdateUI::FocusLibrary.send();
     }
     #[template_callback]
     pub fn handle_exit_selection(&self) {
@@ -95,18 +94,13 @@ impl QueuePage {
     pub fn handle_remove_selected(&self) {
         let selected_items = mem::take(&mut *self.selections.borrow_mut());
         if !selected_items.is_empty() {
-            let _ = ui_tx().send_blocking(UpdateUI::Notification(
+            UpdateUI::Notification(
                 format!("Removed {} items from the queue", selected_items.len()),
-                Some(Box::new((
-                    "Undo",
-                    Box::new(|| {
-                        let _ = player_tx().send(PlayerRequest::Undo);
-                    }),
-                ))),
-            ));
-            let _ = player_tx().send(PlayerRequest::RemoveItems(
-                selected_items.iter().map(|item| item.0 as usize).collect(),
-            ));
+                Some(Box::new(("Undo", Box::new(|| PlayerRequest::Undo.send())))),
+            )
+            .send();
+            PlayerRequest::RemoveItems(selected_items.iter().map(|item| item.0 as usize).collect())
+                .send();
         }
 
         self.set_selection_mode(vec![]);
@@ -643,7 +637,7 @@ impl QueuePage {
                 #[weak(rename_to = selection_toggle)]
                 row_imp.selection_toggle,
                 move |_| if selections.borrow().is_empty() {
-                    let _ = ui_tx().send_blocking(UpdateUI::OpenQueueSubpage(queue_index));
+                    UpdateUI::OpenQueueSubpage(queue_index).send();
                 } else {
                     selection_toggle.activate();
                 }
@@ -680,7 +674,7 @@ impl QueuePage {
             }
             fn set(&self, dragging: bool) {
                 self.0.set(dragging);
-                let _ = ui_tx().send_blocking(UpdateUI::CanCloseSheet(!dragging));
+                UpdateUI::CanCloseSheet(!dragging).send();
             }
             fn reset_state(
                 &self,
@@ -910,10 +904,11 @@ impl QueuePage {
                                 * shift_by.signum()
                     }
                 };
-                let _ = player_tx().send(PlayerRequest::Shift {
+                PlayerRequest::Shift {
                     from: source_index,
                     by: shift_by,
-                });
+                }
+                .send();
 
                 // Offset the queue UI scroll position on the next redraw if the playing
                 // item is in view (short queues don't need to be offset, even if wrapped
@@ -1090,10 +1085,10 @@ impl ObjectImpl for QueuePage {
     fn constructed(&self) {
         // Remembering the handler IDs so handling can be skipped when needed
         let _ = (self.shuffle_signal_handler).set(self.shuffle_toggle.connect_toggled(|toggle| {
-            let _ = player_tx().send(PlayerRequest::SetShuffle(toggle.is_active()));
+            PlayerRequest::SetShuffle(toggle.is_active()).send();
         }));
         let _ = (self.repeat_signal_handler).set(self.repeat_toggle.connect_toggled(|toggle| {
-            let _ = player_tx().send(PlayerRequest::SetRepeat(toggle.is_active()));
+            PlayerRequest::SetRepeat(toggle.is_active()).send();
         }));
 
         // FIX: Doesn't work when the queue is first loaded

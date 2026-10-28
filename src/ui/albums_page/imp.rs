@@ -165,18 +165,19 @@ impl AlbumsPage {
         }
 
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::LoadQueue {
+        PlayerRequest::LoadQueue {
             queue: match self.shuffle.get() {
                 true => albums.to_shuffled_queue(),
                 false => albums.to_queue(),
             },
             shuffled: None,
             track: 0,
-        });
-        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
+        }
+        .send_with(player_tx);
+        PlayerRequest::TogglePlay(Some(true)).send_with(player_tx);
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
-        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
+        UpdateUI::OpenSheet(false).send_with(ui_tx);
+        UpdateUI::FocusPlaying.send_with(ui_tx);
     }
 
     pub fn update_tag_filter_list(&self) {
@@ -568,7 +569,7 @@ impl ObjectImpl for AlbumsPage {
                     .unwrap()
                     .shared_album(),
             );
-            let _ = ui_tx().send_blocking(UpdateUI::AlbumPage(album));
+            UpdateUI::AlbumPage(album).send();
         });
 
         // Restore the previous scroll position if pending, and update sort fields

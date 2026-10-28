@@ -221,18 +221,19 @@ impl ArtistsPage {
         }
 
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::LoadQueue {
+        PlayerRequest::LoadQueue {
             queue: match self.shuffle.get() {
                 true => artists.to_shuffled_queue(),
                 false => artists.to_queue(),
             },
             shuffled: None,
             track: 0,
-        });
-        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
+        }
+        .send_with(player_tx);
+        PlayerRequest::TogglePlay(Some(true)).send_with(player_tx);
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
-        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
+        UpdateUI::OpenSheet(false).send_with(ui_tx);
+        UpdateUI::FocusPlaying.send_with(ui_tx);
     }
 
     #[inline]
@@ -529,7 +530,7 @@ impl ObjectImpl for ArtistsPage {
                     .unwrap()
                     .shared_artist(),
             );
-            let _ = ui_tx().send_blocking(UpdateUI::ArtistPage(artist));
+            UpdateUI::ArtistPage(artist).send();
         });
 
         // Restore the previous scroll position if pending, and update sort fields

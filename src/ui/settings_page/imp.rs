@@ -5,8 +5,8 @@ use gtk::{CompositeTemplate, InterfaceColorScheme};
 use gtk::{gdk, glib};
 
 use crate::excuses::{ACTION_ERR, EXP_INIT};
-use crate::library::{Library, LibraryRequest, library_tx};
-use crate::player::{PlayerRequest, player_tx};
+use crate::library::{Library, LibraryRequest};
+use crate::player::PlayerRequest;
 use crate::ui::StartupQueueChoice;
 use crate::util::color::{ColorLinear, ColorSRGB};
 use crate::util::{approx_eq, lerp};
@@ -75,12 +75,12 @@ impl SettingsPage {
         if approx_eq(value, self.volume.value()) {
             return glib::Propagation::Stop;
         }
-        let _ = player_tx().send(PlayerRequest::SetVolume(value * value));
+        PlayerRequest::SetVolume(value * value).send();
         glib::Propagation::Proceed
     }
     #[template_callback]
     pub fn handle_gapless_switch(&self) {
-        let _ = player_tx().send(PlayerRequest::SetGapless(self.gapless.is_active()));
+        PlayerRequest::SetGapless(self.gapless.is_active()).send();
     }
 
     #[template_callback]
@@ -419,7 +419,7 @@ impl SettingsPage {
                     settings_page.allow_library_changes(false);
                     directory_list.remove(&directory_row); // This may seem more responsive
 
-                    let _ = library_tx().send(LibraryRequest::RemoveLibrary(i));
+                    LibraryRequest::RemoveLibrary(i).send();
                 }
             });
             directory_row.add_suffix(&remove_button);

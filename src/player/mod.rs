@@ -38,6 +38,7 @@ pub fn init_player_tx(
     PLAYER_TX.set(player_tx)
 }
 
+#[must_use = "Use `.send` or `.send_with` to send through the channel"]
 pub enum PlayerRequest {
     /// Play or pause depending on the current state
     TogglePlay(Option<bool>),
@@ -109,6 +110,21 @@ pub enum PlayerRequest {
     /// Uninitializes the player and saves the current queue to disk
     /// (save queue: `bool`, save time: `bool`)
     Uninit(bool, bool),
+}
+impl PlayerRequest {
+    /// Sends the `PlayerRequest` variant through the player channel
+    ///
+    /// # Safety
+    /// Do not call before `init_channels()` (same as `player_tx()`)
+    #[inline]
+    pub fn send(self) {
+        let _ = player_tx().send(self);
+    }
+    /// Sends the `PlayerRequest` variant using the given `sender`
+    #[inline]
+    pub fn send_with(self, sender: &mpsc::Sender<PlayerRequest>) {
+        let _ = sender.send(self);
+    }
 }
 
 // Manual `Debug` implementation is required by certain variants
@@ -220,7 +236,7 @@ impl Player {
         // Required for gapless playback
         self.backend.connect("about-to-finish", false, move |_| {
             // Cannot fail because the receiver is owned by `self`
-            let _ = player_tx().send(PlayerRequest::SongEnd);
+            PlayerRequest::SongEnd.send();
             None
         });
 
@@ -385,7 +401,7 @@ impl Player {
             }
             QueueItem::Stopper(_) => {
                 if (self.queue.remove_current().as_stopper()).should_close_player() {
-                    let _ = ui_tx().send_blocking(UpdateUI::ScheduledShutdown);
+                    UpdateUI::ScheduledShutdown.send();
                 }
                 self.queue.ui_update_queue();
                 self.queue.ui_validate_queue_subpage_index();
@@ -423,9 +439,10 @@ impl Player {
             None => &queue[index],
             Some(shuffled) => &queue[shuffled[index]],
         });
-        let _ = ui_tx().send_blocking(UpdateUI::SongInfo {
+        UpdateUI::SongInfo {
             item: QueueItem::clone(&queue_item),
-        });
+        }
+        .send();
 
         self.queue.load_new(queue, shuffled);
         self.skip_to(index);
@@ -440,7 +457,7 @@ impl Player {
             info.load_detailed();
         });
 
-        let _ = ui_tx().send_blocking(UpdateUI::ExitQueueSelection);
+        UpdateUI::ExitQueueSelection.send();
         self.queue.ui_update_queue();
     }
 
@@ -614,7 +631,7 @@ impl Player {
         } else if self.current_state == State::Playing {
             // Skip the current song if the song has ended
             // or the playback time/duration cannot be determined
-            let _ = player_tx().send(PlayerRequest::SkipNext);
+            PlayerRequest::SkipNext.send();
         }
 
         self.request_state(self.current_state);
@@ -628,7 +645,7 @@ impl Player {
     fn unload_gapless_restore_time(&mut self) {
         let Some(pos) = self.backend.query_position::<ClockTime>() else {
             eprintln!("Could not determine playback time; skipping");
-            let _ = player_tx().send(PlayerRequest::SkipNext);
+            PlayerRequest::SkipNext.send();
             return;
         };
 
@@ -638,7 +655,7 @@ impl Player {
         if self.seek_to_time(pos).is_err() {
             eprintln!("Could not restore playback time; skipping");
             self.queue.current().map_song(|song| song.info().played());
-            let _ = player_tx().send(PlayerRequest::SkipNext);
+            PlayerRequest::SkipNext.send();
         }
     }
     /// Unloads the gaplessly loaded track by restarting the stream
@@ -736,10 +753,11 @@ impl Player {
         let playing = state.0.is_ok() && matches!(state.1, State::Playing);
         #[cfg(feature = "verbose-logs")]
         println!("ui_set_state(playing: {playing}, interactive: {interactive})");
-        let _ = ui_tx().send_blocking(UpdateUI::PlayerState {
+        UpdateUI::PlayerState {
             playing,
             interactive,
-        });
+        }
+        .send();
     }
 
     /// Sends the current song info to the UI receiver
@@ -751,20 +769,20 @@ impl Player {
             false => QueueItem::clone(self.queue.current()),
             true => QueueItem::new_stopper(false),
         };
-        let _ = ui_tx().send_blocking(UpdateUI::SongInfo { item });
+        UpdateUI::SongInfo { item }.send();
     }
 
     /// Sends the current playback time to the UI receiver
     fn ui_set_time(&self) {
         let time = self.current_time().map(ClockTime::mseconds);
-        let _ = ui_tx().send_blocking(UpdateUI::PlayerTime { time });
+        UpdateUI::PlayerTime { time }.send();
     }
 
     /// Requests the UI to open the music library
     fn ui_open_playing() {
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
-        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(true));
+        UpdateUI::FocusPlaying.send_with(ui_tx);
+        UpdateUI::OpenSheet(true).send_with(ui_tx);
     }
 
     fn wait_for_gstreamer_state(&mut self) {
@@ -791,7 +809,7 @@ impl Player {
                     if self.queue.has_next() {
                         println!("Moving to next track due to end of stream");
                         self.request_state(State::Playing);
-                        let _ = player_tx().send(PlayerRequest::LoadNext);
+                        PlayerRequest::LoadNext.send();
                     } else {
                         println!("Stopping player due to end of queue");
                         self.queue.current().as_song().info().played();
@@ -840,15 +858,17 @@ impl Player {
         self.next_song_loaded = false;
 
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::PlayerState {
+        UpdateUI::PlayerState {
             playing: false,
             interactive: true,
-        });
-        let _ = ui_tx.send_blocking(UpdateUI::DismissNotifications);
-        let _ = ui_tx.send_blocking(UpdateUI::Notification(
+        }
+        .send_with(ui_tx);
+        UpdateUI::DismissNotifications.send_with(ui_tx);
+        UpdateUI::Notification(
             "A playback error has occurred".to_owned(),
             None, // IDEA: "Details" button to show the full error message in a pop-up window
-        ));
+        )
+        .send_with(ui_tx);
     }
 
     /// Uninitializes the player and writes the queue to disk

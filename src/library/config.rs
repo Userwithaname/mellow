@@ -1,6 +1,6 @@
 use std::path::PathBuf;
 
-use crate::library::{Library, LibraryRequest, library_tx};
+use crate::library::{Library, LibraryRequest};
 use crate::ui::{UpdateUI, ui_tx};
 
 pub const FILE_SUPPORT: &[&str] = &[
@@ -21,7 +21,7 @@ impl LibraryConfig {
     #[must_use]
     pub fn new(directories: Vec<PathBuf>) -> Self {
         let config = LibraryConfig { directories };
-        let _ = ui_tx().send_blocking(UpdateUI::SetLibraryDirs(config.directories_string()));
+        UpdateUI::SetLibraryDirs(config.directories_string()).send();
         config
     }
 
@@ -60,10 +60,10 @@ impl LibraryConfig {
         // Using `!dir.iter().any(|_| true)` because `Path::is_empty` is unstable
         if self.directories.contains(&dir) || !dir.iter().any(|_| true) {
             // Needed to re-activate the directory settings UI
-            let _ = ui_tx().send_blocking(UpdateUI::SetLibraryDirs(self.directories_string()));
+            UpdateUI::SetLibraryDirs(self.directories_string()).send();
             return;
         }
-        let _ = ui_tx().send_blocking(UpdateUI::Progress(Some(0.0)));
+        UpdateUI::Progress(Some(0.0)).send();
         self.directories.push(dir);
         self.directories.sort();
         println!("Added a new library\nLibraries: {:?}", self.directories);
@@ -73,33 +73,29 @@ impl LibraryConfig {
     /// Removes the configured directory at `index`
     pub fn remove_library(&mut self, index: usize) {
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::Progress(Some(0.0)));
+        UpdateUI::Progress(Some(0.0)).send_with(ui_tx);
 
         let removed_dir = self.directories.remove(index);
 
-        let library_tx = library_tx();
-        let _ = library_tx.send(LibraryRequest::RegisterUndoDirectory(removed_dir.clone()));
+        LibraryRequest::RegisterUndoDirectory(removed_dir.clone()).send();
         Library::rebuild();
 
         println!("Removed a library\nLibraries: {:?}", self.directories);
 
-        let _ = ui_tx.send_blocking(UpdateUI::Notification(
+        UpdateUI::Notification(
             format!("Removed a library directory: {removed_dir:?}"),
             Some(Box::new((
                 "Undo",
-                Box::new(move || {
-                    let _ = library_tx.send(LibraryRequest::UndoRemovedDirectory(
-                        removed_dir.clone(), //
-                    ));
-                }),
+                Box::new(move || LibraryRequest::UndoRemovedDirectory(removed_dir.clone()).send()),
             ))),
-        ));
-        let _ = ui_tx.send_blocking(UpdateUI::SetLibraryDirs(self.directories_string()));
+        )
+        .send_with(ui_tx);
+        UpdateUI::SetLibraryDirs(self.directories_string()).send_with(ui_tx);
     }
 
     /// Requests a library rebuild and updates the directory list in the UI
     fn update_library(&self) {
-        let _ = ui_tx().send_blocking(UpdateUI::SetLibraryDirs(self.directories_string()));
+        UpdateUI::SetLibraryDirs(self.directories_string()).send();
         Library::rebuild();
     }
 }

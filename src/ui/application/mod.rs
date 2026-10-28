@@ -13,7 +13,7 @@ mod crash_handling;
 mod imp;
 
 use crate::excuses::EXP_INIT;
-use crate::library::{Library, LibraryConfig, LibraryRequest, library_tx};
+use crate::library::{Library, LibraryConfig, LibraryRequest};
 use crate::player::{Player, PlayerRequest, SongQueue};
 use crate::shortcuts::Shortcuts;
 use crate::ui::{Window, actions::Actions, ui_tx};
@@ -153,7 +153,7 @@ impl Application {
     #[inline]
     fn open_files(&self, files: &[gio::File], _: &str) {
         let files = files.iter().map(|file| file.path().unwrap()).collect();
-        let _ = library_tx().send(LibraryRequest::QueueFromPaths(files));
+        LibraryRequest::QueueFromPaths(files).send();
     }
 
     /// Returns the window associated with the `Application`

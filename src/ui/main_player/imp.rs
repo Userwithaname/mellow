@@ -2,7 +2,7 @@ use adw::{prelude::*, subclass::prelude::*};
 use gtk::CompositeTemplate;
 use gtk::glib;
 
-use crate::player::{PlayerRequest, player_tx};
+use crate::player::PlayerRequest;
 use crate::ui::gtk_ext::GtkPictureExt;
 use crate::util::approx_eq;
 
@@ -34,22 +34,22 @@ pub struct MainPlayer {
 impl MainPlayer {
     #[template_callback]
     pub fn handle_skip_prev(&self) {
-        let _ = player_tx().send(PlayerRequest::SkipPrevious);
+        PlayerRequest::SkipPrevious.send();
     }
     #[template_callback]
     pub fn handle_play_pause(&self) {
-        let _ = player_tx().send(PlayerRequest::TogglePlay(None));
+        PlayerRequest::TogglePlay(None).send();
     }
     #[template_callback]
     pub fn handle_skip_next(&self) {
-        let _ = player_tx().send(PlayerRequest::SkipNext);
+        PlayerRequest::SkipNext.send();
     }
     #[template_callback]
     pub fn handle_seek(&self, _: gtk::ScrollType, value: f64) -> glib::Propagation {
         if approx_eq(value, self.seek_bar.value()) {
             return glib::Propagation::Stop;
         }
-        let _ = player_tx().send(PlayerRequest::Seek(value));
+        PlayerRequest::Seek(value).send();
         glib::Propagation::Proceed
     }
 }

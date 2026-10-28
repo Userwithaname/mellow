@@ -54,53 +54,52 @@ impl QueueSubpage {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
 
         let index = self.index.get();
-        let _ = ui_tx().send_blocking(UpdateUI::RecenterQueue(index as isize));
+        UpdateUI::RecenterQueue(index as isize).send();
 
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::SkipTo(index));
-        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
+        PlayerRequest::SkipTo(index).send_with(player_tx);
+        PlayerRequest::TogglePlay(Some(true)).send_with(player_tx);
     }
     #[template_callback]
     pub fn handle_stop_after(&self) {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
         let index = self.index.get() + 1;
         let stop_after = !self.stop_after.get();
-        let _ = player_tx().send(match stop_after {
+        match stop_after {
             true => PlayerRequest::InsertAt(Box::new((index, QueueItem::new_stopper(false)))),
             false => PlayerRequest::RemoveItem(index),
-        });
+        }
+        .send();
     }
     #[template_callback]
     pub fn handle_remove_item(&self) {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
 
         let index = self.index.get();
-        let _ = player_tx().send(PlayerRequest::RemoveItem(index));
-        let _ = ui_tx().send_blocking(UpdateUI::Notification(
+        PlayerRequest::RemoveItem(index).send();
+        UpdateUI::Notification(
             format!("Removed from the queue: \"{}\"", self.song_title.label()),
-            Some(Box::new((
-                "Undo",
-                Box::new(|| {
-                    let _ = player_tx().send(PlayerRequest::Undo);
-                }),
-            ))),
-        ));
+            Some(Box::new(("Undo", Box::new(|| PlayerRequest::Undo.send())))),
+        )
+        .send();
     }
     #[template_callback]
     pub fn handle_move_up(&self) {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
-        let _ = player_tx().send(PlayerRequest::Shift {
+        PlayerRequest::Shift {
             from: self.index.get(),
             by: -1,
-        });
+        }
+        .send();
     }
     #[template_callback]
     pub fn handle_move_down(&self) {
         (self.obj().activate_action("ui.playing_nav_pop", None)).expect(ACTION_ERR);
-        let _ = player_tx().send(PlayerRequest::Shift {
+        PlayerRequest::Shift {
             from: self.index.get(),
             by: 1,
-        });
+        }
+        .send();
     }
     #[template_callback]
     pub fn handle_go_to_album(&self) {
@@ -109,8 +108,8 @@ impl QueueSubpage {
             None => return, // Early-return for non-library songs
         };
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::FocusLibrary);
-        let _ = ui_tx.send_blocking(UpdateUI::AlbumPage(album));
+        UpdateUI::FocusLibrary.send_with(ui_tx);
+        UpdateUI::AlbumPage(album).send_with(ui_tx);
     }
     #[template_callback]
     pub fn handle_go_to_artist(&self) {
@@ -119,15 +118,15 @@ impl QueueSubpage {
             None => return, // Early-return for non-library songs
         };
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::FocusLibrary);
-        let _ = ui_tx.send_blocking(UpdateUI::ArtistPage(artist));
+        UpdateUI::FocusLibrary.send_with(ui_tx);
+        UpdateUI::ArtistPage(artist).send_with(ui_tx);
     }
     #[template_callback]
     pub fn handle_stopper_closes_player(&self) {
         let stopper = self.queue_item.borrow().as_stopper().clone();
         stopper.set_close_player(self.stopper_closes_player.is_active());
         self.obj().show_stopper_info(self.index.get(), &stopper);
-        let _ = ui_tx().send_blocking(UpdateUI::RedrawQueue);
+        UpdateUI::RedrawQueue.send();
     }
 }
 

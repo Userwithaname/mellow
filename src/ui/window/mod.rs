@@ -7,8 +7,8 @@ use std::time::Instant;
 
 use crate::excuses::EXP_INIT;
 use crate::library::{LibraryRequest, library_tx};
-use crate::player::{PlayerRequest, player_tx};
-use crate::ui::{Application, UpdateUI, actions::WindowActions, ui_tx};
+use crate::player::PlayerRequest;
+use crate::ui::{Application, UpdateUI, actions::WindowActions};
 use crate::util::serialize_list;
 
 pub mod imp;
@@ -63,7 +63,7 @@ impl Window {
             let files = (value.get::<FileList>().unwrap().files().iter())
                 .map(|file| file.path().unwrap())
                 .collect();
-            let _ = library_tx().send(LibraryRequest::QueueFromPaths(files));
+            LibraryRequest::QueueFromPaths(files).send();
             true
         });
         self.add_controller(drop_target);
@@ -87,7 +87,7 @@ impl Window {
     /// # Errors
     /// The function errors if a `gio::Settings` value could not be set
     pub fn save_and_uninit(&self) -> Result<(), glib::error::BoolError> {
-        let _ = ui_tx().send_blocking(UpdateUI::Uninit);
+        UpdateUI::Uninit.send();
 
         let imp = self.imp();
         let settings_page = &imp.settings_page;
@@ -95,9 +95,9 @@ impl Window {
         let remember_time = settings_page.remembers_time();
 
         let library_tx = library_tx();
-        let _ = library_tx.send(LibraryRequest::CancelRebuild(Instant::now()));
-        let _ = library_tx.send(LibraryRequest::Uninit);
-        let _ = player_tx().send(PlayerRequest::Uninit(remember_queue, remember_time));
+        LibraryRequest::CancelRebuild(Instant::now()).send_with(library_tx);
+        LibraryRequest::Uninit.send_with(library_tx);
+        PlayerRequest::Uninit(remember_queue, remember_time).send();
 
         imp.albums_page.uninit();
         imp.songs_page.uninit();

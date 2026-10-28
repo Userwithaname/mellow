@@ -56,18 +56,19 @@ impl AlbumPage {
     #[inline]
     pub fn play_now(queue: Vec<QueueItem>, shuffle: bool) {
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::LoadQueue {
+        PlayerRequest::LoadQueue {
             queue,
             shuffled: match shuffle {
                 true => Some(vec![]),
                 false => None,
             },
             track: 0,
-        });
-        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
+        }
+        .send_with(player_tx);
+        PlayerRequest::TogglePlay(Some(true)).send_with(player_tx);
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
-        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
+        UpdateUI::OpenSheet(false).send_with(ui_tx);
+        UpdateUI::FocusPlaying.send_with(ui_tx);
     }
     #[inline]
     pub fn play_disc(&self, disc_number: u32) {
@@ -75,18 +76,19 @@ impl AlbumPage {
     }
     #[inline]
     pub fn add_to_queue(queue: Vec<QueueItem>) {
-        let _ = player_tx().send(PlayerRequest::AppendQueue(queue));
+        PlayerRequest::AppendQueue(queue).send();
     }
     #[inline]
     pub fn add_disc_to_queue(&self, disc_number: u32) {
         Self::add_to_queue(self.songs_from_disc(disc_number));
-        let _ = ui_tx().send_blocking(UpdateUI::Notification(
+        UpdateUI::Notification(
             format!(
                 "Disc {disc_number} \"{}\" has been added to queue",
                 self.album_title.label()
             ),
             Some(Box::new(("View", Box::new(show_queue)))),
-        ));
+        )
+        .send();
     }
     #[inline]
     pub fn all_songs(&self) -> Vec<QueueItem> {
@@ -102,9 +104,10 @@ impl AlbumPage {
     }
     #[template_callback]
     pub fn handle_go_to_artist(&self) {
-        let _ = ui_tx().send_blocking(UpdateUI::ArtistPage(
+        UpdateUI::ArtistPage(
             (self.album.borrow().as_ref().unwrap().lock().unwrap()).artist_cloned(),
-        ));
+        )
+        .send();
     }
 }
 

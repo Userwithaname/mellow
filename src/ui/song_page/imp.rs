@@ -34,54 +34,53 @@ impl SongPage {
     pub fn handle_play_now(&self) {
         (self.obj().activate_action("ui.library_nav_pop", None)).expect(ACTION_ERR);
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::LoadQueue {
+        PlayerRequest::LoadQueue {
             queue: self.context.borrow().as_ref().expect(EXP_INIT).to_queue(),
             shuffled: None,
             track: self.index.get(),
-        });
-        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
+        }
+        .send_with(player_tx);
+        PlayerRequest::TogglePlay(Some(true)).send_with(player_tx);
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
-        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
+        UpdateUI::OpenSheet(false).send_with(ui_tx);
+        UpdateUI::FocusPlaying.send_with(ui_tx);
     }
     #[template_callback]
     pub fn handle_play_next(&self) {
         (self.obj().activate_action("ui.library_nav_pop", None)).expect(ACTION_ERR);
         let song = self.shared_song.borrow();
         let song = song.as_ref().unwrap();
-        let _ = player_tx().send(PlayerRequest::InsertRelative(Box::new((
-            1,
-            QueueItem::Song(Arc::clone(song)),
-        ))));
-        let _ = ui_tx().send_blocking(UpdateUI::Notification(
+        PlayerRequest::InsertRelative(Box::new((1, QueueItem::Song(Arc::clone(song))))).send();
+        UpdateUI::Notification(
             format!(
                 "Song \"{}\" will play next in the queue",
                 song.info().inspect_basic().as_ref().unwrap().title
             ),
             Some(Box::new(("View", Box::new(show_queue)))),
-        ));
+        )
+        .send();
     }
     #[template_callback]
     pub fn handle_add_to_queue(&self) {
         (self.obj().activate_action("ui.library_nav_pop", None)).expect(ACTION_ERR);
-        let player_tx = player_tx();
         let song = self.shared_song.borrow();
         let song = song.as_ref().unwrap();
-        let _ = player_tx.send(PlayerRequest::Append(QueueItem::Song(Arc::clone(song))));
-        let _ = ui_tx().send_blocking(UpdateUI::Notification(
+        PlayerRequest::Append(QueueItem::Song(Arc::clone(song))).send();
+        UpdateUI::Notification(
             format!(
                 "Song \"{}\" has been added to queue",
                 song.info().inspect_basic().as_ref().unwrap().title
             ),
             Some(Box::new(("View", Box::new(show_queue)))),
-        ));
+        )
+        .send();
     }
     #[template_callback]
     pub fn handle_go_to_album(&self) {
         // Do nothing if the song is not from the user's library
         // (button should be greyed out anyway)
         if let Some(album) = &*self.shared_song.borrow().as_ref().unwrap().get_album() {
-            let _ = ui_tx().send_blocking(UpdateUI::AlbumPage(Arc::clone(album)));
+            UpdateUI::AlbumPage(Arc::clone(album)).send();
         }
     }
     #[template_callback]
@@ -89,8 +88,7 @@ impl SongPage {
         // Do nothing if the song is not from the user's library
         // (button should be greyed out anyway)
         if let Some(album) = &*self.shared_song.borrow().as_ref().unwrap().get_album() {
-            let _ =
-                ui_tx().send_blocking(UpdateUI::ArtistPage(album.lock().unwrap().artist_cloned()));
+            UpdateUI::ArtistPage(album.lock().unwrap().artist_cloned()).send();
         }
     }
 }

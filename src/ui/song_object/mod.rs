@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::cold_expression;
 use crate::library::unload_unused::UsedBy;
 use crate::library::{Library, SharedSong, library_tx};
-use crate::ui::{LibraryObject, LibrarySort, Sortable, UpdateUI, ui_tx};
+use crate::ui::{LibraryObject, LibrarySort, Sortable, UpdateUI};
 
 mod imp;
 
@@ -64,7 +64,7 @@ impl SongObject {
             if is_visible.load(Ordering::Acquire) {
                 let mut song_info = song.info();
                 drop(song_info.load_thumbnail(UsedBy::Library));
-                let _ = ui_tx().send_blocking(UpdateUI::LibrarySongLoaded { index, song });
+                UpdateUI::LibrarySongLoaded { index, song }.send();
             }
         });
     }

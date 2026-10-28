@@ -77,6 +77,7 @@ pub fn init_ui_tx(
 }
 
 pub type ToastButtonAction = Box<(&'static str, Box<dyn Fn() + Send + 'static>)>;
+#[must_use = "Use `.send` or `.send_with` to send through the channel"]
 pub enum UpdateUI {
     PlayerState {
         playing: bool,
@@ -191,17 +192,32 @@ pub enum UpdateUI {
     /// Displays an error message informing the user that a component has crashed
     CrashNotice(String),
 }
+impl UpdateUI {
+    /// Sends the `UpdateUI` request through the UI channel
+    ///
+    /// # Safety
+    /// Do not call before `init_channels()` (same as `ui_tx()`)
+    #[inline]
+    pub fn send(self) {
+        let _ = ui_tx().send_blocking(self);
+    }
+    /// Sends the `UpdateUI` request using the given `sender`
+    #[inline]
+    pub fn send_with(self, sender: &async_channel::Sender<UpdateUI>) {
+        let _ = sender.send_blocking(self);
+    }
+}
 
 /// Shows the 'Playing' tab in the UI
 pub fn show_queue() {
     let ui_tx = ui_tx();
-    let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
+    UpdateUI::FocusPlaying.send_with(ui_tx);
 
     // NOTE: This will not close the lyrics page, if open
-    let _ = ui_tx.send_blocking(UpdateUI::CloseQueueSubpage);
+    UpdateUI::CloseQueueSubpage.send_with(ui_tx);
 
     // IDEA: Also scroll to a specified item in the queue
 
     // Re-open the overlay in case it was closed
-    let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(true));
+    UpdateUI::OpenSheet(true).send_with(ui_tx);
 }

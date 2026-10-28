@@ -6,8 +6,8 @@ use mpris_server::{self, LoopStatus, Metadata, PlaybackStatus, zbus};
 use std::sync::OnceLock;
 
 use crate::about;
-use crate::player::{PlayerRequest, QueueItem, player_tx};
-use crate::ui::{UpdateUI, ui_tx};
+use crate::player::{PlayerRequest, QueueItem};
+use crate::ui::UpdateUI;
 
 static MPRIS_TX: OnceLock<async_channel::Sender<UpdateMPRIS>> = OnceLock::new();
 /// Returns the channel sender for sending requests to the MPRIS interface using `UpdateMPRIS`
@@ -54,21 +54,11 @@ pub async fn controller(rx: async_channel::Receiver<UpdateMPRIS>) -> zbus::Resul
         .build()
         .await?;
 
-    mpris_player.connect_play_pause(|_| {
-        let _ = player_tx().send(PlayerRequest::TogglePlay(None));
-    });
-    mpris_player.connect_previous(|_| {
-        let _ = player_tx().send(PlayerRequest::SkipPrevious);
-    });
-    mpris_player.connect_next(|_| {
-        let _ = player_tx().send(PlayerRequest::SkipNext);
-    });
-    mpris_player.connect_quit(|_| {
-        let _ = ui_tx().send_blocking(UpdateUI::RunAction("app.quit"));
-    });
-    mpris_player.connect_raise(|_| {
-        let _ = ui_tx().send_blocking(UpdateUI::RunAction("app.show_window"));
-    });
+    mpris_player.connect_play_pause(|_| PlayerRequest::TogglePlay(None).send());
+    mpris_player.connect_previous(|_| PlayerRequest::SkipPrevious.send());
+    mpris_player.connect_next(|_| PlayerRequest::SkipNext.send());
+    mpris_player.connect_quit(|_| UpdateUI::RunAction("app.quit").send());
+    mpris_player.connect_raise(|_| UpdateUI::RunAction("app.show_window").send());
 
     glib::spawn_future_local(mpris_player.run());
 

@@ -5,7 +5,7 @@ use gtk::glib;
 use std::sync::mpsc;
 
 use crate::excuses::EXP_INIT;
-use crate::library::{LibraryRequest, library_tx};
+use crate::library::LibraryRequest;
 use crate::library::{RatableAndTaggable, song_rating::SongRating, tag_list};
 
 const NUM_STARS: u8 = 5;
@@ -313,11 +313,12 @@ impl Rating {
                         tag_label.set_visible(true);
                         entry.set_visible(false);
                         let (tx, rx) = mpsc::channel::<()>();
-                        let _ = library_tx().send(LibraryRequest::RenameTag {
+                        LibraryRequest::RenameTag {
                             tag: tag_label.text().to_string(),
                             new_name: entry.text().to_string(),
                             notify_done: tx,
-                        });
+                        }
+                        .send();
                         let _ = rx.recv();
                         this.refresh_tags();
                         this.update_tag_buttons();

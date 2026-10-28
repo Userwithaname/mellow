@@ -44,43 +44,44 @@ impl ArtistPage {
     #[template_callback]
     pub fn play_sequential(&self) {
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::LoadQueue {
+        PlayerRequest::LoadQueue {
             queue: self.artist.borrow().as_ref().unwrap().to_queue(),
             shuffled: None,
             track: 0,
-        });
-        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
+        }
+        .send_with(player_tx);
+        PlayerRequest::TogglePlay(Some(true)).send_with(player_tx);
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
-        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
+        UpdateUI::OpenSheet(false).send_with(ui_tx);
+        UpdateUI::FocusPlaying.send_with(ui_tx);
     }
     #[template_callback]
     pub fn play_shuffled(&self) {
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::LoadQueue {
+        PlayerRequest::LoadQueue {
             queue: self.artist.borrow().as_ref().unwrap().to_shuffled_queue(),
             shuffled: None,
             track: 0,
-        });
-        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
+        }
+        .send_with(player_tx);
+        PlayerRequest::TogglePlay(Some(true)).send_with(player_tx);
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
-        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
+        UpdateUI::OpenSheet(false).send_with(ui_tx);
+        UpdateUI::FocusPlaying.send_with(ui_tx);
     }
     #[inline]
     pub fn add_to_queue(&self) {
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::RunAction("ui.library_nav_pop"));
-        let _ = player_tx().send(PlayerRequest::AppendQueue(
-            self.artist.borrow().as_ref().unwrap().to_queue(),
-        ));
-        let _ = ui_tx.send_blocking(UpdateUI::Notification(
+        UpdateUI::RunAction("ui.library_nav_pop").send_with(ui_tx);
+        PlayerRequest::AppendQueue(self.artist.borrow().as_ref().unwrap().to_queue()).send();
+        UpdateUI::Notification(
             format!(
                 "Artist \"{}\" has been added to queue",
                 self.artist_name.label()
             ),
             Some(Box::new(("View", Box::new(show_queue)))),
-        ));
+        )
+        .send_with(ui_tx);
     }
 }
 

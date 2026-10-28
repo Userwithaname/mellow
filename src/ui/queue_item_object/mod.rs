@@ -7,7 +7,7 @@ use std::sync::Arc;
 use crate::library::unload_unused::UsedBy;
 use crate::library::{Library, library_tx};
 use crate::player::QueueItem;
-use crate::ui::{UpdateUI, ui_tx};
+use crate::ui::UpdateUI;
 use crate::util::format_duration_ms;
 
 mod imp;
@@ -62,7 +62,7 @@ impl QueueItemObject {
                 && let QueueItem::Song(song) = item
             {
                 drop(song.info().load_thumbnail(UsedBy::SongQueue));
-                let _ = ui_tx().send_blocking(UpdateUI::QueueSongLoaded { index, song });
+                UpdateUI::QueueSongLoaded { index, song }.send();
             }
         });
     }

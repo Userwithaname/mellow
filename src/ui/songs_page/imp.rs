@@ -165,18 +165,19 @@ impl SongsPage {
         }
 
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::LoadQueue {
+        PlayerRequest::LoadQueue {
             queue: songs.to_queue(),
             shuffled: match self.shuffle.get() {
                 true => Some(vec![]),
                 false => None,
             },
             track: 0,
-        });
-        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
+        }
+        .send_with(player_tx);
+        PlayerRequest::TogglePlay(Some(true)).send_with(player_tx);
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
-        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
+        UpdateUI::OpenSheet(false).send_with(ui_tx);
+        UpdateUI::FocusPlaying.send_with(ui_tx);
     }
 
     pub fn update_tag_filter_list(&self) {
@@ -553,7 +554,7 @@ impl ObjectImpl for SongsPage {
                 .downcast_ref::<SongObject>()
                 .unwrap()
                 .index();
-            let _ = ui_tx().send_blocking(UpdateUI::SongPageByIndex(index as usize));
+            UpdateUI::SongPageByIndex(index as usize).send();
         });
 
         // Restore the previous scroll position if pending, and update sort fields

@@ -17,7 +17,7 @@ use crate::player::QueueItem;
 use crate::ui::{AlbumPage, ArtistPage, SongPage, SubpageType};
 use crate::ui::{AlbumsPage, ArtistsPage, SongsPage};
 use crate::ui::{LibraryPage, LyricsPage, MainPlayer, QueuePage, QueueSubpage, SettingsPage};
-use crate::ui::{ToastButtonAction, UpdateUI, ui_tx};
+use crate::ui::{ToastButtonAction, UpdateUI};
 use crate::util::Forever;
 
 #[derive(Default, CompositeTemplate)]
@@ -175,7 +175,7 @@ impl Window {
                 UpdateUI::ScheduledShutdown => self.scheduled_shutdown(),
                 UpdateUI::Uninit => loop {
                     // Ignore any further requests without closing the channel
-                    ui_rx.recv().await.unwrap();
+                    let _ = ui_rx.recv().await.unwrap();
                 },
 
                 UpdateUI::CrashNotice(error_info) => {
@@ -191,7 +191,7 @@ impl Window {
                     });
                     loop {
                         // Only display the first error message and ignore further requests
-                        ui_rx.recv().await.unwrap();
+                        let _ = ui_rx.recv().await.unwrap();
                     }
                 }
             }
@@ -232,7 +232,7 @@ impl Window {
                 let item = QueueItem::clone(item);
                 Library::run_task(library_tx(), move || {
                     song.info().load_detailed();
-                    let _ = ui_tx().send_blocking(UpdateUI::SongInfo { item });
+                    UpdateUI::SongInfo { item }.send();
                 });
                 (None, false)
             }
@@ -430,7 +430,7 @@ impl Window {
 
             Library::run_task(library_tx(), move || {
                 thread::sleep(Duration::from_millis(30));
-                let _ = ui_tx().send_blocking(UpdateUI::LibrarySongLoaded { index, song });
+                UpdateUI::LibrarySongLoaded { index, song }.send();
             });
             return;
         };
@@ -447,10 +447,11 @@ impl Window {
 
             Library::run_task(library_tx(), move || {
                 thread::sleep(Duration::from_millis(30));
-                let _ = ui_tx().send_blocking(UpdateUI::LibraryAlbumLoaded {
+                UpdateUI::LibraryAlbumLoaded {
                     index,
                     song: first_song,
-                });
+                }
+                .send();
             });
             return;
         };
@@ -478,7 +479,7 @@ impl Window {
             println!("{index}: queue song thumbnail would block; retrying later...");
             Library::run_task(library_tx(), move || {
                 thread::sleep(Duration::from_millis(30));
-                let _ = ui_tx().send_blocking(UpdateUI::QueueSongLoaded { index, song });
+                UpdateUI::QueueSongLoaded { index, song }.send();
             });
             return;
         };

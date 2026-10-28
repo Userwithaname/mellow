@@ -3,7 +3,7 @@ use core::cell::Cell;
 use gtk::CompositeTemplate;
 use gtk::glib;
 
-use crate::ui::{UpdateUI, ui_tx};
+use crate::ui::UpdateUI;
 
 #[derive(Default, CompositeTemplate)]
 #[template(file = "library_page.ui")]
@@ -20,7 +20,7 @@ pub struct LibraryPage {
 impl LibraryPage {
     #[template_callback]
     pub fn handle_open_settings(&self) {
-        let _ = ui_tx().send_blocking(UpdateUI::FocusSettings);
+        UpdateUI::FocusSettings.send();
     }
 }
 

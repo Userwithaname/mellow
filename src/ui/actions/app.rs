@@ -3,7 +3,7 @@ use gio::Cancellable;
 use glib::subclass::prelude::*;
 use gtk::{gio, glib};
 
-use crate::library::{LibraryRequest, library_tx};
+use crate::library::LibraryRequest;
 use crate::music_dir;
 use crate::ui::{Application, Window};
 
@@ -24,7 +24,7 @@ pub fn add_library(window: Window) -> gio::ActionEntry<Application> {
             let window = window.clone();
             library_picker.select_folder(Some(&window.clone()), Cancellable::NONE, move |dir| {
                 if let Ok(dir) = dir {
-                    let _ = library_tx().send(LibraryRequest::AddLibrary(dir.path().unwrap()));
+                    LibraryRequest::AddLibrary(dir.path().unwrap()).send();
                 } else {
                     // Allow changing the library through the UI again if canceled,
                     // otherwise it will re-activate when the directory list is updated
@@ -58,7 +58,7 @@ pub fn queue_from_disk(window: Window) -> gio::ActionEntry<Application> {
                         paths.push(path.downcast::<gio::File>().unwrap().path().unwrap());
                         index += 1;
                     }
-                    let _ = library_tx().send(LibraryRequest::QueueFromPaths(paths));
+                    LibraryRequest::QueueFromPaths(paths).send();
                 }
             });
         })

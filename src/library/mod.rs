@@ -246,6 +246,7 @@ pub fn init_library_tx(
 type LibraryTask = Box<dyn FnOnce(&mut Library) + Send + 'static>;
 type SongsTask = Box<dyn FnOnce(&Songs) + Send + 'static>;
 
+#[must_use = "Use `.send` or `.send_with` to send through the channel"]
 pub enum LibraryRequest {
     /// Rebuilds the library, cancelling any rebuild that might be currently running
     /// For more responsive cancellation, use `Library::rebuild` instead
@@ -282,6 +283,21 @@ pub enum LibraryRequest {
 
     /// Cleanly shuts down the library and thread pool, and writes the configuration data to disk
     Uninit,
+}
+impl LibraryRequest {
+    /// Sends the `LibraryRequest` variant through the library channel
+    ///
+    /// # Safety
+    /// Do not call before `init_channels()` (same as `library_tx()`)
+    #[inline]
+    pub fn send(self) {
+        let _ = library_tx().send(self);
+    }
+    /// Sends the `LibraryRequest` variant using the given `sender`
+    #[inline]
+    pub fn send_with(self, sender: &mpsc::Sender<LibraryRequest>) {
+        let _ = sender.send(self);
+    }
 }
 
 impl Library {
@@ -497,10 +513,10 @@ impl Library {
             if timer.elapsed() > UI_TIMEOUT {
                 timer = Instant::now();
                 if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
-                    let _ = ui_tx.send_blocking(UpdateUI::Progress(None));
+                    UpdateUI::Progress(None).send();
                     break;
                 }
-                let _ = ui_tx.send_blocking(UpdateUI::Progress(Some(progress)));
+                UpdateUI::Progress(Some(progress)).send_with(ui_tx);
             }
 
             song.info().load_basic_and(|song_info| {
@@ -575,7 +591,7 @@ impl Library {
             {
                 Library::merge_moved_entries(&artists, check_moved);
             }
-            let _ = ui_tx.send_blocking(UpdateUI::SetLibrarySongs(songs));
+            UpdateUI::SetLibrarySongs(songs).send_with(ui_tx);
         }
 
         #[cfg(feature = "verbose-logs")]
@@ -589,7 +605,7 @@ impl Library {
                 // Songs were already set before checking modification times
 
                 // Correct paths in the queue if any have changed
-                let _ = player_tx().send(PlayerRequest::ValidateFilePaths);
+                PlayerRequest::ValidateFilePaths.send();
             }
 
             // Wait for the modification times check to finish
@@ -600,7 +616,7 @@ impl Library {
 
             if state != STATE_CANCEL {
                 // IDEA: Maybe a negative progress value could represent a failure state?
-                let _ = ui_tx.send_blocking(UpdateUI::Progress(None));
+                UpdateUI::Progress(None).send_with(ui_tx);
 
                 #[cfg(any(feature = "event-timers", feature = "verbose-logs"))]
                 println!(
@@ -661,7 +677,7 @@ impl Library {
         if needs_rebuild && STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_CANCEL {
             Library::run_library_task(library_tx(), |library| {
                 library.cancel_library_build_blocking(Instant::now());
-                (ui_tx().send_blocking(UpdateUI::Progress(Some(0.0)))).expect(EXP_RX);
+                UpdateUI::Progress(Some(0.0)).send();
                 println!("Rebuilding because files were modified");
                 library.start_library_build(Instant::now());
             });
@@ -855,7 +871,7 @@ impl Library {
                 if STATE.load(atomic::Ordering::Relaxed) == STATE_CANCEL {
                     return;
                 }
-                let _ = ui_tx.send_blocking(UpdateUI::Progress(Some(progress)));
+                UpdateUI::Progress(Some(progress)).send_with(ui_tx);
             }
         }
     }
@@ -864,9 +880,9 @@ impl Library {
     pub fn rebuild() {
         if STATE.load(atomic::Ordering::Acquire) == STATE_BUSY {
             STATE.store(STATE_CANCEL, atomic::Ordering::Relaxed);
-            let _ = library_tx().send(LibraryRequest::CancelRebuild(Instant::now()));
+            LibraryRequest::CancelRebuild(Instant::now()).send();
         }
-        let _ = library_tx().send(LibraryRequest::Rebuild(Instant::now()));
+        LibraryRequest::Rebuild(Instant::now()).send();
     }
 
     /// Starts a new library build
@@ -1011,7 +1027,7 @@ impl Library {
     /// Replaces `self.albums` with `albums`, and updates the library albums UI
     #[inline]
     fn set_albums(&mut self, albums: Albums) {
-        let _ = ui_tx().send_blocking(UpdateUI::SetLibraryAlbums(albums.clone()));
+        UpdateUI::SetLibraryAlbums(albums.clone()).send();
         self.albums = albums;
     }
 
@@ -1024,7 +1040,7 @@ impl Library {
     /// Replaces `self.artists` with `artists`, and updates the library artists UI
     #[inline]
     fn set_artists(&mut self, artists: Artists) {
-        let _ = ui_tx().send_blocking(UpdateUI::SetLibraryArtists(artists.clone()));
+        UpdateUI::SetLibraryArtists(artists.clone()).send();
         self.artists = artists;
     }
     /// Replaces `self.missing_songs` with `missing_songs`
@@ -1102,15 +1118,16 @@ impl Library {
             return;
         }
         let player_tx = player_tx();
-        let _ = player_tx.send(PlayerRequest::LoadQueue {
+        PlayerRequest::LoadQueue {
             queue,
             shuffled: None,
             track: 0,
-        });
-        let _ = player_tx.send(PlayerRequest::TogglePlay(Some(true)));
+        }
+        .send_with(player_tx);
+        PlayerRequest::TogglePlay(Some(true)).send_with(player_tx);
         let ui_tx = ui_tx();
-        let _ = ui_tx.send_blocking(UpdateUI::OpenSheet(false));
-        let _ = ui_tx.send_blocking(UpdateUI::FocusPlaying);
+        UpdateUI::OpenSheet(false).send_with(ui_tx);
+        UpdateUI::FocusPlaying.send_with(ui_tx);
     }
 
     /// Takes a list of file or directory paths and returns a queue

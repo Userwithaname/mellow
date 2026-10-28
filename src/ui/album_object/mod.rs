@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use crate::library::unload_unused::UsedBy;
 use crate::library::{Library, SharedAlbum, library_tx};
-use crate::ui::{LibraryObject, LibrarySort, Sortable, UpdateUI, ui_tx};
+use crate::ui::{LibraryObject, LibrarySort, Sortable, UpdateUI};
 
 mod imp;
 
@@ -55,7 +55,7 @@ impl AlbumObject {
             if is_visible.load(Ordering::Acquire) {
                 let song = Arc::clone(album.lock().unwrap().first_song());
                 drop(song.info().load_thumbnail(UsedBy::Library));
-                let _ = ui_tx().send_blocking(UpdateUI::LibraryAlbumLoaded { index, song });
+                UpdateUI::LibraryAlbumLoaded { index, song }.send();
             }
         });
     }
