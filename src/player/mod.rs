@@ -312,7 +312,7 @@ impl Player {
                     true
                 }
                 PlayerRequest::RemoveItem(index) => {
-                    self.queue.create_snapshot_for_action(
+                    self.queue.create_undo_snapshot(
                         UndoAction::Removed(vec![index]), //
                     );
                     self.remove_item(index);
@@ -321,7 +321,7 @@ impl Player {
                     continue;
                 }
                 PlayerRequest::RemoveItems(indexes) => {
-                    self.queue.create_snapshot_for_action(
+                    self.queue.create_undo_snapshot(
                         UndoAction::Removed(indexes.clone()), //
                     );
                     for index in indexes {
@@ -488,10 +488,10 @@ impl Player {
         self.queue.move_next();
     }
 
-    /// Skips to next track
+    /// Skips to the next track
     fn skip_next(&mut self) -> Result<(), gst::StateChangeError> {
         if self.next_song_loaded {
-            return self.repeat_song();
+            return self.repeat_song(); // "Repeats" the pre-loaded song, equivalent to skipping
         }
         self.backend.set_property("instant-uri", true);
         if !self.queue.get_repeat()

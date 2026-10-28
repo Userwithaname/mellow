@@ -125,14 +125,6 @@ impl SongQueue {
         self.index
     }
 
-    /// Locates a song within the `shuffled` vec and returns its index
-    #[inline]
-    #[must_use]
-    pub fn shuffled_index(&self, index: usize) -> Option<usize> {
-        // NOTE: This function is unused. Should it be removed?
-        (0..self.shuffled.len()).find(|i| self.shuffled[*i] == index)
-    }
-
     /// Turns an index from `shuffled` into one which can be used with `songs`.
     /// If the shuffle mode is off, the input index is returned.
     ///
@@ -179,12 +171,6 @@ impl SongQueue {
         self.ui_close_queue_subpage();
     }
 
-    /// Restarts the queue from the beginning
-    /// Playback state has to be manually updated
-    pub fn restart_queue(&mut self) {
-        let _ = player_tx().send(PlayerRequest::SkipTo(0));
-    }
-
     /// Creates a vec of random indexes for the shuffle mode
     fn new_shuffled_queue(&mut self) {
         self.shuffled = (0..self.len()).collect();
@@ -214,15 +200,6 @@ impl SongQueue {
             let rand_index = fastrand::usize(start..self.shuffled.len());
             self.shuffled.swap(i, rand_index);
         }
-    }
-
-    /// Removes all songs from the queue except the currently playing one
-    pub fn clear_queue(&mut self) {
-        let current_song = self.remove(self.current_index());
-        self.songs = vec![current_song];
-        self.shuffled = vec![0];
-        self.ui_update_queue();
-        self.ui_close_queue_subpage();
     }
 
     /// Moves a song in the queue from `from` to `to`
@@ -298,13 +275,6 @@ impl SongQueue {
         }
     }
 
-    /// Adds an item to the end of the queue
-    pub fn add(&mut self, item: QueueItem) {
-        self.songs.push(item);
-        self.shuffled.push(self.len() - 1);
-        self.ui_update_queue();
-    }
-
     /// Appends multiple items to the end of the current queue
     pub fn append(&mut self, items: &[QueueItem]) {
         self.songs.extend_from_slice(items);
@@ -367,15 +337,6 @@ impl SongQueue {
     pub fn remove_current(&mut self) -> QueueItem {
         self.pending_track = true;
         self.remove(self.index)
-    }
-
-    /// Removes all queued songs after the provided index
-    /// Index depends on shuffle mode (use `ordered_queue()` index)
-    pub fn remove_all_after_index(&mut self, index: usize) {
-        while self.len() > index + 1 {
-            self.remove(self.len() - 1);
-        }
-        self.ui_update_queue();
     }
 
     /// Returns `true` if the current song is first in the queue
@@ -459,7 +420,7 @@ impl SongQueue {
     ///
     /// Call this before performing the action to remember the queue state for undo
     #[inline]
-    pub fn create_snapshot_for_action(&mut self, action: UndoAction) {
+    pub fn create_undo_snapshot(&mut self, action: UndoAction) {
         self.snapshot = Some(QueueSnapshot::create(self, action));
     }
     /// Reverts the queue to a prior state in `self.snapshot`
@@ -488,15 +449,14 @@ impl SongQueue {
     /// For proper behavior, only call this function after the
     /// library has successfully been built
     pub fn validate_file_paths(&mut self) {
-        let mut missing_items = Vec::new();
-        for (index, item) in self.songs.iter().enumerate() {
-            if let QueueItem::Song(song) = item
-                && (!song.is_within_library() || !song.path.exists())
-            {
-                song.set_album(None);
-                missing_items.push(index);
-            }
-        }
+        let missing_items: Box<[usize]> = (self.songs.iter().enumerate())
+            .filter_map(|(index, item)| match item {
+                QueueItem::Song(song) if !song.is_within_library() || !song.path.exists() => {
+                    Some(index)
+                }
+                _ => None,
+            })
+            .collect();
         if missing_items.is_empty() {
             return;
         }
@@ -514,7 +474,7 @@ impl SongQueue {
                             // (`queue` is assigned from `self.songs.clone()`, which could
                             // not have changed because `&mut self` is an exclusive refrence)
                             .get_unchecked(index)
-                            // SAFETY: The above loop ensures that each index points to a `Song`
+                            // SAFETY: `missing_items` indexes are checked when initializing
                             .as_song_unchecked()
                     };
                     let new_song = (library.artists())
