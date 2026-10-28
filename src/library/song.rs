@@ -557,11 +557,15 @@ impl SongInfoLoader<'_> {
     #[inline]
     fn load_basic_from_file(&mut self) -> Result<SongInfo, Box<dyn Error>> {
         self.update_modification_time();
-        if self.tagged.is_none() {
-            self.tagged = Some(Probe::read(Probe::open(self.path)?)?);
-        }
-        // SAFETY: Assigned as `Some` on the previous line
-        let tagged = unsafe { self.tagged.as_ref().unwrap_unchecked() };
+        let tagged = match self.tagged {
+            Some(ref tagged) => tagged,
+            None => {
+                // NOTE: `Option::insert` would be better, but borrow checker complains
+                self.tagged = Some(Probe::read(Probe::open(self.path)?)?);
+                // SAFETY: Assigned as `Some` on the previous line
+                unsafe { self.tagged.as_ref().unwrap_unchecked() }
+            }
+        };
         let tag = tagged
             .primary_tag()
             .or_else(|| tagged.first_tag())
@@ -714,11 +718,10 @@ impl SongInfoLoader<'_> {
     /// Returns a new `TaggedFile` for reading song tags
     #[inline]
     fn tagged_file(&mut self) -> Result<&TaggedFile, Box<dyn Error>> {
-        if self.tagged.is_none() {
-            self.tagged = Some(Probe::open(self.path)?.read()?);
-        }
-        // SAFETY: Assigned as `Some` on the previous line
-        Ok(unsafe { self.tagged.as_ref().unwrap_unchecked() })
+        Ok(match self.tagged {
+            Some(ref tagged) => tagged,
+            None => self.tagged.insert(Probe::open(self.path)?.read()?),
+        })
     }
 
     #[inline]
