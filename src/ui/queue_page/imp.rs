@@ -338,10 +338,19 @@ impl QueuePage {
         }
     }
 
-    pub fn recenter_queue(&self, index: isize) {
-        self.next_scroll_pos.set(QueueScrollAction::Offset(
-            (self.playing_index.get() as isize - index) as i32,
-        ));
+    pub fn recenter_queue(&self, new_playing: isize) {
+        let playing = self.playing_index.get() as isize;
+        let scroll_offset = (playing - new_playing + self.view_pan_offset.replace(0)) as i32;
+        self.next_scroll_pos.set(
+            // WORKAROUND: Check if the scroll offset is correct or fallback to `ToPlaying` so
+            // the item stays in view if `new_index` crosses the repeat mode wrapping point
+            // (the condition assumes `NUM_ITEMS_BEHIND` and `NUM_ITEMS_AHEAD` are equal)
+            if scroll_offset.abs() <= NUM_ITEMS_BEHIND as i32 {
+                QueueScrollAction::Offset(scroll_offset)
+            } else {
+                QueueScrollAction::ToPlaying
+            },
+        );
     }
 
     #[inline]
