@@ -295,16 +295,13 @@ impl QueuePage {
             .iter()
             .map(|object| QueueItem::clone(object.queue_item()))
             .collect();
-        let keep_artworks_range = (playing.saturating_sub(1))..(playing + 2).min(queue_length);
+        let keep_artworks_range = playing.saturating_sub(1)..(playing + 2).min(queue_length);
         let keep_artworks = queue.get(keep_artworks_range).unwrap_or_default().to_vec();
         Library::run_task(library_tx(), move || {
-            'outer: for item in old_visible_items {
-                for keep in &keep_artworks {
-                    if *keep == item {
-                        continue 'outer;
-                    }
+            for item in old_visible_items {
+                if !keep_artworks.contains(&item) {
+                    item.map_song(|song| song.info().unload_detailed());
                 }
-                item.map_song(|song| song.info().unload_detailed());
             }
             for keep in keep_artworks {
                 keep.map_song(|song| song.info().load_detailed());

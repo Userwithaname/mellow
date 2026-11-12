@@ -65,19 +65,19 @@ pub fn init_channels() -> Result<ChannelReceivers, AlreadyInitializedError> {
 /// Returns the music directory path
 #[inline]
 #[must_use]
-pub fn music_dir() -> &'static String {
+pub fn music_dir() -> &'static str {
     &MUSIC_DIR
 }
 /// Returns the cache directory path
 #[inline]
 #[must_use]
-pub fn cache_dir() -> &'static String {
+pub fn cache_dir() -> &'static str {
     &CACHE_DIR
 }
 /// Returns the configuration directory path
 #[inline]
 #[must_use]
-pub fn config_dir() -> &'static String {
+pub fn config_dir() -> &'static str {
     &CONFIG_DIR
 }
 /// Returns the `songs` file path, which contains the serialized info of library songs

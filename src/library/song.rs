@@ -278,7 +278,7 @@ pub struct SongInfoLoader<'i> {
     user_info: &'i Mutex<UserSongInfo>,
     detailed_info: &'i RwLock<Option<DetailedSongInfo>>,
     thumbnail: &'i RwLock<UnloadUnused<gdk::Texture>>,
-    tagged: Option<TaggedFile>,
+    tagged: Option<TaggedFile>, // TODO: Assess whether this is worth keeping
 }
 
 impl SongInfoLoader<'_> {
@@ -680,7 +680,7 @@ impl SongInfoLoader<'_> {
         let file_path = self.path.to_str().unwrap();
         match self
             .tagged_file()
-            .map(move |tagged| Self::load_tags_detailed(tagged, file_path))
+            .map(move |tagged| Self::load_detailed_from_file(tagged, file_path))
         {
             Ok(Ok(result)) => result,
             Err(e) | Ok(Err(e)) => {
@@ -715,7 +715,7 @@ impl SongInfoLoader<'_> {
         }
     }
 
-    /// Returns a new `TaggedFile` for reading song tags
+    /// Returns a `TaggedFile` for reading song tags
     #[inline]
     fn tagged_file(&mut self) -> Result<&TaggedFile, Box<dyn Error>> {
         Ok(match self.tagged {
@@ -725,7 +725,7 @@ impl SongInfoLoader<'_> {
     }
 
     #[inline]
-    fn load_tags_detailed(
+    fn load_detailed_from_file(
         tagged: &TaggedFile,
         path: &str,
     ) -> Result<DetailedSongInfo, Box<dyn Error>> {

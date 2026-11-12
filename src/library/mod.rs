@@ -322,11 +322,8 @@ impl Library {
             on_songs_set: Vec::new(),
 
             tasks: Runner::new(
-                thread::available_parallelism()
-                    .map_or(4, |cores| usize::from(cores).saturating_sub(4).max(4)),
+                thread::available_parallelism().map_or(4, |p| p.get().saturating_sub(4).max(4)),
             ),
-            // IDEA: Maybe there could be a power-saver option?
-            // tasks: Runner::new(4),
             config,
             rx: library_rx,
         }

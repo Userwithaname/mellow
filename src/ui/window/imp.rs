@@ -163,8 +163,7 @@ impl Window {
                 UpdateUI::CanCloseSheet(can_close) => self.set_can_close_sheet(can_close),
 
                 UpdateUI::RunAction(action) => {
-                    WidgetExt::activate_action(&self.main_player.get(), action, None)
-                        .expect(ACTION_ERR);
+                    (self.main_player.activate_action(action, None)).expect(ACTION_ERR);
                 }
 
                 UpdateUI::Notification(message, action) => {
