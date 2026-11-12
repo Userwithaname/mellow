@@ -66,16 +66,15 @@ pub async fn controller(rx: async_channel::Receiver<UpdateMPRIS>) -> zbus::Resul
         #[allow(clippy::missing_panics_doc, reason = "MPRIS_TX keeps the channel open")]
         match rx.recv().await.unwrap() {
             UpdateMPRIS::SongInfo(QueueItem::Song(song)) => {
-                let mut info = song.info();
-                let mut metadata = info.load_basic_and(|basic_info| {
+                let mut metadata = song.load_basic_and(|basic_info| {
                     Metadata::builder()
                         .title(&basic_info.title)
                         .album(&basic_info.album)
                         .artist([&basic_info.artist])
                         .build()
                 });
-                metadata.set_art_url(match info.inspect_thumbnail().is_some() {
-                    true => Some(gio::File::for_path(info.thumbnail_file_path()).uri()),
+                metadata.set_art_url(match song.inspect_thumbnail().is_some() {
+                    true => Some(gio::File::for_path(song.thumbnail_file_path()).uri()),
                     false => None,
                 });
                 mpris_player.set_metadata(metadata).await?;

@@ -380,8 +380,7 @@ impl ArtistsPage {
                     }
 
                     let song = album_locked.first_song();
-                    let info = song.info();
-                    let info = info.user();
+                    let info = song.user();
 
                     if info.added < added {
                         artist.set_added(info.added);

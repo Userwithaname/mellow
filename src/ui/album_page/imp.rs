@@ -99,7 +99,7 @@ impl AlbumPage {
         (self.album.borrow().as_ref().unwrap())
             .to_queue()
             .into_iter()
-            .filter(|item| (item.as_song().info()).load_basic_and(|song| song.disc == disc_number))
+            .filter(|item| (item.as_song()).load_basic_and(|song| song.disc == disc_number))
             .collect()
     }
     #[template_callback]
@@ -157,9 +157,9 @@ impl Drop for AlbumPage {
             return;
         };
         if let Ok(album) = album.try_lock() {
-            let info = album.first_song().info();
-            info.try_unload_detailed();
-            info.mark_thumbnail_unused_by(UsedBy::None); // Unload if still unused
+            let first_song = album.first_song();
+            first_song.try_unload_detailed();
+            first_song.mark_thumbnail_unused_by(UsedBy::None); // Unload if still unused
         }
     }
 }

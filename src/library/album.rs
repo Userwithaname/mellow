@@ -39,7 +39,7 @@ impl Album {
     /// Adds a song to the list of album songs
     #[inline]
     pub fn add_song(&mut self, song: SharedSong, sort_info: &SongInfo) {
-        for tag in song.info().user().tags() {
+        for tag in song.user().tags() {
             self.user_info.tags.add(tag.clone());
         }
         match self.songs.find_album_song(sort_info) {
@@ -81,7 +81,7 @@ impl Album {
         let mut rating_total = 0.0;
         let mut num_songs = 0;
         for song in &self.songs {
-            let rating = song.info().user().rating.stars();
+            let rating = song.user().rating.stars();
             let contribution = (rating > 0) as usize;
             rating_total = (rating as f64).mul_add(contribution as f64, rating_total);
             num_songs += contribution;
@@ -99,7 +99,7 @@ impl Album {
     pub fn sort_rating(&self, fallback: f64) -> f64 {
         let mut rating_total = 0.0;
         for song in &self.songs {
-            let rating = song.info().user().rating.as_raw();
+            let rating = song.user().rating.as_raw();
             let contribution = (rating > 0) as u8;
             rating_total = (rating * contribution) as f64
                 + fallback.mul_add((1 - contribution) as f64, rating_total);
@@ -112,7 +112,7 @@ impl Album {
     pub fn average_play_count(&self) -> f64 {
         let mut play_count_total = 0;
         for song in &self.songs {
-            play_count_total += song.info().user().play_count;
+            play_count_total += song.user().play_count;
         }
         play_count_total as f64 / self.songs.len() as f64
     }
@@ -120,7 +120,7 @@ impl Album {
     /// Sets the rating of all songs on the album to `rating`
     pub fn rate_all_songs(&self, rating: SongRating) {
         for song in &self.songs {
-            song.info().set_rating(rating);
+            song.set_rating(rating);
         }
     }
 
@@ -128,14 +128,14 @@ impl Album {
     pub fn add_tag_to_songs(&mut self, tag: &str) {
         let songs = self.songs.clone(); // Borrow checker wasn't happy passing `&mut self`
         for song in songs {
-            song.info().user().add_tag(tag.to_owned(), self);
+            song.user().add_tag(tag.to_owned(), self);
         }
     }
     /// Removes the given tag from all album songs
     pub fn remove_tag_from_songs(&mut self, tag: &str) {
         let songs = self.songs.clone(); // Borrow checker wasn't happy passing `&mut self`
         for song in songs {
-            song.info().user().remove_tag(tag, self);
+            song.user().remove_tag(tag, self);
         }
     }
 }
@@ -168,15 +168,13 @@ impl NewSharedAlbum for SharedAlbum {
     #[inline]
     fn new_album(info: &SongInfo, song: SharedSong, artist: SharedArtist) -> SharedAlbum {
         let mut tags = TagList::default();
-        let song_info = song.info();
-        let user_song_info = song_info.user();
+        let user_song_info = song.user();
         let song_tags = user_song_info.tags();
         tags.inner_mut().reserve(song_tags.len());
         for tag in song_tags {
             tags.inner_mut().push((tag.to_string(), 1));
         }
         drop(user_song_info);
-        drop(song_info);
 
         Arc::new(Mutex::new(Album {
             title: info.album.clone(),
@@ -207,8 +205,7 @@ impl SortedAlbumSongs for AlbumSongs {
     #[inline]
     fn find_album_song(&self, info: &SongInfo) -> Result<usize, usize> {
         self.binary_search_by(|song| {
-            let mut new_info = song.info();
-            new_info.load_basic_and(|new_info| {
+            song.load_basic_and(|new_info| {
                 (new_info.disc.cmp(&info.disc)).then_with(|| new_info.track.cmp(&info.track))
             })
         })

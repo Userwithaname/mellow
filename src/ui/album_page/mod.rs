@@ -74,7 +74,7 @@ impl AlbumPage {
         for (i, song) in album_locked.songs().iter().enumerate() {
             let song_row = ListRow::new();
 
-            song.info().load_basic_and(|info| {
+            song.load_basic_and(|info| {
                 song_row.add_prefix(
                     &gtk::Label::builder()
                         .width_chars(2)
@@ -145,10 +145,9 @@ impl AlbumPage {
         }
 
         let first_song = Arc::clone(album_locked.first_song());
-        let mut info = first_song.info();
-        let Some(ref detailed_info) = *info.inspect_detailed() else {
+        let Some(ref detailed_info) = *first_song.inspect_detailed() else {
             ui.album_cover
-                .set_paintable_or_blank(info.load_thumbnail(UsedBy::None).as_ref());
+                .set_paintable_or_blank(first_song.load_thumbnail(UsedBy::None).as_ref());
 
             let cancel = Arc::clone(&ui.cancel_artowrk_loading);
             Library::run_task(library_tx(), move || {
@@ -157,7 +156,7 @@ impl AlbumPage {
                     println!("Arwork loading cancelled");
                     return;
                 }
-                first_song.info().load_detailed();
+                first_song.load_detailed();
                 if cancel.load(Ordering::Relaxed) {
                     #[cfg(feature = "verbose-logs")]
                     println!("Arwork assignment cancelled");

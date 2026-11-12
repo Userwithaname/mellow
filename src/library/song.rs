@@ -12,6 +12,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use lofty::file::TaggedFile;
 use lofty::prelude::*;
 use lofty::probe::Probe;
+use lofty::tag::Tag;
 
 use crate::cache_dir;
 use crate::library::lyrics::Lyrics;
@@ -54,18 +55,18 @@ impl SharedSongExt for SharedSong {
 }
 impl Ratable for SharedSong {
     fn get_rating(&self) -> SongRating {
-        self.info().user().rating
+        self.user().rating
     }
     fn set_rating(&self, rating: SongRating) {
-        self.info().set_rating(rating);
+        Song::set_rating(self, rating);
     }
 }
 impl Taggable for SharedSong {
     fn get_tags(&self) -> Box<[String]> {
-        self.info().user().tags().into()
+        self.user().tags().into()
     }
     fn add_tag(&self, tag: String) {
-        self.info().user().add_tag(
+        self.user().add_tag(
             tag,
             &mut (self.album.lock().unwrap().as_ref())
                 .unwrap() // Panic if `album` is not assigned on `self`
@@ -74,7 +75,7 @@ impl Taggable for SharedSong {
         );
     }
     fn remove_tag(&self, tag: &str) {
-        self.info().user().remove_tag(
+        self.user().remove_tag(
             tag,
             &mut (self.album.lock().unwrap().as_ref())
                 .unwrap() // Panic if `album` is not assigned on `self`
@@ -83,14 +84,16 @@ impl Taggable for SharedSong {
         );
     }
     fn has_tag(&self, tag: &str) -> bool {
-        self.info().user().tags.find(tag).is_ok()
+        self.user().tags.find(tag).is_ok()
     }
 }
 
 #[derive(Debug)]
 struct DeserializeSongError;
 
-impl<'s> Song {
+// TODO: Improve naming of info functions now that `SongInfoLoader` is gone
+
+impl Song {
     /// Constructs a new `Song` from a file path
     #[inline]
     #[must_use]
@@ -116,11 +119,10 @@ impl<'s> Song {
     #[inline]
     #[must_use]
     pub fn serialize(&self) -> String {
-        let info = self.info();
         let path = self.path.to_str().unwrap();
-        let user_info = info.user().clone();
+        let user_info = self.user();
         let tags = serialize_list(user_info.tags());
-        (info.inspect_basic().as_ref()).map_or_else(
+        self.inspect_basic().as_ref().map_or_else(
             || {
                 serialize! {
                     path => "path",
@@ -253,43 +255,15 @@ impl<'s> Song {
         self.get_album().is_some()
     }
 
-    /// Returns a `SongInfoLoader`, which can be used to access information
-    /// about the file and song. Tags are loaded on-demand, and remain in
-    /// memory until the respective `unload` or `take` method is called.
-    #[inline]
-    #[must_use]
-    pub const fn info(&'s self) -> SongInfoLoader<'s> {
-        SongInfoLoader {
-            path: &self.path,
-            info: &self.info,
-            user_info: &self.user_info,
-            detailed_info: &self.detailed_info,
-            thumbnail: &self.thumbnail,
-            tagged: None,
-        }
-    }
-}
-
-// TODO: Move the `SongInfoLoader` (and info structs?) into separate module(s)
-
-pub struct SongInfoLoader<'i> {
-    path: &'i PathBuf,
-    info: &'i RwLock<Option<SongInfo>>,
-    user_info: &'i Mutex<UserSongInfo>,
-    detailed_info: &'i RwLock<Option<DetailedSongInfo>>,
-    thumbnail: &'i RwLock<UnloadUnused<gdk::Texture>>,
-    tagged: Option<TaggedFile>, // TODO: Assess whether this is worth keeping
-}
-
-impl SongInfoLoader<'_> {
-    /// Whether the two `SongInfoLoader`s are likely to belong to the same `Song`
+    /// Returns `true` if `self` and `other` are likely to be duplicates of each other
     ///
-    /// Note: if either `SongInfo` is not loaded, equality is determined using the
-    /// file path only. For more accurate matching, calling `load_basic` beforehand
-    /// might be preferable.
+    /// - For accurate matching, song info on both `Song`s is expected to be loaded prior
+    ///   (they are compared using the `PartialEq` trait implementation on `SongInfo`)
+    /// - If either song info is not loaded, the result is only `true` if the two `Song`s
+    ///   point to the exact same file
     #[inline]
     #[must_use]
-    pub fn matches(&self, other: &SongInfoLoader) -> bool {
+    pub fn matches(&self, other: &Self) -> bool {
         if let (Some(own_info), Some(other_info)) =
             (&*self.inspect_basic(), &*other.inspect_basic())
         {
@@ -312,12 +286,6 @@ impl SongInfoLoader<'_> {
     #[must_use]
     pub fn thumbnail_file_path(&self) -> String {
         [cache_dir(), "thumbnails/", &self.path_hash().to_string()].concat()
-    }
-    /// Returns the song file path
-    #[inline]
-    #[must_use]
-    pub const fn path(&self) -> &PathBuf {
-        self.path
     }
     /// Returns the song filename, including the file extestion
     ///
@@ -388,6 +356,7 @@ impl SongInfoLoader<'_> {
     ///
     /// # Panics
     /// The function panics if the user info `Mutex` is poisoned
+    #[inline]
     pub fn user(&self) -> MutexGuard<'_, UserSongInfo> {
         #[cfg(feature = "verbose-warnings")]
         if self.user_info.try_lock().is_err() {
@@ -481,7 +450,7 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the basic info `RwLock` is poisoned
     #[inline]
-    pub fn load_basic_and<O, F: FnOnce(&SongInfo) -> O>(&mut self, f: F) -> O {
+    pub fn load_basic_and<O, F: FnOnce(&SongInfo) -> O>(&self, f: F) -> O {
         #[cfg(feature = "verbose-warnings")]
         if self.info.try_read().is_err() {
             eprintln!("Note: Blocking on read lock for `load_basic_and`");
@@ -505,7 +474,7 @@ impl SongInfoLoader<'_> {
     /// The function panics if the basic info `RwLock` is poisoned
     #[inline]
     pub fn try_load_basic(
-        &mut self,
+        &self,
     ) -> Result<(), TryLockError<RwLockReadGuard<'_, Option<SongInfo>>>> {
         if self.info.try_read()?.is_none() {
             drop(self.assign_basic());
@@ -518,7 +487,7 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
-    fn assign_basic(&mut self) -> RwLockWriteGuard<'_, Option<SongInfo>> {
+    fn assign_basic(&self) -> RwLockWriteGuard<'_, Option<SongInfo>> {
         #[cfg(feature = "verbose-warnings")]
         if self.detailed_info.try_write().is_err() {
             eprintln!("Note: Blocking on write lock for `assign_basic`");
@@ -537,7 +506,7 @@ impl SongInfoLoader<'_> {
     /// Reads and returns the basic song info from file,
     /// or returns a fallback if unavailable
     #[inline]
-    fn basic_or_default(&mut self) -> SongInfo {
+    fn basic_or_default(&self) -> SongInfo {
         self.load_basic_from_file().unwrap_or_else(|e| {
             eprintln!("Problem loading tags (basic): {:?}: {e}", self.path);
             SongInfo {
@@ -551,46 +520,34 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the basic info `RwLock` is poisoned
     #[inline]
-    pub fn take_basic(&mut self) -> Option<SongInfo> {
+    pub fn take_basic(&self) -> Option<SongInfo> {
         self.info.write().unwrap().take()
     }
     #[inline]
-    fn load_basic_from_file(&mut self) -> Result<SongInfo, Box<dyn Error>> {
+    fn load_basic_from_file(&self) -> Result<SongInfo, Box<dyn Error>> {
         self.update_modification_time();
-        let tagged = match self.tagged {
-            Some(ref tagged) => tagged,
-            None => {
-                // NOTE: `Option::insert` would be better, but borrow checker complains
-                self.tagged = Some(Probe::read(Probe::open(self.path)?)?);
-                // SAFETY: Assigned as `Some` on the previous line
-                unsafe { self.tagged.as_ref().unwrap_unchecked() }
-            }
-        };
-        let tag = tagged
-            .primary_tag()
-            .or_else(|| tagged.first_tag())
-            .ok_or("No tags found")?;
-        let properties = tagged.properties();
-
-        Ok(SongInfo {
-            title: tag.title().map_or_else(
-                || self.fallback_title(),
-                |title| match title.trim().is_empty() {
-                    true => self.fallback_title(),
-                    false => title.to_string(),
+        self.do_with_tags(|tagged, tag| {
+            let properties = tagged.properties();
+            SongInfo {
+                title: tag.title().map_or_else(
+                    || self.fallback_title(),
+                    |title| match title.trim().is_empty() {
+                        true => self.fallback_title(),
+                        false => title.to_string(),
+                    },
+                ),
+                album: tag.album().unwrap_or_default().to_string(),
+                artist: tag.artist().unwrap_or_default().to_string(),
+                album_artist: match tag.get_string(ItemKey::AlbumArtist) {
+                    Some(album_artist) => album_artist.to_owned(),
+                    None => tag.artist().unwrap_or_default().to_string(),
                 },
-            ),
-            album: tag.album().unwrap_or_default().to_string(),
-            artist: tag.artist().unwrap_or_default().to_string(),
-            album_artist: match tag.get_string(ItemKey::AlbumArtist) {
-                Some(album_artist) => album_artist.to_owned(),
-                None => tag.artist().unwrap_or_default().to_string(),
-            },
-            track: tag.track().unwrap_or_default(),
-            disc: tag.disk().unwrap_or(1),
-            year: tag.date().unwrap_or_default().year,
-            #[allow(clippy::cast_possible_truncation)]
-            duration_ms: properties.duration().as_millis() as u64,
+                track: tag.track().unwrap_or_default(),
+                disc: tag.disk().unwrap_or(1),
+                year: tag.date().unwrap_or_default().year,
+                #[allow(clippy::cast_possible_truncation)]
+                duration_ms: properties.duration().as_millis() as u64,
+            }
         })
     }
 
@@ -628,7 +585,7 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
-    pub fn load_detailed(&mut self) {
+    pub fn load_detailed(&self) {
         if self.detailed_info.read().unwrap().is_none() {
             drop(self.assign_detailed());
         }
@@ -638,7 +595,7 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
-    pub fn load_detailed_and<O, F: FnOnce(&DetailedSongInfo) -> O>(&mut self, f: F) -> O {
+    pub fn load_detailed_and<O, F: FnOnce(&DetailedSongInfo) -> O>(&self, f: F) -> O {
         #[cfg(feature = "verbose-warnings")]
         if self.detailed_info.try_read().is_err() {
             eprintln!("Note: Blocking on read lock for `load_detailed_and`");
@@ -658,7 +615,7 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// The function panics if the detailed info `RwLock` is poisoned
     #[inline]
-    fn assign_detailed(&mut self) -> RwLockWriteGuard<'_, Option<DetailedSongInfo>> {
+    fn assign_detailed(&self) -> RwLockWriteGuard<'_, Option<DetailedSongInfo>> {
         let mut info_writer = self.detailed_info.write().unwrap();
         // Warn if the info was already loaded by another
         // writer while waiting to acquire the write lock
@@ -676,12 +633,9 @@ impl SongInfoLoader<'_> {
     /// # Panics
     /// Panics if the file path is not valid UTF-8
     #[inline]
-    fn detailed_or_default(&mut self) -> DetailedSongInfo {
+    fn detailed_or_default(&self) -> DetailedSongInfo {
         let file_path = self.path.to_str().unwrap();
-        match self
-            .tagged_file()
-            .map(move |tagged| Self::load_detailed_from_file(tagged, file_path))
-        {
+        match self.do_with_tags(|_, tags| Self::load_detailed_from_tags(tags, file_path)) {
             Ok(Ok(result)) => result,
             Err(e) | Ok(Err(e)) => {
                 eprintln!("Problem loading tags (detailed): {:?}: {e}", self.path);
@@ -715,24 +669,29 @@ impl SongInfoLoader<'_> {
         }
     }
 
-    /// Returns a `TaggedFile` for reading song tags
+    /// Opens this `Song`s file using the `lofty` crate and runs the
+    /// given closure for accessing its tags. Returns the closure's
+    /// output in the `Ok` variant if successful.
+    ///
+    /// # Errors
+    /// Returns an error if tag loading fails
     #[inline]
-    fn tagged_file(&mut self) -> Result<&TaggedFile, Box<dyn Error>> {
-        Ok(match self.tagged {
-            Some(ref tagged) => tagged,
-            None => self.tagged.insert(Probe::open(self.path)?.read()?),
-        })
+    fn do_with_tags<F: FnOnce(&TaggedFile, &Tag) -> O, O>(
+        &self,
+        f: F,
+    ) -> Result<O, Box<dyn Error>> {
+        let tagged = Probe::open(&self.path)?.read()?;
+        match tagged.primary_tag().or_else(|| tagged.first_tag()) {
+            Some(tag) => Ok(f(&tagged, tag)),
+            None => Err("No tags found")?,
+        }
     }
 
     #[inline]
-    fn load_detailed_from_file(
-        tagged: &TaggedFile,
+    fn load_detailed_from_tags(
+        tag: &lofty::tag::Tag,
         path: &str,
     ) -> Result<DetailedSongInfo, Box<dyn Error>> {
-        let tag = tagged
-            .primary_tag()
-            .or_else(|| tagged.first_tag())
-            .ok_or("No tags found")?;
         Ok(DetailedSongInfo {
             // TODO: Look for a `cover` file in the song directroy
             // IDEA: Once `cover` files are supported, load both and compare their resolutions
@@ -798,7 +757,7 @@ impl SongInfoLoader<'_> {
     /// The function panics if the thumbnail `RwLock` is poisoned
     #[inline]
     pub fn load_thumbnail(
-        &mut self,
+        &self,
         used_by: UsedBy,
     ) -> RwLockReadGuard<'_, UnloadUnused<gdk::Texture>> {
         #[cfg(feature = "verbose-warnings")]
@@ -862,7 +821,7 @@ impl SongInfoLoader<'_> {
     /// If no artwork is available, a 0-byte thumbnail file is
     /// created, and the function returns `None`.
     #[must_use]
-    fn create_thumbnail(&mut self) -> Option<gdk::Texture> {
+    fn create_thumbnail(&self) -> Option<gdk::Texture> {
         let thumbnail_file_path = self.thumbnail_file_path();
 
         let Some(artwork) = self.load_detailed_and(|detailed| detailed.artwork.clone()) else {
@@ -871,7 +830,7 @@ impl SongInfoLoader<'_> {
             return None;
         };
         if artwork.ref_count() == 2 {
-            *self.detailed_info.write().unwrap() = None; // Unload artwork from loader if unused
+            *self.detailed_info.write().unwrap() = None; // Unload artwork if not used elsewhere
         }
 
         let mut tex_dl = gdk::TextureDownloader::new(&artwork);

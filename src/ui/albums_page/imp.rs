@@ -399,8 +399,7 @@ impl AlbumsPage {
                 );
 
                 let song = album_locked.first_song();
-                let info = song.info();
-                let info = info.user();
+                let info = song.user();
 
                 // NOTE: Checking modified/added times for only the first song might not be accurate
                 album.set_modified(info.modified);

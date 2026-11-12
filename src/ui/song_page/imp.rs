@@ -54,7 +54,7 @@ impl SongPage {
         UpdateUI::Notification(
             format!(
                 "Song \"{}\" will play next in the queue",
-                song.info().inspect_basic().as_ref().unwrap().title
+                song.inspect_basic().as_ref().unwrap().title
             ),
             Some(Box::new(("View", Box::new(show_queue)))),
         )
@@ -69,7 +69,7 @@ impl SongPage {
         UpdateUI::Notification(
             format!(
                 "Song \"{}\" has been added to queue",
-                song.info().inspect_basic().as_ref().unwrap().title
+                song.inspect_basic().as_ref().unwrap().title
             ),
             Some(Box::new(("View", Box::new(show_queue)))),
         )

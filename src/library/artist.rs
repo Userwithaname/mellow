@@ -74,7 +74,7 @@ impl Artist {
         let mut num_songs = 0;
         for album in &self.albums {
             for song in album.lock().unwrap().songs() {
-                total += song.info().user().play_count;
+                total += song.user().play_count;
                 num_songs += 1;
             }
         }

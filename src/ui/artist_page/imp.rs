@@ -115,7 +115,7 @@ impl Drop for ArtistPage {
                 if let Ok(album) = album.try_lock() {
                     let first_song = album.first_song();
                     // Unload thumbnail if still unused
-                    first_song.info().mark_thumbnail_unused_by(UsedBy::None);
+                    first_song.mark_thumbnail_unused_by(UsedBy::None);
                 }
             }
         }

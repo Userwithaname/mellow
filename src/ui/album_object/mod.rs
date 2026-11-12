@@ -54,7 +54,7 @@ impl AlbumObject {
         Library::run_task(library_tx(), move || {
             if is_visible.load(Ordering::Acquire) {
                 let song = Arc::clone(album.lock().unwrap().first_song());
-                drop(song.info().load_thumbnail(UsedBy::Library));
+                drop(song.load_thumbnail(UsedBy::Library));
                 UpdateUI::LibraryAlbumLoaded { index, song }.send();
             }
         });
@@ -78,8 +78,7 @@ impl AlbumObject {
         // NOTE: Unloading in the background in case the `RwLock` is busy
         Library::run_task(library_tx(), move || {
             if !is_visible.load(Ordering::Acquire) {
-                (album.lock().unwrap().first_song().info())
-                    .mark_thumbnail_unused_by(UsedBy::Library);
+                (album.lock().unwrap().first_song()).mark_thumbnail_unused_by(UsedBy::Library);
             }
         });
     }

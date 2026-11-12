@@ -23,7 +23,7 @@ impl QueueSubpage {
         let song_page = self.imp();
         song_page.index.set(index);
 
-        song.info().load_basic_and(|song_info| {
+        song.load_basic_and(|song_info| {
             song_page.song_title.set_label(&song_info.title);
             song_page.album_title.set_label(&song_info.album);
             song_page.artist_name.set_label(&song_info.artist);

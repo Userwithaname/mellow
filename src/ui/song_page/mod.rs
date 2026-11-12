@@ -41,7 +41,7 @@ impl SongPage {
         let ui = self.imp();
         ui.index.set(index);
 
-        song.info().load_basic_and(|song_info| {
+        song.load_basic_and(|song_info| {
             self.set_title(&["Song: ", &song_info.title].concat());
             ui.song_title.set_label(&song_info.title);
             ui.album_title.set_label(&song_info.album);

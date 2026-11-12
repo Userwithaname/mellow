@@ -26,7 +26,7 @@ impl SongObject {
     /// Returns an error if the song info is not loaded
     #[inline]
     pub fn new(index: u32, song: SharedSong) -> Result<Self, InfoNotLoadedError> {
-        let (title, album, artist, year) = match &*song.info().inspect_basic() {
+        let (title, album, artist, year) = match &*song.inspect_basic() {
             Some(info) => (
                 info.title.clone(),
                 info.album.clone(),
@@ -62,8 +62,7 @@ impl SongObject {
 
         Library::run_task(library_tx(), move || {
             if is_visible.load(Ordering::Acquire) {
-                let mut song_info = song.info();
-                drop(song_info.load_thumbnail(UsedBy::Library));
+                drop(song.load_thumbnail(UsedBy::Library));
                 UpdateUI::LibrarySongLoaded { index, song }.send();
             }
         });
@@ -84,7 +83,7 @@ impl SongObject {
         // NOTE: Unloading in the background in case the `RwLock` is busy
         Library::run_task(library_tx(), move || {
             if !is_visible.load(Ordering::Acquire) {
-                song.info().mark_thumbnail_unused_by(UsedBy::Library);
+                song.mark_thumbnail_unused_by(UsedBy::Library);
             }
         });
     }

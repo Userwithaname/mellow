@@ -210,8 +210,7 @@ impl Window {
             }
         };
 
-        let mut info = song.info();
-        let (title, album, artist) = info.load_basic_and(|song_info| {
+        let (title, album, artist) = song.load_basic_and(|song_info| {
             *song_duration_ms = song_info.duration_ms;
             (
                 song_info.title.clone(),
@@ -220,7 +219,7 @@ impl Window {
             )
         });
 
-        let detailed_info = info.try_inspect_detailed();
+        let detailed_info = song.try_inspect_detailed();
         let (artwork, artwork_loaded) = match detailed_info.as_deref() {
             Ok(Some(detailed)) => {
                 self.lyrics_page.set_content(&title, &detailed.lyrics);
@@ -230,7 +229,7 @@ impl Window {
                 let song = Arc::clone(song);
                 let item = QueueItem::clone(item);
                 Library::run_task(library_tx(), move || {
-                    song.info().load_detailed();
+                    song.load_detailed();
                     UpdateUI::SongInfo { item }.send();
                 });
                 (None, false)
@@ -241,7 +240,7 @@ impl Window {
             .set_info(&title, &album, &artist, artwork, *song_duration_ms);
         drop(detailed_info);
 
-        match &**info.load_thumbnail(UsedBy::SongQueue) {
+        match &**song.load_thumbnail(UsedBy::SongQueue) {
             Some(thumbnail) => {
                 self.settings_page.set_background_from_artwork(thumbnail);
                 if !artwork_loaded {
@@ -303,7 +302,7 @@ impl Window {
             // If the song has moved to a new allocation, subpage should be reinitialized
             if let QueueItem::Song(current) = current
                 && let QueueItem::Song(item) = &item
-                && current.info().matches(&item.info())
+                && current.matches(item)
             {
                 self.queue_subpage
                     .show_song_info(index, Arc::clone(current));
@@ -422,8 +421,7 @@ impl Window {
     }
 
     fn song_loaded(&self, index: usize, song: SharedSong) {
-        let info = song.info();
-        let Ok(thumbnail) = info.try_inspect_thumbnail() else {
+        let Ok(thumbnail) = song.try_inspect_thumbnail() else {
             #[cfg(feature = "verbose-logs")]
             println!("⚠️ {index}: library song thumbnail would block; retrying later...");
 
@@ -439,8 +437,7 @@ impl Window {
         self.songs_page.assign_artwork(index, thumbnail.as_ref());
     }
     fn album_loaded(&self, index: usize, first_song: SharedSong) {
-        let info = first_song.info();
-        let Ok(thumbnail) = info.try_inspect_thumbnail() else {
+        let Ok(thumbnail) = first_song.try_inspect_thumbnail() else {
             #[cfg(feature = "verbose-logs")]
             println!("⚠️ {index}: library album thumbnail would block; retrying later...");
 
@@ -472,8 +469,7 @@ impl Window {
             return cold_path();
         }
 
-        let info = song.info();
-        let Ok(thumbnail) = info.try_inspect_thumbnail() else {
+        let Ok(thumbnail) = song.try_inspect_thumbnail() else {
             #[cfg(feature = "verbose-warnings")]
             println!("{index}: queue song thumbnail would block; retrying later...");
             Library::run_task(library_tx(), move || {
@@ -492,8 +488,7 @@ impl Window {
         if index >= album_pages.len() {
             return;
         }
-        let info = first_song.info();
-        let Some(ref detailed) = *info.inspect_detailed() else {
+        let Some(ref detailed) = *first_song.inspect_detailed() else {
             return;
         };
         album_pages[index].assign_artwork(detailed.artwork.as_ref());

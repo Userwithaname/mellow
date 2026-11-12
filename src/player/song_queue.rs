@@ -477,8 +477,8 @@ impl SongQueue {
                             // SAFETY: `missing_items` indexes are checked when initializing
                             .as_song_unchecked()
                     };
-                    let new_song = (library.artists())
-                        .locate_song_by_info(song.info().inspect_basic().as_ref()?)?;
+                    let new_song =
+                        (library.artists()).locate_song_by_info(song.inspect_basic().as_ref()?)?;
 
                     if index == playing_index {
                         // If the currently playing song has been moved, there is likely an
@@ -576,7 +576,7 @@ impl SongQueue {
             + "\n"
             + (self.songs.iter())
                 .map(|item| match item {
-                    QueueItem::Song(song) => song.info().path().to_str().unwrap().to_owned() + "\n",
+                    QueueItem::Song(song) => song.path.to_str().unwrap().to_owned() + "\n",
                     QueueItem::Stopper(stopper) => match stopper.should_close_player() {
                         false => String::from("Pause\n"),
                         true => String::from("Close Player\n"),

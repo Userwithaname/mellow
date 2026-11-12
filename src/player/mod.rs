@@ -6,7 +6,7 @@ use std::sync::{OnceLock, mpsc};
 
 use crate::UI_TIMEOUT;
 use crate::excuses::INIT_ERR;
-use crate::library::unload_unused::UsedBy;
+use crate::library::{Song, unload_unused::UsedBy};
 use crate::ui::{UpdateUI, ui_tx};
 use crate::util::hint::cold_expression;
 use crate::util::wrap_index;
@@ -452,9 +452,8 @@ impl Player {
 
         // Load the current thumbnail and artwork before updating the UI queue
         queue_item.map_song(|song| {
-            let mut info = song.info();
-            drop(info.load_thumbnail(UsedBy::SongQueue));
-            info.load_detailed();
+            drop(song.load_thumbnail(UsedBy::SongQueue));
+            song.load_detailed();
         });
 
         UpdateUI::ExitQueueSelection.send();
@@ -499,7 +498,7 @@ impl Player {
     fn move_next(&mut self, count_played: bool) {
         if count_played {
             // TODO: More advanced play counting (seeking to the end should not count)
-            self.queue.current().as_song().info().played();
+            self.queue.current().as_song().played();
         }
         self.queue.pending_track = true;
         self.queue.move_next();
@@ -654,7 +653,7 @@ impl Player {
         // Seek to the same time the player was at before, or skip the song
         if self.seek_to_time(pos).is_err() {
             eprintln!("Could not restore playback time; skipping");
-            self.queue.current().map_song(|song| song.info().played());
+            self.queue.current().map_song(Song::played);
             PlayerRequest::SkipNext.send();
         }
     }
@@ -670,7 +669,7 @@ impl Player {
         self.skip_prev(); // Skip back to the currently playing track
         self.update();
         self.wait_for_gstreamer_state();
-        self.queue.current().as_song().info().deduct_played();
+        self.queue.current().as_song().deduct_played();
         Ok(())
     }
 
@@ -812,7 +811,7 @@ impl Player {
                         PlayerRequest::LoadNext.send();
                     } else {
                         println!("Stopping player due to end of queue");
-                        self.queue.current().as_song().info().played();
+                        self.queue.current().as_song().played();
                         self.request_state(State::Null);
                         self.queue.pending_track = true;
                         self.update();

@@ -7,7 +7,7 @@ use gtk::{gdk, gio, glib, graphene};
 
 use crate::cold_expression;
 use crate::excuses::EXP_INIT;
-use crate::library::{Library, library_tx};
+use crate::library::{Library, Song, library_tx};
 use crate::player::{PlayerRequest, QueueItem};
 use crate::ui::gtk_ext::GtkPictureExt;
 use crate::ui::queue_page::QueueScrollAction;
@@ -300,11 +300,11 @@ impl QueuePage {
         Library::run_task(library_tx(), move || {
             for item in old_visible_items {
                 if !keep_artworks.contains(&item) {
-                    item.map_song(|song| song.info().unload_detailed());
+                    item.map_song(Song::unload_detailed);
                 }
             }
             for keep in keep_artworks {
-                keep.map_song(|song| song.info().load_detailed());
+                keep.map_song(Song::load_detailed);
             }
         });
 

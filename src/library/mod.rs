@@ -19,7 +19,7 @@ pub mod unload_unused;
 pub use album::{Album, SharedAlbum, SortedAlbumSongs};
 pub use artist::{Artist, SharedArtist, SortedArtistAlbums};
 pub use config::{FILE_SUPPORT, LibraryConfig};
-pub use song::{SharedSong, SharedSongExt, Song, SongInfo, SongInfoLoader};
+pub use song::{SharedSong, SharedSongExt, Song, SongInfo};
 
 use crate::excuses::EXP_RX;
 use crate::library::song_rating::Ratable;
@@ -516,7 +516,7 @@ impl Library {
                 UpdateUI::Progress(Some(progress)).send_with(ui_tx);
             }
 
-            song.info().load_basic_and(|song_info| {
+            song.load_basic_and(|song_info| {
                 let album_index = albums.find_album(song_info);
                 let artist_index = artists.find_artist(song_info);
 
@@ -651,14 +651,13 @@ impl Library {
                 return;
             }
 
-            let mut info = song.info();
-            let known_modification_time = info.known_modification_time();
+            let known_modification_time = song.known_modification_time();
             if known_modification_time == !0
                 || known_modification_time
-                    == info.file_modification_time(|info| {
+                    == song.file_modification_time(|info| {
                         eprintln!(
                             "WARNING: Modification time could not be read: '{:?}'; skipping...",
-                            info.path()
+                            info.path
                         );
                         known_modification_time
                     })
@@ -666,8 +665,8 @@ impl Library {
                 continue;
             }
 
-            needs_rebuild |= info.take_basic().is_some();
-            info.invalidate_thumbnail();
+            needs_rebuild |= song.take_basic().is_some();
+            song.invalidate_thumbnail();
         }
 
         // If files were modified, queue another rebuild so the new info gets loaded
@@ -713,7 +712,7 @@ impl Library {
                         println!("Song info task was cancelled");
                         return;
                     }
-                    drop(song.info().try_load_basic());
+                    drop(song.try_load_basic());
                 }
             });
         }
@@ -796,7 +795,7 @@ impl Library {
                         Ok(index) => {
                             let missing = &missing[index];
                             if !Arc::ptr_eq(&song, missing) {
-                                song.info().user().merge_with(&missing.info().user());
+                                song.user().merge_with(&missing.user());
                             }
                             drop(song);
                         }
@@ -810,7 +809,7 @@ impl Library {
                     // SAFETY: `index` is `Ok`, therefore within bounds
                     let existing = unsafe { songs.get_unchecked(index) };
                     if !Arc::ptr_eq(&song, existing) {
-                        existing.info().user().merge_with(&song.info().user());
+                        existing.user().merge_with(&song.user());
                     }
 
                     drop(song);
@@ -837,28 +836,25 @@ impl Library {
         let mut timer = Instant::now();
 
         while let Some(missing) = check_moved.pop() {
-            let mut old_info = missing.info();
-            match old_info.load_basic_and(|info| artists.locate_song_by_info(info)) {
+            match missing.load_basic_and(|info| artists.locate_song_by_info(info)) {
                 Some(found_entry) => {
                     // Copy the user-assigned song info to the new entry
-                    let found_entry_info = found_entry.info();
-                    found_entry_info.user().merge_with(&old_info.user());
+                    found_entry.user().merge_with(&missing.user());
 
                     // Rename the thumbnail file
                     let _ = fs::rename(
-                        old_info.thumbnail_file_path(),
-                        found_entry_info.thumbnail_file_path(),
+                        missing.thumbnail_file_path(),
+                        found_entry.thumbnail_file_path(),
                     );
 
                     #[cfg(feature = "verbose-logs")]
                     println!(
                         "Found moved file:\n{:?} -> {:?}",
-                        old_info.path(),
-                        found_entry_info.path()
+                        &missing.path, &found_entry.path
                     );
                 }
                 None => {
-                    let _ = fs::remove_file(old_info.thumbnail_file_path());
+                    let _ = fs::remove_file(missing.thumbnail_file_path());
                 }
             }
 
@@ -1246,7 +1242,7 @@ impl Library {
         let mut global_tags_writer = tag_list::write_global_tags();
         global_tags_writer.inner_mut().clear();
         for song in &self.songs {
-            for tag in song.info().user().tags() {
+            for tag in song.user().tags() {
                 global_tags_writer.add(tag.to_owned());
             }
         }
@@ -1266,7 +1262,7 @@ impl Library {
         for song in &self.songs {
             if let Some(album) = &*song.get_album() {
                 let mut album = album.lock().unwrap();
-                (song.info().user()).remove_tag_and(tag, &mut album, |info, album| {
+                song.user().remove_tag_and(tag, &mut album, |info, album| {
                     info.add_tag(new_name.to_owned(), album);
                 });
             } else {
@@ -1274,8 +1270,7 @@ impl Library {
             }
         }
         for song in &self.missing_songs {
-            let info = song.info();
-            let mut info = info.user();
+            let mut info = song.user();
             let tags = info.tags_mut();
             if let Ok(index) = tags.find(tag) {
                 tags.remove_at(index);

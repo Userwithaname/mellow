@@ -65,9 +65,9 @@ impl ArtistPage {
                 _ => String::new(),
             });
 
-            let mut info = album_locked.first_song().info();
+            let first_song = album_locked.first_song();
             (album_row.prefix_image())
-                .set_paintable_or_blank(info.load_thumbnail(UsedBy::None).as_ref());
+                .set_paintable_or_blank(first_song.load_thumbnail(UsedBy::None).as_ref());
 
             drop(album_locked);
             let album = Arc::clone(album);

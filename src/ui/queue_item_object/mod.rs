@@ -29,13 +29,12 @@ impl QueueItemObject {
 
         match &item {
             QueueItem::Song(song) => {
-                let mut info = song.info();
-                info.load_basic_and(|song_info| {
+                song.load_basic_and(|song_info| {
                     queue_object.set_title(song_info.title.clone());
                     queue_object.set_subtitle(song_info.artist.clone());
                     queue_object.set_suffix(format_duration_ms(song_info.duration_ms));
                 });
-                if let Ok(thumbnail) = info.try_inspect_thumbnail()
+                if let Ok(thumbnail) = song.try_inspect_thumbnail()
                     && let Some(thumbnail) = thumbnail.as_ref()
                 {
                     queue_object.set_artwork(thumbnail);
@@ -61,7 +60,7 @@ impl QueueItemObject {
             if is_visible.load(Ordering::Acquire)
                 && let QueueItem::Song(song) = item
             {
-                drop(song.info().load_thumbnail(UsedBy::SongQueue));
+                drop(song.load_thumbnail(UsedBy::SongQueue));
                 UpdateUI::QueueSongLoaded { index, song }.send();
             }
         });

@@ -392,8 +392,7 @@ impl SongsPage {
             {
                 let song = item.downcast_ref::<SongObject>().unwrap();
                 let shared_song = song.shared_song();
-                let info = shared_song.info();
-                let info = info.user();
+                let info = shared_song.user();
 
                 song.set_random(fastrand::u64(0..u64::MAX));
                 song.set_played(info.play_count as f64);
