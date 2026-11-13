@@ -898,10 +898,11 @@ impl QueuePage {
                 }) {
                     return;
                 }
+                let long_queue = song_queue.len() > NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
                 let source = queue_page.queue_index_to_model(source_index);
                 let shift_by = match source {
-                    Ok(source) => target as isize - source as isize,
-                    Err(_) => {
+                    Ok(source) if long_queue => target as isize - source as isize,
+                    _ => {
                         let queue_target = queue_page.model_index_to_queue(target as usize);
                         let shift_by = queue_target as isize - source_index as isize;
 
@@ -925,7 +926,6 @@ impl QueuePage {
                 // item is in view (short queues don't need to be offset, even if wrapped
                 // items are shown (in repeat mode))
                 let playing_index = queue_page.playing_index.get();
-                let long_queue = song_queue.len() > NUM_ITEMS_BEHIND + NUM_ITEMS_AHEAD;
                 if long_queue && let Ok(playing) = queue_page.queue_index_to_model(playing_index) {
                     let source = match source {
                         Ok(source) | Err(source) => source,
