@@ -10,9 +10,6 @@
 # In order to use it:
 # Copy or create a symbolic link from `tests/git-hooks` to `.git/hooks`.
 #
-# WARNING: With this setup, the `mellow_bridge` clone should be treated as read-only, as
-# any changes made to it will be lost each time this hook runs. It merely serves as a
-# as a local sandbox (or mirror) to test new commits before pushing them to GitHub.
 # WARNING: This hook should not be enabled in the `mellow_bridge` clone
 
 mellow=$(git rev-parse --show-toplevel)
@@ -27,7 +24,7 @@ cd "$mellow_bridge" || {
 
 echo
 
-cargo test || {
+cargo test --all-features || {
 	  echo && cd - \
 	  && echo "Please fix any errors introduced by the commit, then try again." \
 		&& exit 1
