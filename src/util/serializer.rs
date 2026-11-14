@@ -1,8 +1,8 @@
 use std::ops::Deref;
 
-/// Serializes the given value/field pairs into a `String`,
-/// which can be used with `deserialize!()` to retreive the
-/// values afterwards
+/// Returns the given value/field pairs as serialized data
+///
+/// Use `deserialize!` to convert back into usable values
 ///
 /// # Example
 /// ```rust
@@ -41,13 +41,16 @@ macro_rules! serialize {
 }
 pub use serialize;
 
-/// Combines `list` elements into a single `String` separated by commas,
-/// which can be used with `deserialize_list` and the `serialize!()` macro
+/// Returns the `list` as a single `String`, with the elements separated by commas.
+/// Any commas contained within the list elements will be unescaped using a backslash.
 ///
-/// Warning: Unescaped backslash before an unescaped comma is currently not
-/// handled in `deserialize_list`, and will result in duplicate backslashes
+/// Use `deserialize_list` to convert the returned `String` back into a `Vec<String>`
 ///
-/// # Example
+/// # Limitations
+/// Unescaped backslashes before an unescaped comma are currently not handled by
+/// `deserialize_list`, so deserialized items will contain duplicate backslashes
+///
+/// # Examples
 /// ```rust
 /// # use mellow::util::serialize_list;
 /// #
@@ -221,15 +224,16 @@ pub use deserialize;
 /// );
 /// ```
 ///
+/// # Limitations
 /// Unescaped backslashes before an unescaped comma in the input will currently
 /// not remove the excess backslashes:
 /// ```rust
 /// # use mellow::util::deserialize_list;
 /// #
 /// let list = deserialize_list(r"one\, two\\, three\\\, four\\\\, test");
-/// // Expected:
-/// assert_ne!(*list, [r"one, two\,", r"three\, four\\", "test"]);
-/// // Actual (notice how "three" has twice as many backslashes than expected):
+///
+/// // BUG: Notice how "three" has twice as many backslashes than it should:
+/// // (should be:    [r"one, two\", r"three\, four\\", "test"])
 /// assert_eq!(*list, [r"one, two\", r"three\\, four\\", "test"]);
 /// ```
 #[inline]
