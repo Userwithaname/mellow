@@ -875,7 +875,6 @@ impl core::fmt::Debug for PlayerRequest {
                 Self::RemoveItem(index) => format!("RemoveItem({index})"),
                 Self::RemoveItems(indexes) => format!("RemoveItems{indexes:?}"),
                 Self::Undo => String::from("Undo"),
-                Self::ResetUndo => String::from("ResetUndo"),
                 Self::SetVolume(volume) => format!("SetVolume({volume})"),
                 Self::SetShuffle(shuffle) => format!("SetShuffle({shuffle})"),
                 Self::SetRepeat(repeat) => format!("SetRepeat({repeat})"),
