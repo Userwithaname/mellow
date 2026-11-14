@@ -175,7 +175,10 @@ macro_rules! deserialize {
                 $($field => {
                     $target = deserialize!(@to_value $type, value, field);
                 },)+
-                _ => eprintln!("Unknown field: `{field}`"),
+                _ => {
+                    #[cfg(any(feature = "verbose-warnings", feature = "verbose-logs"))]
+                    eprintln!("Warning: Field `{field}` was not handled by the `deserialize` macro invocation")
+                },
             }
         }
     };
