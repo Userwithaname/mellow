@@ -57,8 +57,7 @@ impl LibraryConfig {
 
     /// Adds `dir` to the configured directories
     pub fn add_library(&mut self, dir: PathBuf) {
-        // Using `!dir.iter().any(|_| true)` because `Path::is_empty` is unstable
-        if self.directories.contains(&dir) || !dir.iter().any(|_| true) {
+        if self.directories.contains(&dir) || dir.is_empty() {
             // Needed to re-activate the directory settings UI
             UpdateUI::SetLibraryDirs(self.directories_string()).send();
             return;
