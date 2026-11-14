@@ -127,55 +127,6 @@ impl PlayerRequest {
     }
 }
 
-// Manual `Debug` implementation is required by certain variants
-impl core::fmt::Debug for PlayerRequest {
-    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(
-            f,
-            "{}",
-            match self {
-                Self::TogglePlay(play) => format!("TogglePlay({play:?})"),
-                Self::SkipPrevious => "SkipPrevious".to_owned(),
-                Self::SkipNext => "SkipNext".to_owned(),
-                Self::SkipTo(index) => format!("SkipTo({index})"),
-                Self::Seek(pos) => format!("Seek({pos})"),
-                Self::SeekDone => "SeekDone".to_owned(),
-                Self::SeekToTime(time) => format!("SeekToTime({time})"),
-                Self::LoadNext => "LoadNext".to_owned(),
-                Self::SongEnd => "SongEnd".to_owned(),
-                Self::LoadQueue {
-                    queue,
-                    shuffled: Some(shuffled),
-                    track,
-                } => format!(
-                    "LoadQueue((…, Some(), {track})): {} items, {} shuffled",
-                    queue.len(),
-                    shuffled.len()
-                ),
-                Self::LoadQueue { queue, track, .. } =>
-                    format!("LoadQueue((…, None, {track})): {} items", queue.len()),
-                Self::AppendQueue(queue) => format!("AppendQueue(…): {} items", queue.len()),
-                Self::Append(_) => "Append(…)".to_owned(),
-                Self::Reorder { from, to } => format!("Reorder({from}, {to})"),
-                Self::Shift { from, by } => format!("Shift({from}, {by})"),
-                Self::InsertAt(item) => format!("InsertAt({}, …)", item.0),
-                Self::InsertItems(items) => format!("InsertItems(…): {} items", items.len()),
-                Self::InsertRelative(item) => format!("InsertRelative({}, …)", item.0),
-                Self::ReplaceItems(items) => format!("ReplaceItems(…): {} items", items.len()),
-                Self::RemoveItem(index) => format!("RemoveItem({index})"),
-                Self::RemoveItems(indexes) => format!("RemoveItems{indexes:?}"),
-                Self::Undo => String::from("Undo"),
-                Self::SetVolume(volume) => format!("SetVolume({volume})"),
-                Self::SetShuffle(shuffle) => format!("SetShuffle({shuffle})"),
-                Self::SetRepeat(repeat) => format!("SetRepeat({repeat})"),
-                Self::SetGapless(gapless) => format!("SetGapless({gapless})"),
-                Self::ValidateFilePaths => "ValidateFilePaths".to_owned(),
-                Self::Uninit(save, time) => format!("Uninit({save}, {time})"),
-            }
-        )
-    }
-}
-
 pub struct Player {
     current_state: State,
     pending_state: Option<State>,
@@ -247,11 +198,14 @@ impl Player {
                 continue;
             };
 
+            #[cfg(feature = "verbose-logs")]
+            dbg!(&player_request);
+
             // Unit comparisons are used to avoid calling `continue`, so the branches fit on one line.
             // To update the player, use `== ()` or `true`
             // To skip updating the player, use `!= ()`, `false`, or `continue`
-            #[allow(clippy::unit_cmp)]
-            if match dbg!(player_request) {
+            #[allow(clippy::unit_cmp, reason = "So more branches fit on one line")]
+            if match player_request {
                 PlayerRequest::LoadQueue {
                     queue,
                     shuffled,
@@ -879,5 +833,56 @@ impl Player {
         self.queue.save_queue(save_queue, time_ms);
         self.queue.save_shuffled_queue(save_queue);
         let _ = self.backend.set_state(State::Null);
+    }
+}
+
+// Certain variant types do not implement `Debug`, so this needs to be done manually
+#[cfg(feature = "verbose-logs")]
+impl core::fmt::Debug for PlayerRequest {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(
+            f,
+            "{}",
+            match self {
+                Self::TogglePlay(play) => format!("TogglePlay({play:?})"),
+                Self::SkipPrevious => "SkipPrevious".to_owned(),
+                Self::SkipNext => "SkipNext".to_owned(),
+                Self::SkipTo(index) => format!("SkipTo({index})"),
+                Self::Seek(pos) => format!("Seek({pos})"),
+                Self::SeekDone => "SeekDone".to_owned(),
+                Self::SeekToTime(time) => format!("SeekToTime({time})"),
+                Self::LoadNext => "LoadNext".to_owned(),
+                Self::SongEnd => "SongEnd".to_owned(),
+                Self::LoadQueue {
+                    queue,
+                    shuffled: Some(shuffled),
+                    track,
+                } => format!(
+                    "LoadQueue((…, Some(), {track})): {} items, {} shuffled",
+                    queue.len(),
+                    shuffled.len()
+                ),
+                Self::LoadQueue { queue, track, .. } =>
+                    format!("LoadQueue((…, None, {track})): {} items", queue.len()),
+                Self::AppendQueue(queue) => format!("AppendQueue(…): {} items", queue.len()),
+                Self::Append(_) => "Append(…)".to_owned(),
+                Self::Reorder { from, to } => format!("Reorder({from}, {to})"),
+                Self::Shift { from, by } => format!("Shift({from}, {by})"),
+                Self::InsertAt(item) => format!("InsertAt({}, …)", item.0),
+                Self::InsertItems(items) => format!("InsertItems(…): {} items", items.len()),
+                Self::InsertRelative(item) => format!("InsertRelative({}, …)", item.0),
+                Self::ReplaceItems(items) => format!("ReplaceItems(…): {} items", items.len()),
+                Self::RemoveItem(index) => format!("RemoveItem({index})"),
+                Self::RemoveItems(indexes) => format!("RemoveItems{indexes:?}"),
+                Self::Undo => String::from("Undo"),
+                Self::ResetUndo => String::from("ResetUndo"),
+                Self::SetVolume(volume) => format!("SetVolume({volume})"),
+                Self::SetShuffle(shuffle) => format!("SetShuffle({shuffle})"),
+                Self::SetRepeat(repeat) => format!("SetRepeat({repeat})"),
+                Self::SetGapless(gapless) => format!("SetGapless({gapless})"),
+                Self::ValidateFilePaths => "ValidateFilePaths".to_owned(),
+                Self::Uninit(save, time) => format!("Uninit({save}, {time})"),
+            }
+        )
     }
 }
