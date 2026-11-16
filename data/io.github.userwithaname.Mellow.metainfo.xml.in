@@ -53,6 +53,23 @@
   </requires>
 
   <releases>
+    <release version="0.5.1" date="2026-11-16">
+      <description>
+        <p>Features &amp; improvements:</p>
+        <ul>
+          <li>Slightly brighter drag-&amp;-drop highlight color</li>
+          <li>Disabled logs for player interactions</li>
+          <li>Disabled vague log warning message if unsupported fields are present in the <em>songs</em> file</li>
+          <li>Small under-the-hood improvements</li>
+        </ul>
+        <p>Fixes:</p>
+        <ul>
+          <li>Playing an item from the queue subpage when the view is panned now offsets correctly to keep the new playing item row in view</li>
+          <li>Playing a repeat-mode wrapped item from the queue subpage now keeps the playing item row in view as well</li>
+          <li>Wrapping reorders now behave correctly on short queues (0.5.0 still had issues in some cases)</li>
+        </ul>
+      </description>
+    </release>
     <release version="0.5.0" date="2026-10-16">
       <description>
         <p>Features &amp; improvements:</p>
