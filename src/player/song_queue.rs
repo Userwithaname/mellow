@@ -484,12 +484,17 @@ impl SongQueue {
                         // If the currently playing song has been moved, there is likely an
                         // error shown in the interface; dismissing if found
                         UpdateUI::DismissNotifications.send_with(ui_tx);
+                        UpdateUI::Notification(
+                            "Moved file has been successfully located".to_owned(),
+                            None,
+                        )
+                        .send_with(ui_tx);
                     }
 
                     // Causes any open subpages to be redrawn
                     UpdateUI::Progress(None).send_with(ui_tx);
 
-                    Some((index, QueueItem::from_song(&new_song)))
+                    Some((index, QueueItem::Song(new_song)))
                 })
                 .collect();
             PlayerRequest::ReplaceItems(moved).send();

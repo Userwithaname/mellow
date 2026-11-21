@@ -2,6 +2,7 @@ use core::error::Error;
 use core::hint::cold_path;
 use gst::prelude::*;
 use gst::{ClockTime, SeekFlags, State};
+use std::fs;
 use std::sync::{OnceLock, mpsc};
 
 use crate::UI_TIMEOUT;
@@ -818,7 +819,12 @@ impl Player {
         .send_with(ui_tx);
         UpdateUI::DismissNotifications.send_with(ui_tx);
         UpdateUI::Notification(
-            "A playback error has occurred".to_owned(),
+            if (self.queue.current()).is_song_and(|song| !fs::exists(&song.path).unwrap_or(false)) {
+                "File not found"
+            } else {
+                "A playback error has occurred"
+            }
+            .to_owned(),
             None, // IDEA: "Details" button to show the full error message in a pop-up window
         )
         .send_with(ui_tx);
