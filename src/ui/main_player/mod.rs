@@ -51,21 +51,11 @@ impl MainPlayer {
     }
 
     #[inline]
-    pub fn set_info(
-        &self,
-        song: &str,
-        album: &str,
-        artist: &str,
-        artwork: Option<&gdk::Texture>,
-        song_duration_ms: u64,
-    ) {
+    pub fn set_info(&self, song: &str, album: &str, artist: &str, song_duration_ms: u64) {
         let ui = self.imp();
-
-        ui.album_cover.set_paintable_or_blank(artwork);
         ui.song_title.set_label(song);
         ui.album_title.set_label(album);
         ui.artist_name.set_label(artist);
-
         match song_duration_ms {
             0 => ui.duration.set_label("-:--"),
             _ => ui.duration.set_label(&format_duration_ms(song_duration_ms)),

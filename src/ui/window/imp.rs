@@ -25,6 +25,7 @@ use crate::util::Forever;
 pub struct Window {
     #[template_child]
     pub main_player: TemplateChild<MainPlayer>,
+    current_song: Cell<QueueItem>,
 
     #[template_child]
     pub drop_overlay: TemplateChild<adw::StatusPage>,
@@ -201,54 +202,53 @@ impl Window {
         #[cfg(feature = "verbose-logs")]
         println!("update_song_info()");
 
-        let song = match &item {
-            QueueItem::Song(song) => song,
-            QueueItem::Stopper(_) => {
-                self.settings_page.reset_background_color();
-                self.main_player.reset_info();
-                return;
-            }
+        let QueueItem::Song(song) = item else {
+            self.settings_page.reset_background_color();
+            self.main_player.reset_info();
+            return;
         };
 
-        let (title, album, artist) = song.load_basic_and(|song_info| {
-            *song_duration_ms = song_info.duration_ms;
-            (
-                song_info.title.clone(),
-                song_info.album.clone(),
-                song_info.artist.clone(),
-            )
-        });
+        song.load_basic_and(|info| {
+            let artwork_loaded = match song.try_inspect_detailed().as_deref() {
+                Ok(Some(detailed)) => {
+                    self.main_player.set_artwork(detailed.artwork.as_ref());
+                    self.lyrics_page.set_content(&info.title, &detailed.lyrics);
+                    true
+                }
+                _ => {
+                    // If detailed info is not yet ready, load in the background and retry
+                    let item = QueueItem::clone(item);
+                    Library::run_task(library_tx(), move || {
+                        // SAFETY: Function exits early if `item` is not a `Song`
+                        unsafe { item.as_song_unchecked() }.load_detailed();
+                        UpdateUI::SongInfo { item }.send();
+                    });
+                    false
+                }
+            };
 
-        let detailed_info = song.try_inspect_detailed();
-        let (artwork, artwork_loaded) = match detailed_info.as_deref() {
-            Ok(Some(detailed)) => {
-                self.lyrics_page.set_content(&title, &detailed.lyrics);
-                (detailed.artwork.as_ref(), true)
-            }
-            _ => {
-                let song = Arc::clone(song);
-                let item = QueueItem::clone(item);
-                Library::run_task(library_tx(), move || {
-                    song.load_detailed();
-                    UpdateUI::SongInfo { item }.send();
-                });
-                (None, false)
-            }
-        };
+            // Only update the info if it differs from the item displayed
+            if *item != self.current_song.replace(QueueItem::clone(item)) {
+                *song_duration_ms = info.duration_ms;
+                self.main_player.set_info(
+                    &info.title,
+                    &info.album,
+                    &info.artist,
+                    *song_duration_ms,
+                );
 
-        self.main_player
-            .set_info(&title, &album, &artist, artwork, *song_duration_ms);
-        drop(detailed_info);
+                match &**song.load_thumbnail(UsedBy::SongQueue) {
+                    Some(thumbnail) => {
+                        self.settings_page.set_background_from_artwork(thumbnail);
 
-        match &**song.load_thumbnail(UsedBy::SongQueue) {
-            Some(thumbnail) => {
-                self.settings_page.set_background_from_artwork(thumbnail);
-                if !artwork_loaded {
-                    self.main_player.set_artwork(Some(thumbnail));
+                        if !artwork_loaded {
+                            self.main_player.set_artwork(Some(thumbnail));
+                        }
+                    }
+                    None => self.settings_page.reset_background_color(),
                 }
             }
-            None => self.settings_page.reset_background_color(),
-        }
+        });
     }
 
     async fn set_song_queue(&self, queue: Box<[QueueItem]>, index: usize) {
