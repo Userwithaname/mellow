@@ -822,6 +822,10 @@ impl Song {
     /// created, and the function returns `None`.
     #[must_use]
     fn create_thumbnail(&self) -> Option<gdk::Texture> {
+        if !fs::exists(&self.path).unwrap_or(false) {
+            return None; // Skip thumbnail caching for missing files
+        }
+
         let thumbnail_file_path = self.thumbnail_file_path();
 
         let Some(artwork) = self.load_detailed_and(|detailed| detailed.artwork.clone()) else {
