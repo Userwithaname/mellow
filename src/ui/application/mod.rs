@@ -20,6 +20,8 @@ use crate::ui::{Window, actions::Actions, ui_tx};
 use crate::{about, music_dir, util::deserialize_list};
 use crate::{init_channels, mpris};
 
+pub use crash_handling::show_crash_dialog;
+
 glib::wrapper! {
     pub struct Application(ObjectSubclass<imp::Application>)
         @extends gio::Application, adw::Application, gtk::Application,

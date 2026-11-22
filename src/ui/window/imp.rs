@@ -14,6 +14,7 @@ use crate::library::{Albums, Artists, SharedAlbum, SharedArtist, SharedSong, Son
 use crate::library::{Library, library_tx};
 use crate::mpris::{UpdateMPRIS, mpris_tx};
 use crate::player::QueueItem;
+use crate::ui::application::show_crash_dialog;
 use crate::ui::{AlbumPage, ArtistPage, SongPage, SubpageType};
 use crate::ui::{AlbumsPage, ArtistsPage, SongsPage};
 use crate::ui::{LibraryPage, LyricsPage, MainPlayer, QueuePage, QueueSubpage, SettingsPage};
@@ -179,16 +180,7 @@ impl Window {
                 },
 
                 UpdateUI::CrashNotice(error_info) => {
-                    let dialog = gtk::AlertDialog::builder()
-                        .message("A component has crashed")
-                        .detail(error_info)
-                        .buttons(["Quit"])
-                        .modal(true)
-                        .build();
-                    let window = self.obj().to_owned();
-                    dialog.choose(Some(&window.clone()), gio::Cancellable::NONE, move |_| {
-                        WidgetExt::activate_action(&window, "app.quit", None).expect(ACTION_ERR);
-                    });
+                    show_crash_dialog(&error_info, self.obj().to_owned().upcast());
                     loop {
                         // Only display the first error message and ignore further requests
                         let _ = ui_rx.recv().await.unwrap();

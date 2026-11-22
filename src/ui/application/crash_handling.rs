@@ -1,17 +1,17 @@
+use adw::prelude::*;
+use gtk::{gio, glib};
 use std::{fs, panic::PanicHookInfo, process, thread};
 
 use crate::about::APP_URL;
+use crate::excuses::ACTION_ERR;
 use crate::{queue_file, shuffled_queue_file, ui::UpdateUI};
 
 /// A panic hook (see `std::panic::hook`) to ensure the process exits completely
 /// if a single thread panics, and also handles some specific cases as well
 ///
-/// If possible, a crash dialog is presented before closing. This is handled
-/// through `UpdateUI::CrashNotice`, which attempts to cleanly shutdown all
-/// unaffected components once the button is pressed
-///
-/// If a message cannot be displayed, the process is stopped directly using
-/// `std::process::exit(1)` instead
+/// Attempts to present a crash dialog before closing (handled through
+/// `UpdateUI::CrashNotice`; see also: `show_crash_dialog`), otherwise the
+/// process is stopped directly using `std::process::exit(1)` instead
 pub(super) fn handle_crash(info: &PanicHookInfo, ui_tx: &async_channel::Sender<UpdateUI>) {
     let location = match info.location() {
         Some(location) => format!(
@@ -26,10 +26,11 @@ pub(super) fn handle_crash(info: &PanicHookInfo, ui_tx: &async_channel::Sender<U
     let thread_name = thread.name().unwrap_or_default();
     let panic_reason = info.payload_as_str().unwrap_or_default();
 
-    let mut info = format!("Thread `{thread_name}` panicked at {location}:\n{panic_reason}\n\n");
+    let mut info = format!("Thread `{thread_name}` panicked at {location}:\n{panic_reason}");
+    #[allow(clippy::single_match, reason = "More branches may be added later")]
     match thread_name {
         "player" => handle_player_crash(&mut info),
-        _ => append_issues_link(&mut info),
+        _ => (),
     }
 
     eprintln!("{info}\n");
@@ -38,8 +39,40 @@ pub(super) fn handle_crash(info: &PanicHookInfo, ui_tx: &async_channel::Sender<U
     }
 }
 
-fn append_issues_link(info: &mut String) {
-    info.push_str(&format!("Please report this issue on {APP_URL}/issues"));
+/// Presents an error to the user and prevents any further interaction
+/// with the application
+///
+/// Pressing the "Quit" button attempts to cleanly shutdown any unaffected
+/// components
+#[cold]
+#[inline(never)]
+pub fn show_crash_dialog(error_info: &str, parent: gtk::Widget) {
+    // GitHub issue link documentation:
+    // https://docs.github.com/en/issues/tracking-your-work-with-issues/using-issues/creating-an-issue#creating-an-issue-from-a-url-query
+    let bug_report_link = format!(
+        "{APP_URL}/issues/new?tags=bug&body={}",
+        glib::Uri::escape_string(
+            &format!(
+                "Steps leading up to the crash (please describe if possible):\n1. …\n\n\
+                 Mellow crashed with the following error:\n```{error_info}```"
+            ),
+            None,
+            false,
+        )
+    );
+    let link_button = gtk::LinkButton::builder()
+        .label("Click here to report this issue on GitHub")
+        .uri(bug_report_link)
+        .build();
+    let dialog = adw::AlertDialog::builder()
+        .heading("A component has crashed")
+        .body(error_info)
+        .extra_child(&link_button)
+        .build();
+    dialog.add_responses(&[("", "Quit")]);
+    dialog.choose(Some(&parent.clone()), gio::Cancellable::NONE, move |_| {
+        parent.activate_action("app.quit", None).expect(ACTION_ERR);
+    });
 }
 
 fn handle_player_crash(info: &mut String) {
@@ -63,10 +96,8 @@ fn handle_player_crash(info: &mut String) {
         && fs::write(shuffled_queue_file(), shuffled).is_ok()
     {
         return info.push_str(&format!(
-            "{invalid_count} invalid item(s) have been removed from the shuffled queue\n\n\
-            If you did not manually edit the `queue` or `shuffled_queue` files, or if the \
-            issue persists, please report this issue on {APP_URL}/issues"
+            "{invalid_count} invalid item(s) have been removed from the shuffled queue;\n\
+            If the issue persists, please consider reporting it using the link below"
         ));
     }
-    append_issues_link(info);
 }
