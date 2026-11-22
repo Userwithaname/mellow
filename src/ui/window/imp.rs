@@ -14,7 +14,7 @@ use crate::library::{Albums, Artists, SharedAlbum, SharedArtist, SharedSong, Son
 use crate::library::{Library, library_tx};
 use crate::mpris::{UpdateMPRIS, mpris_tx};
 use crate::player::QueueItem;
-use crate::ui::application::show_crash_dialog;
+use crate::ui::application::crash_handling::show_crash_dialog;
 use crate::ui::{AlbumPage, ArtistPage, SongPage, SubpageType};
 use crate::ui::{AlbumsPage, ArtistsPage, SongsPage};
 use crate::ui::{LibraryPage, LyricsPage, MainPlayer, QueuePage, QueueSubpage, SettingsPage};
@@ -203,8 +203,8 @@ impl Window {
         song.load_basic_and(|info| {
             let artwork_loaded = match song.try_inspect_detailed().as_deref() {
                 Ok(Some(detailed)) => {
-                    self.main_player.set_artwork(detailed.artwork.as_ref());
                     self.lyrics_page.set_content(&info.title, &detailed.lyrics);
+                    self.main_player.set_artwork(detailed.artwork.as_ref());
                     true
                 }
                 _ => {
@@ -232,7 +232,6 @@ impl Window {
                 match &**song.load_thumbnail(UsedBy::SongQueue) {
                     Some(thumbnail) => {
                         self.settings_page.set_background_from_artwork(thumbnail);
-
                         if !artwork_loaded {
                             self.main_player.set_artwork(Some(thumbnail));
                         }

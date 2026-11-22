@@ -95,7 +95,7 @@ fn handle_player_crash(info: &mut String) {
         && invalid_count > 0
         && fs::write(shuffled_queue_file(), shuffled).is_ok()
     {
-        return info.push_str(&format!(
+        info.push_str(&format!(
             "{invalid_count} invalid item(s) have been removed from the shuffled queue;\n\
             If the issue persists, please consider reporting it using the link below"
         ));

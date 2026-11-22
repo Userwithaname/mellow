@@ -9,8 +9,9 @@ use std::sync::mpsc;
 use std::time::Instant;
 use std::{process, thread};
 
-mod crash_handling;
 mod imp;
+
+pub mod crash_handling;
 
 use crate::excuses::EXP_INIT;
 use crate::library::{Library, LibraryConfig, LibraryRequest};
@@ -19,8 +20,6 @@ use crate::shortcuts::Shortcuts;
 use crate::ui::{Window, actions::Actions, ui_tx};
 use crate::{about, music_dir, util::deserialize_list};
 use crate::{init_channels, mpris};
-
-pub use crash_handling::show_crash_dialog;
 
 glib::wrapper! {
     pub struct Application(ObjectSubclass<imp::Application>)
