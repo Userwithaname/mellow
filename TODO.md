@@ -55,7 +55,11 @@ General:
   - [ ] Move the settings to a popup window, accessed from a new menu in the overlay header
     - [ ] Apply library directory changes as a single task when the settings window is closed
     - IDEA: Add buttons for exporting/importing `songs` files (ratings/play counts/etc)
-      - IDEA: Allow automatically importing from (and exporting to?) configured `songs` files
+      - Button for "Manage Library Data", which opens a dialog with the following:
+        - "Backup Previous Version" (toggle)
+          - If enabled: "Recover From Backup" (button to automatically merge with data from backup)
+        - "Import From File" (button to open a file picker)
+        - "Export To File" (button to open a file picker)
 
 Other:
 

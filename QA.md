@@ -8,14 +8,10 @@ Playback:
 - [x] Pause/play/skip work as expected
 - [x] Shuffle/repeat/sequential modes work as expected
 - [x] Seeking works as expected
-  - BUG: (Flatpak is unaffected) Playback error with certain files when seeking to
-    the beginning of the song:
-    `gst_base_parse_finish_frame: assertion 'size > 0 || frame->out_buffer' failed`
   - [x] Seeking to any point in the song (click or drag)
   - [x] Seeking to the end and releasing the seek bar
   - [x] Seeking to the end and back
 - [x] Gapless/non-gapless playback works as expected
-- [x] Non-fatal errors are handled gracefully
 
 Song Queue:
 
@@ -28,7 +24,6 @@ Song Queue:
 - [x] Selection mode works as expected
   - [x] Removing multiple items at once works as expected
 - [x] Stoppers work and behave as expected
-- [x] The landing page is shown for empty queues and works without issues
 
 Music Library:
 
@@ -37,10 +32,8 @@ Music Library:
 - [x] The 'Artists' page and its subpages work as expected
 - [x] Library building works in the background and doesn't affect functionality
 - [x] Searching is quick and works as expected
-  - BUG: (Flatpak is unaffected) Items sometimes don't show up until scrolling after searching
 - [x] Sort modes work as expected
 - [x] Filtering works as expected
-  - BUG: (Flatpak is unaffected) Items sometimes don't show up until scrolling after changing filters
 
 User Experience:
 
@@ -49,10 +42,13 @@ User Experience:
   - [x] On fresh launch
 - [x] All actions respond to user input without delay
 - [x] All actions provide visual feedback
+  - NOTE: Animations/transitions would improve the overall experience
 - [x] Lengthy tasks display a progress bar without blocking the interface
 - [x] All settings load properly (test with non-default values)
 - [ ] Does not leak memory
   - FIX: Memory leaks related to thumbnails and thumbnail creation (#25)
+- [x] Non-fatal errors are handled gracefully
+- [x] Crash errors are presented to the user
 - [x] No other issues found while testing
 
 Design Consistency:
