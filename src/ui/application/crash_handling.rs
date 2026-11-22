@@ -54,7 +54,7 @@ pub fn show_crash_dialog(error_info: &str, parent: gtk::Widget) {
         glib::Uri::escape_string(
             &format!(
                 "Steps leading up to the crash (please describe if possible):\n1. …\n\n\
-                 Mellow crashed with the following error:\n```{error_info}```"
+                 Mellow crashed with the following error:\n```\n{error_info}\n```"
             ),
             None,
             false,
