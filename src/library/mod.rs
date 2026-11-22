@@ -1190,23 +1190,25 @@ impl Library {
     /// File path is determined by `songs_file()`
     #[inline]
     fn serialize_songs(songs: &Songs) {
-        let songs_data = (songs.iter())
-            .map(|song| song.serialize() + "\n")
-            .collect::<String>();
+        let songs_file = songs_file();
+        let backup_songs_file = [&songs_file, "~"].concat();
+        // Only backup if a `songs~` file already exists (opt-in)
+        // TODO: Add an option for this in the application settings
+        if fs::exists(&backup_songs_file).unwrap_or_default() {
+            let _ = fs::rename(&songs_file, &backup_songs_file);
+        }
         match write_file_create_dir_all(
-            songs_file(),
+            songs_file,
             [
-                "\
-/--------------------------------------------------------------------\\
-|             Editing this file is usually not necessary             |
-|                                                                    |
-| Hint: Paths of moved and renamed files are corrected automatically |
-|                                                                    |
-|  Hint: You can append the contents of a different `songs` file to  |
-|  this one to combine their data (such as ratings and play counts)  |
-\\--------------------------------------------------------------------/
-\n",
-                &songs_data,
+                "/--------------------------------------------------------------------\\\n\
+                 |             Editing this file is usually not necessary             |\n\
+                 |                                                                    |\n\
+                 | Hint: Paths of moved and renamed files are corrected automatically |\n\
+                 |                                                                    |\n\
+                 |  Hint: You can append the contents of a different `songs` file to  |\n\
+                 |  this one to combine their data (such as ratings and play counts)  |\n\
+                \\--------------------------------------------------------------------/\n\n",
+                &(songs.iter().map(|song| song.serialize() + "\n")).collect::<String>(),
             ]
             .concat(),
         ) {
