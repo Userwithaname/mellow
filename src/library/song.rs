@@ -639,9 +639,11 @@ impl Song {
             Ok(Ok(result)) => result,
             Err(e) | Ok(Err(e)) => {
                 eprintln!("Problem loading tags (detailed): {:?}: {e}", self.path);
+                let thumbnail = self.load_thumbnail(UsedBy::None).clone();
+                self.mark_thumbnail_unused_by(UsedBy::None);
                 DetailedSongInfo {
                     lyrics: Lyrics::default(),
-                    artwork: None,
+                    artwork: thumbnail, // Fallback for temporarily missing files
                 }
             }
         }
