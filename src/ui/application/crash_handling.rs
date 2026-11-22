@@ -59,6 +59,7 @@ pub fn show_crash_dialog(error_info: &str, parent: gtk::Widget) {
             None,
             false,
         )
+        .replace("%20", "+")
     );
     let link_button = gtk::LinkButton::builder()
         .label("Click here to report this issue on GitHub")
