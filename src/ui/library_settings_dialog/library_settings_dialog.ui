@@ -19,14 +19,12 @@
               </object>
             </child>
             <child>
-              <object class="AdwActionRow">
+              <object class="AdwButtonRow">
                 <signal name="activated" handler="handle_recover_backup" swapped="true"/>
                 <property name="activatable">true</property>
-                <!-- TODO: Bind "sensitive" to "active" on `enable_backups` -->
-                <property name="sensitive">false</property>
                 <property name="title">Recover Data From Backup</property>
-                <!-- TODO: Correct the tooltip when implemented -->
-                <property name="tooltip-text" translatable="yes">(not yet implemented) Attempt to recover lost library data if it is still available in the backup</property>
+                <property name="tooltip-text" translatable="yes">Attempt to recover lost library data if it is still available in the backup</property>
+                <property name="sensitive" bind-source="enable_backups" bind-property="active" bind-flags="sync-create"/>
               </object>
             </child>
           </object>
@@ -38,7 +36,7 @@
             <property name="hexpand">true</property>
             <property name="title" translatable="yes">Cache Management</property>
             <child>
-              <object class="AdwActionRow">
+              <object class="AdwButtonRow">
                 <property name="activatable">true</property>
                 <signal name="activated" handler="handle_reset_failed_thumbnails" swapped="true"/>
                 <property name="title">Reset Failed Thumbnails</property>
@@ -46,19 +44,25 @@
               </object>
             </child>
             <child>
-              <object class="AdwActionRow">
+              <object class="AdwButtonRow">
                 <signal name="activated" handler="handle_reset_all_thumbnails" swapped="true"/>
                 <property name="activatable">true</property>
                 <property name="title">Reset All Thumbnails</property>
                 <property name="tooltip-text" translatable="yes">Remove all thumbnails from the cache</property>
+                <style>
+                  <class name="destructive-action"/>
+                </style>
               </object>
             </child>
             <child>
-              <object class="AdwActionRow">
+              <object class="AdwButtonRow">
                 <signal name="activated" handler="handle_reload_all_tags" swapped="true"/>
                 <property name="activatable">true</property>
                 <property name="title">Reload All Tags</property>
                 <property name="tooltip-text" translatable="yes">Rebuild the library and reload info for all songs (may take a long time; ratings and library data will be preserved)</property>
+                <style>
+                  <class name="destructive-action"/>
+                </style>
               </object>
             </child>
           </object>

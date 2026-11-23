@@ -47,7 +47,7 @@ Music library:
 Settings:
 - [-] 'Library Settings' dialog
   - [x] 'Backup Before Writing' toggle
-    - [ ] If enabled: 'Recover From Backup' button to automatically merge with data from backup
+    - [x] If enabled: 'Recover From Backup' button to automatically merge with data from backup
   - [ ] 'Import From File' button to open a file picker and merge the data
   - [ ] 'Export To File' button to open a file picker and save the data to it
   - [x] 'Reset Failed Thumbnails' button

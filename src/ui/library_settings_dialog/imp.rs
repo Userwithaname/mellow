@@ -23,13 +23,22 @@ pub struct LibrarySettingsDialog {
 impl LibrarySettingsDialog {
     #[template_callback]
     pub fn handle_recover_backup(&self) {
+        // IDEA: Also disable the button to avoid repeated interactions?
         Library::run_library_task(library_tx(), |library| {
-            // TODO: Implement recovery from backup
-            // 1. Add a `path` argument to `Library::deserialize_songs` and load the backup
-            // 2. Append deserialized songs to `Library::missing_songs` (make it public?)
-            // 3. Start a rebuild
-            todo!();
-            library.start_library_build(Instant::now());
+            library.cancel_library_build(Instant::now());
+            let old_songs = Library::deserialize_songs(&[&songs_file(), "~"].concat());
+            UpdateUI::Notification(
+                format!(
+                    "Restoring library data from backup ({} songs)",
+                    old_songs.len()
+                ),
+                None,
+            )
+            .send();
+            library.run_on_build_stopped(Box::new(move |library| {
+                library.missing_songs.extend(old_songs);
+                library.start_library_build(Instant::now());
+            }));
         });
     }
     #[template_callback]
@@ -61,8 +70,9 @@ impl LibrarySettingsDialog {
             for song in library.songs() {
                 song.take_basic();
             }
+            library.start_library_build(Instant::now());
         });
-        Library::rebuild();
+        UpdateUI::Notification("Reloading all song tags".to_owned(), None).send();
     }
 }
 

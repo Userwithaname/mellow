@@ -47,7 +47,7 @@ pub struct Library {
     albums: Albums,
     artists: Artists,
 
-    missing_songs: Songs,
+    pub missing_songs: Songs,
     check_moved: &'static Mutex<Songs>,
     undo_songs: Songs,
 
@@ -306,7 +306,7 @@ impl Library {
     #[must_use]
     pub fn init(config: LibraryConfig, library_rx: mpsc::Receiver<LibraryRequest>) -> Library {
         Library {
-            songs: Library::deserialize_songs(),
+            songs: Library::deserialize_songs(&songs_file()),
             albums: Vec::new(),
             artists: Vec::new(),
 
@@ -1233,12 +1233,10 @@ impl Library {
 
     /// Reads the serialized song info from disk and returns them,
     /// so they can be assigned directly to `self.songs`
-    ///
-    /// File path is determined by `songs_file()`
     #[inline]
     #[must_use]
-    fn deserialize_songs() -> Songs {
-        match fs::read_to_string(songs_file()) {
+    pub fn deserialize_songs(file_path: &str) -> Songs {
+        match fs::read_to_string(file_path) {
             Ok(data) => data
                 .trim_end()
                 .split("\n\n")
