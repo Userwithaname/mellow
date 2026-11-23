@@ -381,8 +381,13 @@ impl Library {
                     })),
                 },
 
-                #[allow(clippy::unit_arg)]
-                LibraryRequest::Uninit => return Ok(self.shutdown()),
+                LibraryRequest::Uninit => {
+                    if STATE.swap(STATE_CANCEL, atomic::Ordering::Release) != STATE_BUSY {
+                        self.shutdown();
+                        return Ok(());
+                    }
+                    self.run_on_build_stopped(Box::new(|_| LibraryRequest::Uninit.send()));
+                }
             }
         }
     }
@@ -1299,9 +1304,9 @@ impl Library {
     /// # Panics
     /// The function panics if it encounters a poisoned `Mutex`
     fn shutdown(mut self) {
-        STATE.store(STATE_CANCEL, atomic::Ordering::Release);
-        (self.missing_songs).extend(mem::take(&mut *self.check_moved.lock().unwrap()));
-        for missing in self.missing_songs {
+        let check_moved = mem::take(&mut *self.check_moved.lock().unwrap());
+        (self.songs).reserve_exact(self.missing_songs.len() + check_moved.len());
+        for missing in self.missing_songs.into_iter().chain(check_moved) {
             // Re-insert missing songs so their info is kept
             match self.songs.find_song(&missing.path) {
                 Err(index) | Ok(index) => self.songs.insert(index, missing),
