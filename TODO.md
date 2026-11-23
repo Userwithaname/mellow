@@ -45,11 +45,11 @@ Music library:
   - IDEA: An 'Open With' button for opening files/directories externally
 
 Settings:
-- [-] 'Library Settings' dialog
+- [x] 'Library Settings' dialog
   - [x] 'Backup Before Writing' toggle
     - [x] If enabled: 'Recover From Backup' button to automatically merge with data from backup
-  - [ ] 'Import From File' button to open a file picker and merge the data
-  - [ ] 'Export To File' button to open a file picker and save the data to it
+  - [x] 'Import From File' button to open a file picker and merge the data
+  - [x] 'Export To File' button to open a file picker and save the data to it
   - [x] 'Reset Failed Thumbnails' button
   - [x] 'Reset Thumbnail Cache' button
   - [x] 'Reload All Tags' button to reload all song info, but preserve their ratings/etc

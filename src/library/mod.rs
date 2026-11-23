@@ -1209,15 +1209,14 @@ impl Library {
     ///
     /// File path is determined by `songs_file()`
     #[inline]
-    fn serialize_songs(songs: &Songs) {
-        let songs_file = songs_file();
-        let backup_songs_file = [&songs_file, "~"].concat();
+    pub fn serialize_songs(songs: &Songs, target_file: &str) {
         // Only backup if a `songs~` file already exists (opt-in)
-        if fs::exists(&backup_songs_file).unwrap_or_default() {
-            let _ = fs::rename(&songs_file, &backup_songs_file);
+        let backup_file = &[target_file, "~"].concat();
+        if fs::exists(backup_file).unwrap_or_default() {
+            let _ = fs::rename(target_file, backup_file);
         }
         match write_file_create_dir_all(
-            songs_file,
+            target_file,
             [
                 "/--------------------------------------------------------------------\\\n\
                  |             Editing this file is usually not necessary             |\n\
@@ -1312,8 +1311,33 @@ impl Library {
                 Err(index) | Ok(index) => self.songs.insert(index, missing),
             }
         }
-        Library::serialize_songs(&self.songs);
+        Library::serialize_songs(&self.songs, &songs_file());
         self.tasks.shutdown();
+    }
+    /// Serializes all songs to a file specified by `target_file`
+    ///
+    /// # Panics
+    /// The function panics if it encounters a poisoned `Mutex`
+    pub fn serialize_to_file(&mut self, target_file: &str) {
+        if STATE.load(atomic::Ordering::Acquire) == STATE_BUSY {
+            let target_file = target_file.to_owned();
+            self.run_on_build_stopped(Box::new(move |library| {
+                library.serialize_to_file(&target_file);
+            }));
+            return;
+        }
+
+        self.cancel_library_build(Instant::now());
+        let check_moved = self.check_moved.lock().unwrap().clone();
+        let mut songs =
+            Vec::with_capacity(self.songs.len() + check_moved.len() + self.missing_songs.len());
+        for song in (self.songs.iter().chain(&check_moved)).chain(&self.missing_songs) {
+            // Re-insert missing songs so their info is kept
+            match self.songs.find_song(&song.path) {
+                Err(index) | Ok(index) => songs.insert(index, song.clone()),
+            }
+        }
+        Library::serialize_songs(&songs, target_file);
     }
 }
 

@@ -22,9 +22,25 @@
               <object class="AdwButtonRow">
                 <signal name="activated" handler="handle_recover_backup" swapped="true"/>
                 <property name="activatable">true</property>
-                <property name="title">Recover Data From Backup</property>
+                <property name="title">Import Data From Backup</property>
                 <property name="tooltip-text" translatable="yes">Attempt to recover lost library data if it is still available in the backup</property>
                 <property name="sensitive" bind-source="enable_backups" bind-property="active" bind-flags="sync-create"/>
+              </object>
+            </child>
+            <child>
+              <object class="AdwButtonRow">
+                <signal name="activated" handler="handle_import_songs" swapped="true"/>
+                <property name="activatable">true</property>
+                <property name="title">Import Data From File</property>
+                <property name="tooltip-text" translatable="yes">Select a file to update your library data with</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwButtonRow">
+                <signal name="activated" handler="handle_export_songs" swapped="true"/>
+                <property name="activatable">true</property>
+                <property name="title">Export Data To File</property>
+                <property name="tooltip-text" translatable="yes">Backup your existing library data configuration to a new file</property>
               </object>
             </child>
           </object>

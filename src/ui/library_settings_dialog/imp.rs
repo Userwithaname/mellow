@@ -4,11 +4,14 @@ use std::path::PathBuf;
 use std::time::Instant;
 
 use adw::subclass::prelude::*;
+use gio::prelude::*;
 use gtk::CompositeTemplate;
-use gtk::glib;
+use gtk::prelude::WidgetExt;
+use gtk::{gio, glib};
 
 use crate::library::{Library, library_tx};
 use crate::ui::UpdateUI;
+use crate::ui::window::Window;
 use crate::util::visit_dirs;
 use crate::{songs_file, thumbnails_dir};
 
@@ -23,21 +26,46 @@ pub struct LibrarySettingsDialog {
 impl LibrarySettingsDialog {
     #[template_callback]
     pub fn handle_recover_backup(&self) {
-        // IDEA: Also disable the button to avoid repeated interactions?
-        Library::run_library_task(library_tx(), |library| {
+        Self::merge_library_data([&songs_file(), "~"].concat());
+    }
+    #[template_callback]
+    pub fn handle_import_songs(&self) {
+        let file_picker = gtk::FileDialog::builder().modal(true).build();
+        let window = self.obj().root().and_downcast::<Window>().unwrap();
+        file_picker.open(Some(&window), gio::Cancellable::NONE, move |file| {
+            if let Ok(file) = file {
+                Self::merge_library_data(dbg!(file.path().unwrap().into_string().unwrap()));
+            }
+        });
+    }
+    #[template_callback]
+    pub fn handle_export_songs(&self) {
+        let file_picker = gtk::FileDialog::builder()
+            .initial_name("songs")
+            .modal(true)
+            .build();
+        let window = self.obj().root().and_downcast::<Window>().unwrap();
+        file_picker.save(Some(&window), gio::Cancellable::NONE, move |file| {
+            if let Ok(file) = file {
+                Library::run_library_task(library_tx(), move |library| {
+                    library.serialize_to_file(&file.path().unwrap().into_string().unwrap());
+                });
+            }
+        });
+    }
+    fn merge_library_data(songs_file: String) {
+        Library::run_library_task(library_tx(), move |library| {
             library.cancel_library_build(Instant::now());
-            let old_songs = Library::deserialize_songs(&[&songs_file(), "~"].concat());
-            UpdateUI::Notification(
-                format!(
-                    "Restoring library data from backup ({} songs)",
-                    old_songs.len()
-                ),
-                None,
-            )
-            .send();
+            let old_songs = Library::deserialize_songs(&songs_file);
+            let old_songs_len = old_songs.len();
             library.run_on_build_stopped(Box::new(move |library| {
                 library.missing_songs.extend(old_songs);
                 library.start_library_build(Instant::now());
+                UpdateUI::Notification(
+                    format!("Updated library data from {old_songs_len} song candidates"),
+                    None,
+                )
+                .send();
             }));
         });
     }
