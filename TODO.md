@@ -44,6 +44,16 @@ Music library:
   - [ ] Play all songs within any current directory recursively by pressing the play button in the header
   - IDEA: An 'Open With' button for opening files/directories externally
 
+Settings:
+- [-] 'Library Settings' dialog
+  - [x] 'Backup Before Writing' toggle
+    - [ ] If enabled: 'Recover From Backup' button to automatically merge with data from backup
+  - [ ] 'Import From File' button to open a file picker and merge the data
+  - [ ] 'Export To File' button to open a file picker and save the data to it
+  - [x] 'Reset Failed Thumbnails' button
+  - [x] 'Reset Thumbnail Cache' button
+  - [x] 'Reload All Tags' button to reload all song info, but preserve their ratings/etc
+
 General:
 
 - [ ] Overlay redesign
@@ -54,12 +64,6 @@ General:
       so no buttons need to be added (and use the current design if not)
   - [ ] Move the settings to a popup window, accessed from a new menu in the overlay header
     - [ ] Apply library directory changes as a single task when the settings window is closed
-    - IDEA: Add buttons for exporting/importing `songs` files (ratings/play counts/etc)
-      - Button for "Manage Library Data", which opens a dialog with the following:
-        - "Backup Previous Version" (toggle)
-          - If enabled: "Recover From Backup" (button to automatically merge with data from backup)
-        - "Import From File" (button to open a file picker)
-        - "Export To File" (button to open a file picker)
 
 Other:
 

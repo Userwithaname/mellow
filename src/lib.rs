@@ -74,6 +74,12 @@ pub fn music_dir() -> &'static str {
 pub fn cache_dir() -> &'static str {
     &CACHE_DIR
 }
+/// Returns the thumbnails cache directory path
+#[inline]
+#[must_use]
+pub fn thumbnails_dir() -> String {
+    [&CACHE_DIR, "thumbnails/"].concat()
+}
 /// Returns the configuration directory path
 #[inline]
 #[must_use]

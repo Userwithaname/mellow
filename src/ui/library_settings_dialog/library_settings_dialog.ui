@@ -1,0 +1,69 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<interface>
+  <template class="MellowLibrarySettingsDialog" parent="AdwPreferencesDialog">
+    <property name="title">Library Settings</property>
+
+    <child>
+      <object class="AdwPreferencesPage">
+        <property name="hexpand">true</property>
+
+        Library Data
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="hexpand">true</property>
+            <property name="title" translatable="yes">Library Data</property>
+            <child>
+              <object class="AdwSwitchRow" id="enable_backups">
+                <property name="title">Backup Before Writing</property>
+                <property name="tooltip-text" translatable="yes">When enabled, one previous version of the library songs data will always be kept</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwActionRow">
+                <signal name="activated" handler="handle_recover_backup" swapped="true"/>
+                <property name="activatable">true</property>
+                <!-- TODO: Bind "sensitive" to "active" on `enable_backups` -->
+                <property name="sensitive">false</property>
+                <property name="title">Recover Data From Backup</property>
+                <!-- TODO: Correct the tooltip when implemented -->
+                <property name="tooltip-text" translatable="yes">(not yet implemented) Attempt to recover lost library data if it is still available in the backup</property>
+              </object>
+            </child>
+          </object>
+        </child>
+
+        Cache Management
+        <child>
+          <object class="AdwPreferencesGroup">
+            <property name="hexpand">true</property>
+            <property name="title" translatable="yes">Cache Management</property>
+            <child>
+              <object class="AdwActionRow">
+                <property name="activatable">true</property>
+                <signal name="activated" handler="handle_reset_failed_thumbnails" swapped="true"/>
+                <property name="title">Reset Failed Thumbnails</property>
+                <property name="tooltip-text" translatable="yes">Remove failed thumbnails from the cache</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwActionRow">
+                <signal name="activated" handler="handle_reset_all_thumbnails" swapped="true"/>
+                <property name="activatable">true</property>
+                <property name="title">Reset All Thumbnails</property>
+                <property name="tooltip-text" translatable="yes">Remove all thumbnails from the cache</property>
+              </object>
+            </child>
+            <child>
+              <object class="AdwActionRow">
+                <signal name="activated" handler="handle_reload_all_tags" swapped="true"/>
+                <property name="activatable">true</property>
+                <property name="title">Reload All Tags</property>
+                <property name="tooltip-text" translatable="yes">Rebuild the library and reload info for all songs (may take a long time; ratings and library data will be preserved)</property>
+              </object>
+            </child>
+          </object>
+        </child>
+      </object>
+    </child>
+  </template>
+</interface>

@@ -68,6 +68,16 @@
         <child type="header-suffix">
           <object class="GtkBox">
             <child>
+              <object class="GtkButton">
+                <signal name="clicked" handler="handle_library_data_dialog" swapped="true"/>
+                <property name="icon-name">document-properties-symbolic</property>
+                <property name="tooltip-text" translatable="yes">Library Settings</property>
+                <style>
+                  <class name="flat"/>
+                </style>
+              </object>
+            </child>
+            <child>
               <object class="GtkButton" id="refresh_library_button">
                 <signal name="clicked" handler="handle_refresh_library" swapped="true"/>
                 <property name="icon-name">view-refresh-symbolic</property>
@@ -244,7 +254,7 @@
       </object>
     </child>
 
-    About
+    Info
     <child>
       <object class="AdwPreferencesGroup">
         <property name="hexpand">true</property>

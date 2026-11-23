@@ -7,7 +7,7 @@ use gtk::{gdk, glib};
 use crate::excuses::{ACTION_ERR, EXP_INIT};
 use crate::library::{Library, LibraryRequest};
 use crate::player::PlayerRequest;
-use crate::ui::StartupQueueChoice;
+use crate::ui::{LibrarySettingsDialog, StartupQueueChoice};
 use crate::util::color::{ColorLinear, ColorSRGB};
 use crate::util::{approx_eq, lerp};
 
@@ -91,6 +91,12 @@ impl SettingsPage {
         }
     }
 
+    #[template_callback]
+    pub fn handle_library_data_dialog(&self) {
+        LibrarySettingsDialog::default().present(Some(
+            &self.obj().root().and_upcast::<gtk::Widget>().unwrap(),
+        ));
+    }
     #[template_callback]
     pub fn handle_refresh_library(&self) {
         self.refresh_library_button.set_sensitive(false);

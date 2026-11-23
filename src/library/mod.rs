@@ -1193,7 +1193,6 @@ impl Library {
         let songs_file = songs_file();
         let backup_songs_file = [&songs_file, "~"].concat();
         // Only backup if a `songs~` file already exists (opt-in)
-        // TODO: Add an option for this in the application settings
         if fs::exists(&backup_songs_file).unwrap_or_default() {
             let _ = fs::rename(&songs_file, &backup_songs_file);
         }

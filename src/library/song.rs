@@ -795,7 +795,16 @@ impl Song {
     pub fn mark_thumbnail_unused_by(&self, used_by: UsedBy) {
         self.thumbnail.write().unwrap().mark_unused_by(used_by);
     }
-    /// Unloads the song's thumbnail from memory and removes it from disk
+    /// Unconditionally unloads the song's thumbnail from this `Song`
+    /// (In most cases, `mark_thumbnail_unused_by` should be preferred)
+    ///
+    /// # Panics
+    /// The function panics if the thumbnail `RwLock` is poisoned
+    #[inline]
+    pub fn unload_thumbnail(&self) {
+        self.thumbnail.write().unwrap().unload_value();
+    }
+    /// Unloads the song's thumbnail from this `Song` and removes it from disk
     ///
     /// # Panics
     /// The function panics if the thumbnail `RwLock` is poisoned
