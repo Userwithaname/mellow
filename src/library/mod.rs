@@ -903,13 +903,7 @@ impl Library {
                 self.last_build_started = Instant::now();
                 self.discover_files();
             }
-            Err(_) => {
-                if self.rebuild_pending {
-                    #[cfg(feature = "verbose-logs")]
-                    println!("Rebuild already queued; ignoring request");
-
-                    return; // Skip duplicate pending rebuild requests
-                }
+            Err(_) if !self.rebuild_pending => {
                 self.rebuild_pending = true;
                 self.cancel_library_build(Instant::now());
 
@@ -928,6 +922,10 @@ impl Library {
                     }
                 }));
             }
+            _ => {
+                #[cfg(feature = "verbose-logs")]
+                println!("Rebuild already queued; ignoring request");
+            }
         }
     }
 
@@ -940,9 +938,17 @@ impl Library {
 
             return;
         }
-
-        STATE.swap(STATE_CANCEL, atomic::Ordering::Release);
-        self.tasks.await_all_tasks();
+        if STATE
+            .compare_exchange(
+                STATE_BUSY,
+                STATE_CANCEL,
+                atomic::Ordering::Acquire,
+                atomic::Ordering::Relaxed,
+            )
+            .is_ok()
+        {
+            self.tasks.await_all_tasks();
+        }
     }
 
     /// Cancels any currently running library build operation
@@ -955,10 +961,19 @@ impl Library {
 
             return;
         }
+        if STATE
+            .compare_exchange(
+                STATE_BUSY,
+                STATE_CANCEL,
+                atomic::Ordering::Acquire,
+                atomic::Ordering::Relaxed,
+            )
+            .is_err()
+        {
+            return;
+        }
 
-        STATE.store(STATE_CANCEL, atomic::Ordering::Release);
         self.tasks.await_all_tasks();
-
         let library_thread = thread::current();
         self.tasks.run(move || library_thread.unpark());
         // Parking the thread in a loop until cancellation, because
