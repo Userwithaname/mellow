@@ -21,6 +21,7 @@ pub use artist::{Artist, SharedArtist, SortedArtistAlbums};
 pub use config::{FILE_SUPPORT, LibraryConfig};
 pub use song::{SharedSong, SharedSongExt, Song, SongInfo};
 
+use crate::about::{APP_NAME, APP_URL, APP_VERSION};
 use crate::excuses::EXP_RX;
 use crate::library::song_rating::Ratable;
 use crate::library::tag_list::Taggable;
@@ -1204,39 +1205,28 @@ impl Library {
         queue.extend(songs);
     }
 
-    /// Serializes `songs` and writes the data to disk,
-    /// so the library can be loaded faster next time
-    ///
-    /// File path is determined by `songs_file()`
+    /// Serializes `songs` and writes the data to the `file_path`
     #[inline]
-    pub fn serialize_songs(songs: &Songs, target_file: &str) {
+    pub fn serialize_songs(songs: &Songs, file_path: &str) {
         // Only backup if a `songs~` file already exists (opt-in)
-        let backup_file = &[target_file, "~"].concat();
+        let backup_file = &[file_path, "~"].concat();
         if fs::exists(backup_file).unwrap_or_default() {
-            let _ = fs::rename(target_file, backup_file);
+            let _ = fs::rename(file_path, backup_file);
         }
         match write_file_create_dir_all(
-            target_file,
-            [
-                "/--------------------------------------------------------------------\\\n\
-                 |             Editing this file is usually not necessary             |\n\
-                 |                                                                    |\n\
-                 | Hint: Paths of moved and renamed files are corrected automatically |\n\
-                 |                                                                    |\n\
-                 |  Hint: You can append the contents of a different `songs` file to  |\n\
-                 |  this one to combine their data (such as ratings and play counts)  |\n\
-                \\--------------------------------------------------------------------/\n\n",
-                &(songs.iter().map(|song| song.serialize() + "\n")).collect::<String>(),
-            ]
-            .concat(),
+            file_path,
+            format!(
+                "| {APP_NAME} v{APP_VERSION} - {APP_URL}\n\
+                 | Music Library Data (not intended for manual editing)\n\n{}",
+                (songs.iter().map(|song| song.serialize() + "\n")).collect::<String>(),
+            ),
         ) {
             Ok(()) => println!("Library song info has been successfully written to disk"),
             Err(e) => eprintln!("Problems writing the library state to disk: \n{e}"),
         }
     }
 
-    /// Reads the serialized song info from disk and returns them,
-    /// so they can be assigned directly to `self.songs`
+    /// Returns a list of songs built from the file at `file_path`
     #[inline]
     #[must_use]
     pub fn deserialize_songs(file_path: &str) -> Songs {
@@ -1244,7 +1234,7 @@ impl Library {
             Ok(data) => data
                 .trim_end()
                 .split("\n\n")
-                .skip(1) // Skip the note written at the top of the `songs` file
+                .skip(1) // Skip the note written at the top of the file
                 .filter_map(SharedSong::deserialize)
                 .collect(),
             Err(_) => Vec::with_capacity(512), // Estimate to reduce reallocations
