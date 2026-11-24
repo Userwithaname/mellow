@@ -22,9 +22,8 @@
               <object class="AdwButtonRow">
                 <signal name="activated" handler="handle_recover_backup" swapped="true"/>
                 <property name="activatable">true</property>
-                <property name="title">Import Data From Backup</property>
-                <property name="tooltip-text" translatable="yes">Attempt to recover lost library data if it is still available in the backup</property>
-                <property name="sensitive" bind-source="enable_backups" bind-property="active" bind-flags="sync-create"/>
+                <property name="title">Attempt Data Recovery</property>
+                <property name="tooltip-text" translatable="yes">Attempt to recover lost library data if it is still available in the configuration on disk (enable backups for more reliable results)</property>
               </object>
             </child>
             <child>
@@ -32,7 +31,7 @@
                 <signal name="activated" handler="handle_import_songs" swapped="true"/>
                 <property name="activatable">true</property>
                 <property name="title">Import Data From File</property>
-                <property name="tooltip-text" translatable="yes">Select a file to update your library data with</property>
+                <property name="tooltip-text" translatable="yes">Select a file to combine it with your library data</property>
               </object>
             </child>
             <child>

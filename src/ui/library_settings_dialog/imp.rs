@@ -9,9 +9,8 @@ use gtk::CompositeTemplate;
 use gtk::prelude::WidgetExt;
 use gtk::{gio, glib};
 
-use crate::library::{Library, library_tx};
-use crate::ui::UpdateUI;
-use crate::ui::window::Window;
+use crate::library::{Library, Songs, library_tx};
+use crate::ui::{UpdateUI, Window};
 use crate::util::visit_dirs;
 use crate::{songs_file, thumbnails_dir};
 
@@ -26,7 +25,14 @@ pub struct LibrarySettingsDialog {
 impl LibrarySettingsDialog {
     #[template_callback]
     pub fn handle_recover_backup(&self) {
-        Self::merge_library_data([&songs_file(), "~"].concat());
+        Self::merge_library_data(|| {
+            let songs_file = songs_file();
+            [
+                Library::deserialize_songs(&songs_file),
+                Library::deserialize_songs(&[&songs_file, "~"].concat()),
+            ]
+            .concat()
+        });
     }
     #[template_callback]
     pub fn handle_import_songs(&self) {
@@ -34,7 +40,9 @@ impl LibrarySettingsDialog {
         let window = self.obj().root().and_downcast::<Window>().unwrap();
         file_picker.open(Some(&window), gio::Cancellable::NONE, move |file| {
             if let Ok(file) = file {
-                Self::merge_library_data(dbg!(file.path().unwrap().into_string().unwrap()));
+                Self::merge_library_data(move || {
+                    Library::deserialize_songs(&file.path().unwrap().into_string().unwrap())
+                });
             }
         });
     }
@@ -53,16 +61,16 @@ impl LibrarySettingsDialog {
             }
         });
     }
-    fn merge_library_data(songs_file: String) {
-        Library::run_library_task(library_tx(), move |library| {
+    fn merge_library_data<S: FnOnce() -> Songs + Send + 'static>(songs: S) {
+        Library::run_library_task(library_tx(), |library| {
             library.cancel_library_build(Instant::now());
-            let old_songs = Library::deserialize_songs(&songs_file);
-            let old_songs_len = old_songs.len();
-            library.run_on_build_stopped(Box::new(move |library| {
-                library.missing_songs.extend(old_songs);
+            let songs = songs();
+            library.run_on_build_stopped(Box::new(|library| {
+                let songs_len = songs.len();
+                library.missing_songs.extend(songs);
                 library.start_library_build(Instant::now());
                 UpdateUI::Notification(
-                    format!("Updated library data from {old_songs_len} song candidates"),
+                    format!("Updated library data ({songs_len} candidates to resolve)"),
                     None,
                 )
                 .send();
