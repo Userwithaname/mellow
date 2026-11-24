@@ -19,7 +19,7 @@ pub mod unload_unused;
 pub use album::{Album, SharedAlbum, SortedAlbumSongs};
 pub use artist::{Artist, SharedArtist, SortedArtistAlbums};
 pub use config::{FILE_SUPPORT, LibraryConfig};
-pub use song::{SharedSong, SharedSongExt, Song, SongInfo};
+pub use song::{SharedSong, Song, SongInfo};
 
 use crate::about::{APP_NAME, APP_URL, APP_VERSION};
 use crate::excuses::EXP_RX;
@@ -423,7 +423,7 @@ impl Library {
                 if path.extension().is_some_and(extension_supported)
                     && let Err(index) = self.songs.find_song(&path)
                 {
-                    self.songs.insert(index, SharedSong::from_path(path));
+                    self.songs.insert(index, Song::from_path(path));
                 }
             })
             .inspect_err(|e| eprintln!("Error reading '{library_path:?}': {e}"));
@@ -1173,7 +1173,7 @@ impl Library {
             // SAFETY: `index` is `Ok`, therefore within bounds
             return Arc::clone(unsafe { self.songs.get_unchecked(index) });
         }
-        SharedSong::from_path(path.to_path_buf())
+        Song::from_path(path.to_path_buf())
     }
     /// Extends `queue` with songs found on disk within `dir`. If files are
     /// part of the music library, their existing instances will be used.
@@ -1235,7 +1235,7 @@ impl Library {
                 .trim_end()
                 .split("\n\n")
                 .skip(1) // Skip the note written at the top of the file
-                .filter_map(SharedSong::deserialize)
+                .filter_map(Song::deserialize)
                 .collect(),
             Err(_) => Vec::with_capacity(512), // Estimate to reduce reallocations
         }

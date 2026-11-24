@@ -35,24 +35,6 @@ pub struct Song {
 }
 
 pub type SharedSong = Arc<Song>;
-pub trait SharedSongExt {
-    fn from_path(path: PathBuf) -> SharedSong;
-    fn deserialize(data: &str) -> Option<SharedSong>;
-}
-impl SharedSongExt for SharedSong {
-    /// Constructs a new `SharedSong` from a file path
-    #[inline]
-    fn from_path(path: PathBuf) -> SharedSong {
-        Arc::new(Song::from_path(path))
-    }
-    /// Constructs a new `SharedSong` from the serialized `data`
-    ///
-    /// Returns `Some` on successful load, or `None`
-    #[inline]
-    fn deserialize(data: &str) -> Option<SharedSong> {
-        Song::deserialize(data).map_or_else(|_| None, |song| Some(Arc::new(song)))
-    }
-}
 impl Ratable for SharedSong {
     fn get_rating(&self) -> SongRating {
         self.user().rating
@@ -88,24 +70,21 @@ impl Taggable for SharedSong {
     }
 }
 
-#[derive(Debug)]
-struct DeserializeSongError;
-
 // TODO: Improve naming of info functions now that `SongInfoLoader` is gone
 
 impl Song {
-    /// Constructs a new `Song` from a file path
+    /// Constructs a new `SharedSong` from a file path
     #[inline]
     #[must_use]
-    fn from_path(path: PathBuf) -> Song {
-        Song {
+    pub fn from_path(path: PathBuf) -> SharedSong {
+        Arc::new(Song {
             album: Mutex::new(None),
             path,
             info: RwLock::new(None),
             user_info: Mutex::new(UserSongInfo::new()),
             detailed_info: RwLock::new(None),
             thumbnail: RwLock::new(UnloadUnused::default()),
-        }
+        })
     }
 
     /// Returns a `String` containing serialized song info,
@@ -122,39 +101,35 @@ impl Song {
         let path = self.path.to_str().unwrap();
         let user_info = self.user();
         let tags = serialize_list(user_info.tags());
-        self.inspect_basic().as_ref().map_or_else(
-            || {
-                serialize! {
-                    path => "path",
-                    user_info.added => "added",
-                    0 => "modified",
-                    user_info.play_count => "play_count",
-                    user_info.rating => "rating",
-                    tags => "tags",
-                }
+        match *self.inspect_basic() {
+            Some(ref info) => serialize! {
+                path => "path",
+                info.title => "title",
+                info.album => "album",
+                info.artist => "artist",
+                info.album_artist => "album_artist",
+                info.track => "track",
+                info.disc => "disc",
+                info.year => "year",
+                info.duration_ms => "duration",
+                user_info.added => "added",
+                user_info.modified => "modified",
+                user_info.play_count => "play_count",
+                user_info.rating => "rating",
+                tags => "tags",
             },
-            |info| {
-                serialize! {
-                    path => "path",
-                    info.title => "title",
-                    info.album => "album",
-                    info.artist => "artist",
-                    info.album_artist => "album_artist",
-                    info.track => "track",
-                    info.disc => "disc",
-                    info.year => "year",
-                    info.duration_ms => "duration",
-                    user_info.added => "added",
-                    user_info.modified => "modified",
-                    user_info.play_count => "play_count",
-                    user_info.rating => "rating",
-                    tags => "tags",
-                }
+            None => serialize! {
+                path => "path",
+                user_info.added => "added",
+                0 => "modified",
+                user_info.play_count => "play_count",
+                user_info.rating => "rating",
+                tags => "tags",
             },
-        )
+        }
     }
 
-    /// Constructs a new `Song` from the serialized `data`
+    /// Constructs a new `SharedSong` from the serialized `data`
     ///
     /// At the minimum, a non-empty `path` field must be present within `data`,
     /// otherwise this function returns an error
@@ -163,10 +138,10 @@ impl Song {
     /// allowed as a substitute for `path`, which the library will then convert
     /// to a proper `path`. If both fields are present, `uri` takes precedence.
     ///
-    /// # Errors
-    /// Errors if neither `path` nor `uri` field is present in the `data`
+    /// Returns `None` if neither `path` nor `uri` field is present in the `data`
     #[inline]
-    fn deserialize(data: &str) -> Result<Song, DeserializeSongError> {
+    #[must_use]
+    pub fn deserialize(data: &str) -> Option<SharedSong> {
         let mut path = "";
         let mut info = SongInfo::default();
         let mut user_info = UserSongInfo::default();
@@ -192,10 +167,10 @@ impl Song {
         }
 
         if path.is_empty() {
-            return cold(Err(DeserializeSongError));
+            return cold(None);
         }
 
-        Ok(Song {
+        Some(Arc::new(Song {
             album: Mutex::new(None),
             path: PathBuf::from(path),
             info: RwLock::new(match user_info.modified {
@@ -205,7 +180,7 @@ impl Song {
             user_info: Mutex::new(user_info),
             detailed_info: RwLock::new(None),
             thumbnail: RwLock::new(UnloadUnused::default()),
-        })
+        }))
     }
 
     /// Returns the song file URI, which can be used by `GStreamer`
@@ -466,9 +441,6 @@ impl Song {
     ///
     /// # Errors
     /// Returns an error if the info cannot be accessed without blocking
-    ///
-    /// # Panics
-    /// The function panics if the basic info `RwLock` is poisoned
     #[inline]
     pub fn try_load_basic(
         &self,
@@ -955,8 +927,7 @@ impl UserSongInfo {
     #[must_use]
     pub fn new() -> Self {
         Self {
-            added: (SystemTime::now().duration_since(UNIX_EPOCH))
-                .map_or_else(|_| 0, |time| time.as_secs()),
+            added: (SystemTime::now().duration_since(UNIX_EPOCH)).map_or(0, |time| time.as_secs()),
             modified: !0,
             ..Self::default()
         }
