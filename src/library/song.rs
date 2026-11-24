@@ -163,9 +163,6 @@ impl Song {
     /// allowed as a substitute for `path`, which the library will then convert
     /// to a proper `path`. If both fields are present, `uri` takes precedence.
     ///
-    /// # Panics
-    /// Panics if a value cannot be parsed into the required type
-    ///
     /// # Errors
     /// Errors if neither `path` nor `uri` field is present in the `data`
     #[inline]

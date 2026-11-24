@@ -116,7 +116,8 @@ pub fn serialize_list<S: Deref<Target = str>>(list: &[S]) -> String {
 /// The following types are supported:
 /// - `str` for assigning string slices
 /// - `String` for assigning owned strings
-/// - `?` for types implementing the `FromStr` trait
+/// - `?` for types implementing the `FromStr` and `Default` traits
+///   (builds the value using `.parse().unwrap_or_default()`)
 /// - All types (except `str`) can be wrapped in square brackets
 ///   (`[…]`) to parse them as lists (such as `Vec`s)
 /// - A special case exists for `[?String]`, which is the same as
@@ -124,9 +125,6 @@ pub fn serialize_list<S: Deref<Target = str>>(list: &[S]) -> String {
 ///
 /// Deserializing lists requires `deserialize_list` to be available
 /// in scope where this macro is invoked
-///
-/// # Panics
-/// Panics when parsing invalid data for types `?` and `[?]`
 ///
 /// # Example
 /// ```rust
@@ -184,10 +182,10 @@ macro_rules! deserialize {
     };
 
     (@to_value ?, $value:expr, $field:expr) => {
-        $value.parse().map_err(|e| format!("{} {e}", $field)).unwrap()
+        $value.parse().unwrap_or_default()
     };
     (@to_value [?], $value:expr, $field:expr) => {
-        $value.split(',').into_iter().map(|value| value.trim().parse().unwrap()).collect()
+        $value.split(',').into_iter().map(|value| value.trim().parse().unwrap_or_default()).collect()
     };
     (@to_value str, $value:expr, $field:expr) => {
         $value
