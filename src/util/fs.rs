@@ -44,9 +44,9 @@ pub fn write_file_create_dir_all<P: AsRef<Path>, C: AsRef<[u8]>>(
     Ok(())
 }
 
-/// Writes the `contents` to the file at `file_path`, but only if the contents
-/// differ. A backup of the file is created at `file_path` with a tilde (`~`)
-/// character appended at the end, but only if such a file already exists.
+/// Writes the `contents` to the file at `file_path` if the contents have
+/// changed. If a file at `file_path` suffixed with a tilde (`~`) existts,
+/// the old file is moved to that location as a backup.
 ///
 /// Returns `Ok(true)` if the file was written, or `Ok(false)` if not
 ///
