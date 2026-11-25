@@ -10,14 +10,13 @@ use gtk::{gdk, gio, glib};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use crate::UI_TIMEOUT;
 use crate::excuses::EXP_INIT;
 use crate::library::tag_list::{self, Tags};
 use crate::library::{Songs, ToQueue};
 use crate::player::{PlayerRequest, player_tx};
 use crate::ui::gtk_ext::GtkPictureExt;
 use crate::ui::{FilterMode, ItemRow, LibraryFilters, LibrarySort, LibrarySortMode, SongObject};
-use crate::ui::{UpdateUI, ui_tx};
+use crate::ui::{UI_TIMEOUT, UpdateUI, ui_tx};
 use crate::util::{Forever, search};
 
 #[derive(Default, CompositeTemplate)]

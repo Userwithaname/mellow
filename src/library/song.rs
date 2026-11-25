@@ -14,13 +14,12 @@ use lofty::prelude::*;
 use lofty::probe::Probe;
 use lofty::tag::Tag;
 
-use crate::cache_dir;
 use crate::library::lyrics::Lyrics;
 use crate::library::song_rating::{Ratable, SongRating};
 use crate::library::tag_list::{Taggable, Tags};
 use crate::library::unload_unused::{UnloadUnused, UsedBy};
 use crate::library::{Album, SharedAlbum, tag_list};
-use crate::util::fs::write_file_create_dir_all;
+use crate::util::fs::{cache_dir, write_file_create_dir_all};
 use crate::util::hint::cold;
 use crate::util::{deserialize, deserialize_list, serialize, serialize_list};
 

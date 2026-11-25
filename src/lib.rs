@@ -1,7 +1,4 @@
-use glib::{UserDirectory, home_dir, user_cache_dir, user_config_dir, user_special_dir};
-use gtk::glib;
-use std::sync::{LazyLock, mpsc};
-use std::time::Duration;
+use std::sync::mpsc;
 
 use crate::library::{LibraryRequest, init_library_tx};
 use crate::mpris::{UpdateMPRIS, init_mpris_tx};
@@ -16,19 +13,6 @@ pub mod player;
 pub mod shortcuts;
 pub mod ui;
 pub mod util;
-
-static CACHE_DIR: LazyLock<String> =
-    LazyLock::new(|| [user_cache_dir().to_str().unwrap(), "/mellow/"].concat());
-static CONFIG_DIR: LazyLock<String> =
-    LazyLock::new(|| [user_config_dir().to_str().unwrap(), "/mellow/"].concat());
-static MUSIC_DIR: LazyLock<String> = LazyLock::new(|| {
-    user_special_dir(UserDirectory::Music).map_or_else(
-        || [home_dir().to_str().unwrap(), "/Music/"].concat(),
-        |dir| dir.to_str().unwrap().to_owned(),
-    )
-});
-
-pub const UI_TIMEOUT: Duration = Duration::from_millis(1000 / 60);
 
 type ChannelReceivers = (
     mpsc::Receiver<PlayerRequest>,
@@ -60,48 +44,4 @@ pub fn init_channels() -> Result<ChannelReceivers, AlreadyInitializedError> {
     let _ = init_mpris_tx(mpris_tx);
 
     Ok((player_rx, library_rx, ui_rx, mpris_rx))
-}
-
-/// Returns the music directory path
-#[inline]
-#[must_use]
-pub fn music_dir() -> &'static str {
-    &MUSIC_DIR
-}
-/// Returns the cache directory path
-#[inline]
-#[must_use]
-pub fn cache_dir() -> &'static str {
-    &CACHE_DIR
-}
-/// Returns the thumbnails cache directory path
-#[inline]
-#[must_use]
-pub fn thumbnails_dir() -> String {
-    [&CACHE_DIR, "thumbnails/"].concat()
-}
-/// Returns the configuration directory path
-#[inline]
-#[must_use]
-pub fn config_dir() -> &'static str {
-    &CONFIG_DIR
-}
-/// Returns the `songs` file path, which contains the serialized info of library songs
-#[inline]
-#[must_use]
-pub fn songs_file() -> String {
-    [config_dir(), "songs"].concat()
-}
-/// Returns the `queue` file path, used to restore the previous queue
-#[inline]
-#[must_use]
-pub fn queue_file() -> String {
-    [config_dir(), "queue"].concat()
-}
-/// Returns the `shuffled_queue` file path, used to remember
-/// the previous shuffled songs order in the restored queue
-#[inline]
-#[must_use]
-pub fn shuffled_queue_file() -> String {
-    [config_dir(), "shuffled_queue"].concat()
 }

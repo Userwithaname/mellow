@@ -22,16 +22,15 @@ pub use config::{FILE_SUPPORT, LibraryConfig};
 pub use song::{SharedSong, Song, SongInfo};
 
 use crate::about::{APP_NAME, APP_URL, APP_VERSION};
+use crate::cold_expression;
 use crate::excuses::EXP_RX;
 use crate::library::song_rating::Ratable;
 use crate::library::tag_list::Taggable;
 use crate::library::{album::NewSharedAlbum, artist::NewSharedArtist};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
-use crate::songs_file;
-use crate::ui::{UpdateUI, ui_tx};
-use crate::util::fs::{visit_dirs, write_file_with_opt_backup};
+use crate::ui::{UI_TIMEOUT, UpdateUI, ui_tx};
+use crate::util::fs::{songs_file, visit_dirs, write_file_with_opt_backup};
 use crate::util::tasks::{BoxedTask, Runner};
-use crate::{UI_TIMEOUT, cold_expression};
 
 /// Controls and reflects the current library state,
 /// using the following constants:

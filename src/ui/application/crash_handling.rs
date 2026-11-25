@@ -4,7 +4,8 @@ use std::{fs, panic::PanicHookInfo, process, thread};
 
 use crate::about::APP_URL;
 use crate::excuses::ACTION_ERR;
-use crate::{queue_file, shuffled_queue_file, ui::UpdateUI};
+use crate::ui::UpdateUI;
+use crate::util::fs::{queue_file, shuffled_queue_file};
 
 /// A panic hook (see `std::panic::hook`) to ensure the process exits completely
 /// if a single thread panics, and also handles some specific cases as well

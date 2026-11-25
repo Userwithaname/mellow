@@ -1,3 +1,4 @@
+use core::time::Duration;
 use std::sync::OnceLock;
 
 mod actions;
@@ -56,6 +57,8 @@ pub use window::Window;
 use crate::library::{Albums, Artists, Songs, ToQueue};
 use crate::library::{SharedAlbum, SharedArtist, SharedSong};
 use crate::player::QueueItem;
+
+pub const UI_TIMEOUT: Duration = Duration::from_millis(1000 / 60);
 
 static UI_TX: OnceLock<async_channel::Sender<UpdateUI>> = OnceLock::new();
 /// Returns the channel sender for sending requests to the UI using `UpdateUI`

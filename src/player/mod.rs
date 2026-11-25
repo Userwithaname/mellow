@@ -5,10 +5,9 @@ use gst::{ClockTime, SeekFlags, State};
 use std::fs;
 use std::sync::{OnceLock, mpsc};
 
-use crate::UI_TIMEOUT;
 use crate::excuses::INIT_ERR;
 use crate::library::{Song, unload_unused::UsedBy};
-use crate::ui::{UpdateUI, ui_tx};
+use crate::ui::{UI_TIMEOUT, UpdateUI, ui_tx};
 use crate::util::hint::cold_expression;
 use crate::util::wrap_index;
 

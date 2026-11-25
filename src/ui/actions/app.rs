@@ -4,8 +4,8 @@ use glib::subclass::prelude::*;
 use gtk::{gio, glib};
 
 use crate::library::LibraryRequest;
-use crate::music_dir;
 use crate::ui::{Application, Window};
+use crate::util::fs::music_dir;
 
 #[inline]
 pub fn add_library(window: Window) -> gio::ActionEntry<Application> {

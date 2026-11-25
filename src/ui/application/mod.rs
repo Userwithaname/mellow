@@ -18,8 +18,8 @@ use crate::library::{Library, LibraryConfig, LibraryRequest};
 use crate::player::{Player, PlayerRequest, SongQueue};
 use crate::shortcuts::Shortcuts;
 use crate::ui::{Window, actions::Actions, ui_tx};
-use crate::{about, music_dir, util::deserialize_list};
-use crate::{init_channels, mpris};
+use crate::util::{deserialize_list, fs::music_dir};
+use crate::{about, init_channels, mpris};
 
 glib::wrapper! {
     pub struct Application(ObjectSubclass<imp::Application>)

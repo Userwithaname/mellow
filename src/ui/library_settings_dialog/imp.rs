@@ -11,8 +11,7 @@ use gtk::{gio, glib};
 
 use crate::library::{Library, Songs, library_tx};
 use crate::ui::{UpdateUI, Window};
-use crate::util::fs::visit_dirs;
-use crate::{songs_file, thumbnails_dir};
+use crate::util::fs::{songs_file, thumbnails_dir, visit_dirs};
 
 #[derive(Default, CompositeTemplate)]
 #[template(file = "library_settings_dialog.ui")]

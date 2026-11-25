@@ -10,8 +10,7 @@ use crate::library::{
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{StartupQueueChoice, UpdateUI, ui_tx};
 use crate::util::ReorderVecExt;
-use crate::util::fs::write_file_with_opt_backup;
-use crate::{queue_file, shuffled_queue_file, songs_file};
+use crate::util::fs::{queue_file, shuffled_queue_file, songs_file, write_file_with_opt_backup};
 
 pub struct SongQueue {
     songs: Vec<QueueItem>,
