@@ -9,7 +9,8 @@ use crate::library::{
 };
 use crate::player::{PlayerRequest, QueueItem, player_tx};
 use crate::ui::{StartupQueueChoice, UpdateUI, ui_tx};
-use crate::util::{ReorderVecExt, write_file_create_dir_all};
+use crate::util::ReorderVecExt;
+use crate::util::fs::write_file_with_opt_backup;
 use crate::{queue_file, shuffled_queue_file, songs_file};
 
 pub struct SongQueue {
@@ -589,8 +590,9 @@ impl SongQueue {
                 })
                 .collect::<String>()
                 .trim_end();
-        match write_file_create_dir_all(queue_file, contents) {
-            Ok(()) => println!("Song queue state successfully written to disk"),
+        match write_file_with_opt_backup(queue_file, contents) {
+            Ok(true) => println!("Song queue has been successfully written to disk"),
+            Ok(false) => println!("Song queue not written since nothing has changed"),
             Err(e) => eprintln!("Problems writing queue state: {e}"),
         }
     }
@@ -606,8 +608,9 @@ impl SongQueue {
         let contents = (self.shuffled.iter())
             .map(|index| index.to_string() + "\n")
             .collect::<String>();
-        match fs::write(shuffled_file, contents.trim_end()) {
-            Ok(()) => println!("Shuffled song queue successfully written to disk"),
+        match write_file_with_opt_backup(shuffled_file, contents.trim_end()) {
+            Ok(true) => println!("Shuffled song queue has been successfully written to disk"),
+            Ok(false) => println!("Shuffled song queue not written since nothing has changed"),
             Err(e) => eprintln!("Problems writing queue state: {e}"),
         }
     }

@@ -27,11 +27,11 @@ use crate::library::song_rating::Ratable;
 use crate::library::tag_list::Taggable;
 use crate::library::{album::NewSharedAlbum, artist::NewSharedArtist};
 use crate::player::{PlayerRequest, QueueItem, player_tx};
+use crate::songs_file;
 use crate::ui::{UpdateUI, ui_tx};
+use crate::util::fs::{visit_dirs, write_file_with_opt_backup};
 use crate::util::tasks::{BoxedTask, Runner};
-use crate::util::write_file_create_dir_all;
 use crate::{UI_TIMEOUT, cold_expression};
-use crate::{songs_file, util::visit_dirs};
 
 /// Controls and reflects the current library state,
 /// using the following constants:
@@ -1208,12 +1208,7 @@ impl Library {
     /// Serializes `songs` and writes the data to the `file_path`
     #[inline]
     pub fn serialize_songs(songs: &Songs, file_path: &str) {
-        // Only backup if a `songs~` file already exists (opt-in)
-        let backup_file = &[file_path, "~"].concat();
-        if fs::exists(backup_file).unwrap_or_default() {
-            let _ = fs::rename(file_path, backup_file);
-        }
-        match write_file_create_dir_all(
+        match write_file_with_opt_backup(
             file_path,
             format!(
                 "| {APP_NAME} v{APP_VERSION} - {APP_URL}\n\
@@ -1221,7 +1216,8 @@ impl Library {
                 (songs.iter().map(|song| song.serialize() + "\n")).collect::<String>(),
             ),
         ) {
-            Ok(()) => println!("Library song info has been successfully written to disk"),
+            Ok(true) => println!("Library data has been successfully written to disk"),
+            Ok(false) => println!("Library data not written since nothing has changed"),
             Err(e) => eprintln!("Problems writing the library state to disk: \n{e}"),
         }
     }

@@ -43,3 +43,31 @@ pub fn write_file_create_dir_all<P: AsRef<Path>, C: AsRef<[u8]>>(
     }
     Ok(())
 }
+
+/// Writes the `contents` to the file at `file_path`, but only if the contents
+/// differ. A backup of the file is created at `file_path` with a tilde (`~`)
+/// character appended at the end, but only if such a file already exists.
+///
+/// Returns `Ok(true)` if the file was written, or `Ok(false)` if not
+///
+/// # Errors
+/// Propagates write errors (see `write_file_create_dir_all`)
+///
+/// # Panics
+/// May panic if `path` has no parent directory
+pub fn write_file_with_opt_backup<P: AsRef<Path>, C: AsRef<[u8]>>(
+    file_path: P,
+    contents: C,
+) -> io::Result<bool> {
+    if let Ok(old_contents) = fs::read(&file_path) {
+        if *contents.as_ref() == *old_contents {
+            return Ok(false);
+        }
+        let backup_file = file_path.as_ref().join("~");
+        if fs::exists(&backup_file).unwrap_or_default() {
+            let _ = fs::rename(&file_path, backup_file);
+        }
+    }
+    write_file_create_dir_all(&file_path, contents)?;
+    Ok(true)
+}

@@ -11,7 +11,7 @@ use gtk::{gio, glib};
 
 use crate::library::{Library, Songs, library_tx};
 use crate::ui::{UpdateUI, Window};
-use crate::util::visit_dirs;
+use crate::util::fs::visit_dirs;
 use crate::{songs_file, thumbnails_dir};
 
 #[derive(Default, CompositeTemplate)]
