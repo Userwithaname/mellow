@@ -5,6 +5,7 @@ use gtk::{gdk, glib};
 use std::sync::Arc;
 
 use crate::cold_expression;
+use crate::library::song::SharedSongExt;
 use crate::library::unload_unused::UsedBy;
 use crate::library::{Library, SharedSong, library_tx};
 use crate::ui::{LibraryObject, LibrarySort, Sortable, UpdateUI};

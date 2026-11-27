@@ -21,6 +21,7 @@ use crate::library::unload_unused::{UnloadUnused, UsedBy};
 use crate::library::{Album, SharedAlbum, tag_list};
 use crate::util::fs::{cache_dir, write_file_create_dir_all};
 use crate::util::hint::cold;
+use crate::util::sequential_tasks::sequential_tasks;
 use crate::util::{deserialize, deserialize_list, serialize, serialize_list};
 
 pub struct Song {
@@ -606,7 +607,7 @@ impl Song {
             Ok(Ok(result)) => result,
             Err(e) | Ok(Err(e)) => {
                 eprintln!("Problem loading tags (detailed): {:?}: {e}", self.path);
-                let thumbnail = self.load_thumbnail(UsedBy::None).clone();
+                let thumbnail = self.read_thumbnail_from_disk().unwrap_or_default();
                 self.mark_thumbnail_unused_by(UsedBy::None);
                 DetailedSongInfo {
                     lyrics: Lyrics::default(),
@@ -717,42 +718,6 @@ impl Song {
     ) -> TryLockResult<RwLockReadGuard<'_, UnloadUnused<gdk::Texture>>> {
         self.thumbnail.try_read()
     }
-    /// Loads the thumbnail or creates it if necessary
-    ///
-    /// Note: The returned inner `Option` could be `None`
-    /// if the file does not have an artwork available
-    ///
-    /// # Panics
-    /// The function panics if the thumbnail `RwLock` is poisoned
-    #[inline]
-    pub fn load_thumbnail(
-        &self,
-        used_by: UsedBy,
-    ) -> RwLockReadGuard<'_, UnloadUnused<gdk::Texture>> {
-        #[cfg(feature = "verbose-warnings")]
-        if self.thumbnail.try_read().is_err() {
-            println!("Note: Blocking on read lock for `load_thumbnail`");
-        }
-        let thumbnail = self.thumbnail.read().unwrap();
-        if thumbnail.is_some() {
-            return thumbnail;
-        }
-        drop(thumbnail);
-
-        #[cfg(feature = "verbose-warnings")]
-        if self.thumbnail.try_write().is_err() {
-            println!("Note: Blocking on write lock for `load_thumbnail`");
-        }
-        (self.thumbnail.write().unwrap()).set_value(
-            match self.read_thumbnail_from_disk() {
-                Ok(thumbnail) => thumbnail,
-                Err(_) => self.create_thumbnail(),
-            },
-            used_by,
-        );
-
-        self.thumbnail.read().unwrap()
-    }
     /// Marks the thumbnail as unused by `unused_by`, and unloads it if
     /// there are no more uses
     ///
@@ -786,28 +751,71 @@ impl Song {
     /// is returned.
     ///
     /// # Errors
-    /// The function returns an error if the thumbnail file does not exist
+    /// Returns an error if the thumbnail file could not be read
     #[inline]
     fn read_thumbnail_from_disk(&self) -> Result<Option<gdk::Texture>, Box<dyn Error>> {
         let mut thumbnail_file = fs::File::open(self.thumbnail_file_path())?;
         let mut buffer = Vec::new();
-        thumbnail_file.read_to_end(&mut buffer).unwrap();
+        thumbnail_file.read_to_end(&mut buffer)?;
         Ok(gdk::Texture::from_bytes(&glib::Bytes::from(&*buffer)).ok())
     }
-    /// Creates a new thumbnail file by loading the detailed info
-    /// and downscaling it, and returns it as a `gdk::Texture`.
-    /// If no artwork is available, a 0-byte thumbnail file is
-    /// created, and the function returns `None`.
-    #[must_use]
-    fn create_thumbnail(&self) -> Option<gdk::Texture> {
-        if !fs::exists(&self.path).unwrap_or(false) {
-            return None; // Skip thumbnail caching for missing files
+}
+
+pub trait SharedSongExt {
+    fn load_thumbnail(&self, used_by: UsedBy) -> RwLockReadGuard<'_, UnloadUnused<gdk::Texture>>;
+    fn create_thumbnail(&self) -> Option<gdk::Texture>;
+}
+impl SharedSongExt for SharedSong {
+    /// Loads the thumbnail or creates it if necessary
+    ///
+    /// Note: The returned inner `Option` could be `None`
+    /// if the file does not have an artwork available
+    ///
+    /// # Panics
+    /// The function panics if the thumbnail `RwLock` is poisoned
+    #[inline]
+    fn load_thumbnail(&self, used_by: UsedBy) -> RwLockReadGuard<'_, UnloadUnused<gdk::Texture>> {
+        #[cfg(feature = "verbose-warnings")]
+        if self.thumbnail.try_read().is_err() {
+            println!("Note: Blocking on read lock for `load_thumbnail`");
         }
+        let thumbnail = self.thumbnail.read().unwrap();
+        if thumbnail.is_some() {
+            return thumbnail;
+        }
+        drop(thumbnail);
 
-        let thumbnail_file_path = self.thumbnail_file_path();
-
+        #[cfg(feature = "verbose-warnings")]
+        if self.thumbnail.try_write().is_err() {
+            println!("Note: Blocking on write lock for `load_thumbnail`");
+        }
+        let mut thumbnail_writer = self.thumbnail.write().unwrap();
+        let thumbnail = match self.read_thumbnail_from_disk() {
+            Ok(thumbnail) => thumbnail,
+            Err(_) => {
+                thumbnail_writer.mark_used_by(UsedBy::DiskIO);
+                let thumbnail = self.create_thumbnail();
+                if fs::exists(&self.path).unwrap_or_default() {
+                    let thumbnail_file_path = self.thumbnail_file_path();
+                    let thumbnail_bytes = match &thumbnail {
+                        Some(thumbnail) => thumbnail.save_to_png_bytes(),
+                        None => glib::Bytes::from(&[]),
+                    };
+                    let song = Arc::clone(self);
+                    sequential_tasks().run_in_queue(move || {
+                        let _ = write_file_create_dir_all(thumbnail_file_path, thumbnail_bytes);
+                        song.mark_thumbnail_unused_by(UsedBy::DiskIO);
+                    });
+                }
+                thumbnail
+            }
+        };
+        thumbnail_writer.set_value(thumbnail, used_by);
+        RwLockWriteGuard::downgrade(thumbnail_writer)
+    }
+    /// Returns a downscaled version of the detailed artwork
+    fn create_thumbnail(&self) -> Option<gdk::Texture> {
         let Some(artwork) = self.load_detailed_and(|detailed| detailed.artwork.clone()) else {
-            write_file_create_dir_all(thumbnail_file_path, "").unwrap();
             *self.detailed_info.write().unwrap() = None; // Also contains lyrics
             return None;
         };
@@ -835,12 +843,9 @@ impl Song {
         .unwrap();
 
         // FIX: `gdk::Texture::for_pixbuf` is deprecated
-        // The documentation suggests using `glycin`, however
-        // using it might not be feasible for other platforms
-        let thumbnail = gdk::Texture::for_pixbuf(&pixbuf);
-        write_file_create_dir_all(thumbnail_file_path, thumbnail.save_to_png_bytes()).unwrap();
-
-        Some(thumbnail)
+        // The documentation suggests using `glycin`, but it looks like it's
+        // currently `async`-only (which would require a major refactor)
+        Some(gdk::Texture::for_pixbuf(&pixbuf))
     }
 }
 

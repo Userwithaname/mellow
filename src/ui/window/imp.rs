@@ -9,6 +9,7 @@ use std::sync::Arc;
 use std::thread;
 
 use crate::excuses::ACTION_ERR;
+use crate::library::song::SharedSongExt;
 use crate::library::unload_unused::UsedBy;
 use crate::library::{Albums, Artists, SharedAlbum, SharedArtist, SharedSong, Songs, ToQueue};
 use crate::library::{Library, library_tx};

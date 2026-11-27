@@ -2,7 +2,7 @@ use core::sync::atomic::{AtomicBool, Ordering};
 use std::hint::unreachable_unchecked;
 use std::sync::Arc;
 
-use crate::library::{SharedSong, Song};
+use crate::library::SharedSong;
 
 #[derive(Clone)]
 pub enum QueueItem {
@@ -87,7 +87,7 @@ impl QueueItem {
     #[inline]
     pub fn is_song_and<P>(&self, predicate: P) -> bool
     where
-        P: FnOnce(&Song) -> bool,
+        P: FnOnce(&SharedSong) -> bool,
     {
         match self {
             Self::Song(song) => predicate(song),
@@ -120,7 +120,7 @@ impl QueueItem {
     #[inline]
     pub fn map_song<F, T>(&self, f: F) -> Option<T>
     where
-        F: FnOnce(&Song) -> T,
+        F: FnOnce(&SharedSong) -> T,
     {
         match self {
             QueueItem::Song(song) => Some(f(song)),

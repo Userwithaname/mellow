@@ -5,6 +5,7 @@ pub enum UsedBy {
     None = 0,
     Library = 1,
     SongQueue = 2,
+    DiskIO = 4,
 }
 
 /// Stores an `Option<T>`, which is automatically unloaded when no longer

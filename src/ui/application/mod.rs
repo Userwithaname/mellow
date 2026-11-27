@@ -18,6 +18,7 @@ use crate::library::{Library, LibraryConfig, LibraryRequest};
 use crate::player::{Player, PlayerRequest, SongQueue};
 use crate::shortcuts::Shortcuts;
 use crate::ui::{Window, actions::Actions, ui_tx};
+use crate::util::sequential_tasks::sequential_tasks;
 use crate::util::{deserialize_list, fs::music_dir};
 use crate::{about, init_channels, mpris};
 
@@ -180,6 +181,7 @@ impl Application {
     /// - Component thread panics will propagate at the end of the function
     /// - Process exits with error code 1 if shutdown takes longer than 5 seconds
     fn shutdown(&self) {
+        sequential_tasks().stop_and_close_queue();
         let imp = self.imp();
         imp.window.get().unwrap().save_and_uninit().unwrap();
 

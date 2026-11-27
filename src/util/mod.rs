@@ -5,6 +5,7 @@ pub mod fs;
 pub mod hint;
 pub mod math;
 pub mod search;
+pub mod sequential_tasks;
 pub mod serializer;
 pub mod tasks;
 pub mod time;

@@ -4,6 +4,7 @@ use gtk::glib;
 use std::sync::Arc;
 
 use crate::library::SharedArtist;
+use crate::library::song::SharedSongExt;
 use crate::library::unload_unused::UsedBy;
 use crate::ui::gtk_ext::GtkPictureExt;
 use crate::ui::{ListRow, UpdateUI};

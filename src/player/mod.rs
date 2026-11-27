@@ -6,7 +6,8 @@ use std::fs;
 use std::sync::{OnceLock, mpsc};
 
 use crate::excuses::INIT_ERR;
-use crate::library::{Song, unload_unused::UsedBy};
+use crate::library::song::SharedSongExt;
+use crate::library::unload_unused::UsedBy;
 use crate::ui::{UI_TIMEOUT, UpdateUI, ui_tx};
 use crate::util::hint::cold_expression;
 use crate::util::wrap_index;
@@ -607,7 +608,7 @@ impl Player {
         // Seek to the same time the player was at before, or skip the song
         if self.seek_to_time(pos).is_err() {
             eprintln!("Could not restore playback time; skipping");
-            self.queue.current().map_song(Song::played);
+            self.queue.current().map_song(|song| song.played());
             PlayerRequest::SkipNext.send();
         }
     }

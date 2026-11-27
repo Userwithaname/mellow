@@ -4,6 +4,7 @@ use glib::Object;
 use gtk::{gdk, glib};
 use std::sync::Arc;
 
+use crate::library::song::SharedSongExt;
 use crate::library::unload_unused::UsedBy;
 use crate::library::{Library, library_tx};
 use crate::player::QueueItem;

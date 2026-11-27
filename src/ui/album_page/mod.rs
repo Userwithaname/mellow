@@ -3,6 +3,7 @@ use glib::{Object, clone};
 use gtk::{Orientation, gdk, glib};
 use std::sync::{Arc, atomic::Ordering};
 
+use crate::library::song::SharedSongExt;
 use crate::library::unload_unused::UsedBy;
 use crate::library::{Library, SharedAlbum, library_tx};
 use crate::ui::gtk_ext::GtkPictureExt;
